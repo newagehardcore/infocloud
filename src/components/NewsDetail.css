@@ -1,0 +1,137 @@
+.news-detail {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  color: #f5f5f5;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #6495ED;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.news-article h1 {
+  margin-top: 0;
+  font-size: 1.8rem;
+  line-height: 1.3;
+}
+
+.news-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.bias-indicator {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.bias-indicator.mainstream-left {
+  background-color: #6495ED;
+  color: #fff;
+}
+
+.bias-indicator.alternative-left {
+  background-color: #0000FF;
+  color: #fff;
+}
+
+.bias-indicator.centrist {
+  background-color: #800080;
+  color: #fff;
+}
+
+.bias-indicator.mainstream-right {
+  background-color: #F08080;
+  color: #000;
+}
+
+.bias-indicator.alternative-right {
+  background-color: #FF0000;
+  color: #fff;
+}
+
+.bias-indicator.unclear {
+  background-color: #808080;
+  color: #fff;
+}
+
+.news-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.news-keywords {
+  margin-bottom: 30px;
+}
+
+.news-keywords h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.keyword-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.keyword {
+  background-color: #333;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.read-more-link {
+  display: inline-block;
+  background-color: #6495ED;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.read-more-link:hover {
+  background-color: #4169E1;
+}
+
+.loading, .error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .news-detail {
+    padding: 15px;
+  }
+  
+  .news-article h1 {
+    font-size: 1.5rem;
+  }
+  
+  .news-meta {
+    gap: 10px;
+  }
+}

@@ -1,0 +1,17 @@
+.responsive-container {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .responsive-container {
+    /* Mobile-specific styles */
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 769px) {
+  .responsive-container {
+    /* Desktop-specific styles */
+  }
+}
