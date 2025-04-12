@@ -4,6 +4,7 @@ import { Text, OrbitControls } from '@react-three/drei';
 import { NewsCategory, TagCloudWord, NewsItem } from '../types';
 import * as THREE from 'three';
 import './TagCloud3D.css';
+import { getTagFont } from '../utils/fonts';
 
 // Word component for the 3D tag cloud
 const Word = ({ 
@@ -78,6 +79,9 @@ const Word = ({
         anchorY="middle"
         outlineWidth={isSelected ? 0.02 : 0}
         outlineColor="#ffffff"
+        font={getTagFont()}
+        letterSpacing={-0.03}
+        fontWeight="normal"
       >
         {word.text}
       </Text>

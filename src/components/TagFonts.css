@@ -1,0 +1,16 @@
+/* Tag Font Styling
+ * This file contains typography styles for tag text in both desktop and mobile views.
+ * Uses Helvetica font with tighter letter-spacing (kerning).
+ */
+
+/* Style for mobile tags */
+.mobile-word {
+  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 600; /* Slightly bold weight */
+  letter-spacing: -0.05em; /* Tighter kerning */
+}
+
+/* 
+ * The 3D text component from drei doesn't directly accept CSS,
+ * but styling is applied via props to the Text component in the Word component
+ */ 

@@ -9,7 +9,7 @@ const timeSnapshots: Map<string, TimeSnapshot> = new Map();
 export const createTimeSnapshot = async (category: NewsCategory = NewsCategory.All): Promise<TimeSnapshot> => {
   const timestamp = new Date().toISOString();
   const newsItems = await fetchNewsFromAPI(category);
-  const words = processNewsToWords(newsItems);
+  const words = await processNewsToWords(newsItems);
   
   const snapshot: TimeSnapshot = {
     timestamp,
@@ -70,12 +70,12 @@ export const getAvailableSnapshotTimes = (): Date[] => {
 };
 
 // Function to process news items to generate tag cloud words
-export const processNewsToWords = (news: NewsItem[]): TagCloudWord[] => {
+export const processNewsToWords = async (news: NewsItem[]): Promise<TagCloudWord[]> => {
   const wordMap = new Map<string, TagCloudWord>();
   
-  news.forEach(item => {
+  for (const item of news) {
     // For each news item, use its keywords
-    item.keywords.forEach(word => {
+    for (const word of item.keywords) {
       const normalizedWord = word.toLowerCase();
       
       if (wordMap.has(normalizedWord)) {
@@ -95,8 +95,8 @@ export const processNewsToWords = (news: NewsItem[]): TagCloudWord[] => {
           category: item.category
         });
       }
-    });
-  });
+    }
+  }
   
   // Convert map to array and sort by value (frequency)
   return Array.from(wordMap.values())
@@ -127,7 +127,7 @@ export const initializeWithMockSnapshots = async () => {
     
     // Set the timestamp manually to match the time
     const newsItems = await fetchNewsFromAPI(category);
-    const words = processNewsToWords(newsItems);
+    const words = await processNewsToWords(newsItems);
     
     const snapshot: TimeSnapshot = {
       timestamp: time.toISOString(),

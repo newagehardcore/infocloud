@@ -119,3 +119,10 @@
   color: white;
   font-size: 1.2rem;
 }
+
+/* Font styling for 3D text */
+canvas text, .tag-cloud-word {
+  font-family: Helvetica, Arial, sans-serif !important;
+  letter-spacing: -0.05em;
+  font-weight: 600;
+}

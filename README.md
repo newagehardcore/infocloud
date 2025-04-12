@@ -42,6 +42,16 @@
 - Time machine mode: Users can rewind to view past states
 - Clear visual indicator when viewing historical vs. current data
 
+### Multiple News Sources
+- News aggregation from multiple sources:
+  - NewsAPI.org
+  - The Guardian
+  - The New York Times
+  - GNews
+  - TheNewsAPI
+- Deduplication of similar stories from different sources
+- Wider variety of perspectives and coverage
+
 ## Technical Implementation
 
 ### Framework and Architecture
@@ -50,7 +60,7 @@
 - Responsive design that works on desktop and mobile browsers
 
 ### Data Handling
-- Fetches news from a News API (currently using mock data for development)
+- Fetches news from multiple news APIs
 - Processes text to extract key terms using NLP techniques (natural and compromise libraries)
 - Analyzes and categorizes media bias
 - Stores historical snapshots for the time machine feature
@@ -67,6 +77,27 @@
 ### Prerequisites
 - Node.js (v16 or higher)
 - npm (v7 or higher)
+- API keys for news sources (see below)
+
+### API Keys Setup
+The application uses multiple news APIs to aggregate content. You'll need to obtain API keys from the following services:
+
+1. **NewsAPI.org** - Get a free API key at [https://newsapi.org/register](https://newsapi.org/register)
+2. **The Guardian API** - Register for a free API key at [https://open-platform.theguardian.com/access/](https://open-platform.theguardian.com/access/)
+3. **New York Times API** - Get an API key at [https://developer.nytimes.com/get-started](https://developer.nytimes.com/get-started)
+4. **GNews API** - Register for an API key at [https://gnews.io/register](https://gnews.io/register)
+5. **TheNewsAPI** - Get an API key at [https://www.thenewsapi.com/](https://www.thenewsapi.com/)
+
+After obtaining your API keys, create a `.env` file in the root directory with the following content:
+```
+REACT_APP_NEWS_API_KEY=your-newsapi-key
+REACT_APP_GUARDIAN_API_KEY=your-guardian-api-key
+REACT_APP_NY_TIMES_API_KEY=your-nytimes-api-key
+REACT_APP_GNEWS_API_KEY=your-gnews-api-key
+REACT_APP_THE_NEWS_API_KEY=your-thenewsapi-key
+```
+
+The application will work with at least one API key, but for best results, provide keys for multiple services.
 
 ### Installation
 1. Clone the repository
@@ -74,7 +105,8 @@
 ```
 npm install
 ```
-3. Start the development server:
+3. Set up your API keys in the `.env` file (see API Keys Setup above)
+4. Start the development server:
 ```
 npm start
 ```
@@ -94,6 +126,6 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-- News data provided by [NewsAPI.org](https://newsapi.org/) (in production version)
+- News data provided by [NewsAPI.org](https://newsapi.org/), [The Guardian API](https://open-platform.theguardian.com/), [New York Times API](https://developer.nytimes.com/), [GNews API](https://gnews.io/), and [TheNewsAPI](https://www.thenewsapi.com/)
 - Built with [React](https://reactjs.org/) and [Three.js](https://threejs.org/)
 - NLP processing with [natural](https://github.com/NaturalNode/natural) and [compromise](https://github.com/spencermountain/compromise)

@@ -1,10 +1,71 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NewsCategory, TagCloudWord } from '../types';
 import { Word } from './Word';
 import { throttle, detectDeviceCapabilities, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
+import * as THREE from 'three';
+
+// Animated spheres component that uses useFrame
+const AnimatedSpheres: React.FC<{
+  spheres: {
+    words: TagCloudWord[];
+    positions: [number, number, number][];
+  }[];
+  onWordClick: (word: TagCloudWord) => void;
+  selectedWord: string | null;
+  newWords: Set<string>;
+  getFontSize: (value: number) => number;
+  getBiasColor: (bias: string) => string;
+  renderSettings: any;
+}> = ({ spheres, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
+  const sphereRefs = useRef<(THREE.Group | null)[]>([]);
+  const NUM_SPHERES = spheres.length;
+
+  // Animate sphere movements
+  useFrame((state) => {
+    sphereRefs.current.forEach((sphere, index) => {
+      if (sphere) {
+        // Create unique circular motion for each sphere
+        const time = state.clock.getElapsedTime();
+        const radius = 2;
+        const speed = 0.2;
+        const phaseOffset = (2 * Math.PI * index) / NUM_SPHERES;
+        
+        sphere.position.x = Math.sin(time * speed + phaseOffset) * radius;
+        sphere.position.y = Math.cos(time * speed * 0.5 + phaseOffset) * radius * 0.5;
+        sphere.position.z = Math.cos(time * speed + phaseOffset) * radius;
+      }
+    });
+  });
+
+  return (
+    <>
+      {spheres.map((sphere, sphereIndex) => (
+        <group 
+          key={sphereIndex}
+          ref={el => sphereRefs.current[sphereIndex] = el}
+        >
+          {sphere.words.map((word, i) => (
+            <Word
+              key={word.text}
+              word={word}
+              position={sphere.positions[i]}
+              fontSize={getFontSize(word.value)}
+              color={getBiasColor(word.bias)}
+              onClick={() => onWordClick(word)}
+              isSelected={selectedWord === word.text}
+              isNew={newWords.has(word.text)}
+              animationSpeed={renderSettings.animationSpeed}
+              useSimpleRendering={renderSettings.useSimpleRendering}
+            />
+          ))}
+        </group>
+      ))}
+    </>
+  );
+};
 
 // Main tag cloud component with performance optimizations
 const TagCloud3D: React.FC<{
@@ -13,9 +74,11 @@ const TagCloud3D: React.FC<{
   selectedWord: string | null;
   newWords: Set<string>;
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
-  const [deviceCapabilities, setDeviceCapabilities] = useState(detectDeviceCapabilities());
+  // Commented out unused variables to fix linter warnings
+  // const [deviceCapabilities, setDeviceCapabilities] = useState(detectDeviceCapabilities());
   const [renderSettings, setRenderSettings] = useState(getAdaptiveRenderingSettings());
-  const [fps, setFps] = useState<number>(60);
+  // const [fps, setFps] = useState<number>(60);
+  const NUM_SPHERES = 3;
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: string): string => {
@@ -29,30 +92,35 @@ const TagCloud3D: React.FC<{
     }
   }, []);
   
-  // Calculate font size based on word frequency
+  // Calculate font size based on word frequency with more dramatic variation
   const getFontSize = useCallback((value: number): number => {
-    const minSize = 0.3;
-    const maxSize = 1.0;
+    const minSize = 0.2; // Smaller minimum
+    const maxSize = 2.0; // Larger maximum
     const maxValue = Math.max(...words.map(w => w.value), 1);
     return minSize + ((value / maxValue) * (maxSize - minSize));
   }, [words]);
   
   // Generate positions for words in a sphere-like shape
-  const generatePositions = useCallback((count: number): [number, number, number][] => {
+  const generatePositions = useCallback((count: number, sphereIndex: number): [number, number, number][] => {
     const positions: [number, number, number][] = [];
     const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
+    const sphereRadius = 5;
+    // const sphereOffset = sphereIndex * sphereRadius * 2.5; // Space spheres apart
     
     for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2; // y goes from 1 to -1
-      const radius = Math.sqrt(1 - y * y); // radius at y
-      
-      const theta = phi * i; // Golden angle increment
+      const y = 1 - (i / (count - 1)) * 2;
+      const radius = Math.sqrt(1 - y * y);
+      const theta = phi * i;
       
       const x = Math.cos(theta) * radius;
       const z = Math.sin(theta) * radius;
       
-      // Scale to fit in a sphere with radius 5
-      positions.push([x * 5, y * 5, z * 5]);
+      // Position relative to sphere center
+      positions.push([
+        x * sphereRadius + (sphereIndex - 1) * sphereRadius * 2.5,
+        y * sphereRadius,
+        z * sphereRadius
+      ]);
     }
     
     return positions;
@@ -61,7 +129,16 @@ const TagCloud3D: React.FC<{
   // Initialize performance monitor
   useEffect(() => {
     const monitor = new PerformanceMonitor((currentFps) => {
-      setFps(currentFps);
+      // setFps(currentFps);
+      // Using the FPS data for potential future optimizations but not currently using the state
+      if (currentFps < 30) {
+        setRenderSettings(prev => ({
+          ...prev,
+          useSimpleRendering: true,
+          pixelRatio: 1,
+          enableAutoRotate: false
+        }));
+      }
     });
     
     monitor.start();
@@ -74,7 +151,7 @@ const TagCloud3D: React.FC<{
   // Update device capabilities on window resize
   useEffect(() => {
     const handleResize = throttle(() => {
-      setDeviceCapabilities(detectDeviceCapabilities());
+      // setDeviceCapabilities(detectDeviceCapabilities());
       setRenderSettings(getAdaptiveRenderingSettings());
     }, 500);
     
@@ -85,41 +162,43 @@ const TagCloud3D: React.FC<{
     };
   }, []);
   
-  // Adjust word count based on device capabilities
-  const optimizedWords = words.slice(0, renderSettings.maxWordCount);
-  const positions = generatePositions(optimizedWords.length);
+  // Distribute words among spheres
+  const wordsPerSphere = Math.ceil(words.length / NUM_SPHERES);
+  const spheres = Array.from({ length: NUM_SPHERES }, (_, sphereIndex) => {
+    const startIdx = sphereIndex * wordsPerSphere;
+    const sphereWords = words.slice(startIdx, startIdx + wordsPerSphere);
+    return {
+      words: sphereWords,
+      positions: generatePositions(sphereWords.length, sphereIndex)
+    };
+  });
   
   return (
     <Canvas 
-      camera={{ position: [0, 0, 10], fov: 75 }}
+      camera={{ position: [0, 0, 20], fov: 75 }}
       dpr={renderSettings.pixelRatio}
       performance={{ min: 0.5 }}
     >
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
       
-      {optimizedWords.map((word, i) => (
-        <Word
-          key={word.text}
-          word={word}
-          position={positions[i]}
-          fontSize={getFontSize(word.value)}
-          color={getBiasColor(word.bias)}
-          onClick={() => onWordClick(word)}
-          isSelected={selectedWord === word.text}
-          isNew={newWords.has(word.text)}
-          animationSpeed={renderSettings.animationSpeed}
-          useSimpleRendering={renderSettings.useSimpleRendering}
-        />
-      ))}
+      <AnimatedSpheres
+        spheres={spheres}
+        onWordClick={onWordClick}
+        selectedWord={selectedWord}
+        newWords={newWords}
+        getFontSize={getFontSize}
+        getBiasColor={getBiasColor}
+        renderSettings={renderSettings}
+      />
       
       <OrbitControls 
         enableZoom={true}
         enablePan={false}
         autoRotate={renderSettings.enableAutoRotate}
         autoRotateSpeed={0.5}
-        minDistance={6}
-        maxDistance={20}
+        minDistance={10}
+        maxDistance={40}
       />
     </Canvas>
   );

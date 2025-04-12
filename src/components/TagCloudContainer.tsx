@@ -27,7 +27,7 @@ const TagCloudContainer: React.FC<{
         setNewsItems(news);
         
         // Process news items to generate tag cloud words
-        const words = processNewsToWords(news);
+        const words = await processNewsToWords(news);
         setTagCloudWords(words);
       } catch (error) {
         console.error('Error loading news:', error);
@@ -63,16 +63,22 @@ const TagCloudContainer: React.FC<{
   }, [selectedWord, newsItems]);
   
   // Process news items to generate tag cloud words
-  const processNewsToWords = (news: NewsItem[]): TagCloudWord[] => {
+  const processNewsToWords = async (news: NewsItem[]): Promise<TagCloudWord[]> => {
     const wordMap = new Map<string, TagCloudWord>();
     
-    news.forEach(item => {
+    // Process each news item sequentially
+    for (const item of news) {
       // For each news item, extract or use existing keywords
-      const keywords = item.keywords.length > 0 
-        ? item.keywords 
-        : extractKeywords(item);
+      let keywords: string[];
       
-      keywords.forEach(word => {
+      if (item.keywords.length > 0) {
+        keywords = item.keywords;
+      } else {
+        keywords = await extractKeywords(item);
+      }
+      
+      // Process the keywords
+      for (const word of keywords) {
         const normalizedWord = word.toLowerCase();
         
         if (wordMap.has(normalizedWord)) {
@@ -91,8 +97,8 @@ const TagCloudContainer: React.FC<{
             category: item.category
           });
         }
-      });
-    });
+      }
+    }
     
     // Convert map to array and sort by value (frequency)
     return Array.from(wordMap.values())

@@ -1,0 +1,132 @@
+.api-debug-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  z-index: 1000;
+  font-family: monospace;
+  transition: height 0.3s ease;
+  border-top: 1px solid #444;
+}
+
+.api-debug-panel.collapsed {
+  height: 40px;
+}
+
+.api-debug-panel.expanded {
+  height: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.api-debug-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #444;
+}
+
+.api-debug-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #00ffcc;
+}
+
+.api-debug-content {
+  padding: 10px;
+}
+
+.api-debug-content table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.api-debug-content th,
+.api-debug-content td {
+  padding: 8px;
+  border-bottom: 1px solid #444;
+}
+
+.api-debug-content th {
+  font-weight: bold;
+  color: #00ffcc;
+}
+
+.status-indicator {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.status-indicator.working {
+  background-color: #0f0;
+  color: #000;
+}
+
+.status-indicator.not-working {
+  background-color: #f00;
+  color: #fff;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+@media screen and (max-width: 600px) {
+  .api-debug-panel.expanded {
+    max-height: 250px;
+  }
+  
+  .api-debug-content th,
+  .api-debug-content td {
+    padding: 5px;
+    font-size: 12px;
+  }
+}
+
+.api-debug-actions {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.test-all-button,
+.refresh-button {
+  background-color: #00ffcc;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.test-all-button:hover,
+.refresh-button:hover {
+  background-color: #00ccaa;
+}
+
+.test-all-button:disabled {
+  background-color: #666;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.refresh-button {
+  background-color: #ffcc00;
+}
+
+.refresh-button:hover {
+  background-color: #e6b800;
+} 

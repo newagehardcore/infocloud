@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
-import TagCloud3DContainer from './components/TagCloud3DOptimized';
+import TagCloud3DOptimized from './components/TagCloud3DOptimized';
 import NewsDetail from './components/NewsDetail';
 import TimeControls from './components/TimeControls';
 import CategoryFilter from './components/CategoryFilter';
 import RelatedNewsPanel from './components/RelatedNewsPanel';
 import ResponsiveContainer from './components/ResponsiveContainer';
+import ApiDebugPanel, { API_SOURCE_CHANGE_EVENT } from './components/ApiDebugPanel';
 import { NewsCategory, NewsItem, TagCloudWord } from './types';
 import { fetchNewsFromAPI } from './services/newsService';
 import { getTimeSnapshot, createTimeSnapshot, initializeWithMockSnapshots, processNewsToWords } from './services/timeSnapshotService';
 import { detectDeviceCapabilities } from './utils/performance';
+import { preloadFonts } from './utils/fonts';
 import './App.css';
+import './components/TagFonts.css';
+
+// Flag to show the debug panel - true for development, false for production
+const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
 
 const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.All);
@@ -22,6 +28,13 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [deviceCapabilities, setDeviceCapabilities] = useState(detectDeviceCapabilities());
+  // Add a trigger for refreshing data when API sources change
+  const [apiSourceChangeCount, setApiSourceChangeCount] = useState(0);
+
+  // Preload fonts on app initialization
+  useEffect(() => {
+    preloadFonts();
+  }, []);
 
   // Update device capabilities on window resize
   useEffect(() => {
@@ -36,7 +49,21 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Fetch news data when category changes
+  // Listen for API source change events
+  useEffect(() => {
+    const handleApiSourceChange = () => {
+      // Increment counter to trigger a refresh
+      setApiSourceChangeCount(prev => prev + 1);
+    };
+    
+    window.addEventListener(API_SOURCE_CHANGE_EVENT, handleApiSourceChange);
+    
+    return () => {
+      window.removeEventListener(API_SOURCE_CHANGE_EVENT, handleApiSourceChange);
+    };
+  }, []);
+
+  // Fetch news data when category changes or API sources change
   useEffect(() => {
     const loadNews = async () => {
       setLoading(true);
@@ -51,7 +78,7 @@ const App: React.FC = () => {
         setNewsItems(news);
         
         // Process news items to generate tag cloud words
-        const words = processNewsToWords(news);
+        const words = await processNewsToWords(news);
         setTagCloudWords(words);
       } catch (error) {
         console.error('Error loading news:', error);
@@ -69,7 +96,7 @@ const App: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [selectedCategory]);
+  }, [selectedCategory, apiSourceChangeCount]);
 
   const handleCategoryChange = (category: NewsCategory) => {
     setSelectedCategory(category);
@@ -145,7 +172,7 @@ const App: React.FC = () => {
                     <ResponsiveContainer
                       mobileComponent={<MobileTagCloud />}
                       desktopComponent={
-                        <TagCloud3DContainer 
+                        <TagCloud3DOptimized 
                           category={selectedCategory} 
                           words={tagCloudWords}
                           onWordSelect={handleWordSelect}
@@ -166,6 +193,9 @@ const App: React.FC = () => {
             <span>Coming Soon:</span> Personalized Alerts | Geographic Overlay
           </p>
         </footer>
+        
+        {/* API Debug Panel */}
+        <ApiDebugPanel visible={SHOW_DEBUG_PANEL} />
       </div>
     </Router>
   );

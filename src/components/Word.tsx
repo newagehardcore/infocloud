@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
 import { TagCloudWord } from '../types';
 import * as THREE from 'three';
+// import { getTagFont } from '../utils/fonts';
+import HelveticaText from './HelveticaText';
 
 // Optimized Word component for the 3D tag cloud
 export const Word: React.FC<{ 
@@ -76,16 +77,13 @@ export const Word: React.FC<{
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <Text
+      <HelveticaText
         fontSize={fontSize}
         color={color}
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={isSelected ? 0.02 : 0}
-        outlineColor="#ffffff"
+        isSelected={isSelected}
       >
         {word.text}
-      </Text>
+      </HelveticaText>
       {isNew && !useSimpleRendering && (
         <mesh>
           <sphereGeometry args={[fontSize * 0.6, useSimpleRendering ? 8 : 16, useSimpleRendering ? 8 : 16]} />
