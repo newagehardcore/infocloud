@@ -27,7 +27,7 @@ export const Word: React.FC<{
   animationSpeed = 1,
   useSimpleRendering = false
 }) => {
-  const ref = useRef<THREE.Mesh>(null);
+  const ref = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
   
@@ -42,7 +42,7 @@ export const Word: React.FC<{
   useFrame((state, delta) => {
     if (!ref.current) return;
     
-    // Always face the camera (billboarding)
+    // Always face the camera (billboarding) with upright orientation
     ref.current.quaternion.copy(camera.quaternion);
     
     // Grow animation for new words
@@ -53,24 +53,14 @@ export const Word: React.FC<{
     }
     
     // Hover and selection effects
-    if (hovered || isSelected) {
-      ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, 1.2, delta * 5 * animationSpeed);
-      ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, 1.2, delta * 5 * animationSpeed);
-      ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, 1.2, delta * 5 * animationSpeed);
-    } else {
-      ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, 1, delta * 5 * animationSpeed);
-      ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, 1, delta * 5 * animationSpeed);
-      ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, 1, delta * 5 * animationSpeed);
-    }
-    
-    // Subtle floating animation - only if not in simple rendering mode
-    if (!useSimpleRendering) {
-      ref.current.position.y += Math.sin(state.clock.elapsedTime * 0.5 * animationSpeed + position[0] * 100) * 0.01 * animationSpeed;
-    }
+    const targetScale = (hovered || isSelected) ? 1.2 : 1;
+    ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, targetScale, delta * 5 * animationSpeed);
+    ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, delta * 5 * animationSpeed);
+    ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, targetScale, delta * 5 * animationSpeed);
   });
   
   return (
-    <mesh
+    <group
       ref={ref}
       position={position}
       onClick={onClick}
@@ -90,6 +80,6 @@ export const Word: React.FC<{
           <meshBasicMaterial color={color} transparent opacity={0.1} />
         </mesh>
       )}
-    </mesh>
+    </group>
   );
 };

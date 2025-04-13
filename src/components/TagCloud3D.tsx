@@ -117,10 +117,16 @@ const TagCloud3D: React.FC<{
   
   // Calculate font size based on word frequency
   const getFontSize = (value: number): number => {
-    const minSize = 0.1;
-    const maxSize = 0.5;
+    const minSize = 0.01; // Extremely tiny for least frequent words
+    const maxSize = 1.0;  // Large maximum for frequent words
     const maxValue = Math.max(...words.map(w => w.value), 1);
-    return minSize + ((value / maxValue) * (maxSize - minSize));
+    
+    // Use a non-linear scale with a higher power for extreme differentiation
+    const normalizedValue = value / maxValue;
+    
+    // Apply a power curve with power of 4 for even more dramatic difference
+    // This creates an extremely long tail of small words with only the most frequent being large
+    return minSize + (Math.pow(normalizedValue, 4) * (maxSize - minSize));
   };
   
   // Generate positions for words in a sphere-like shape

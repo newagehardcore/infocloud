@@ -124,10 +124,15 @@ const TagCloudContainer: React.FC<{
   
   // Calculate font size based on word frequency
   const getFontSize = (value: number): number => {
-    const minSize = 12;
-    const maxSize = 48;
+    const minSize = 4;   // Extremely small minimum size
+    const maxSize = 80;  // Larger maximum for dramatic effect
     const maxValue = Math.max(...tagCloudWords.map(w => w.value));
-    return minSize + ((value / maxValue) * (maxSize - minSize));
+    
+    // Use a quartic power scale for the most extreme size differences
+    const normalizedValue = value / maxValue;
+    
+    // Apply power of 4 for extremely dramatic difference
+    return minSize + (Math.pow(normalizedValue, 4) * (maxSize - minSize));
   };
   
   if (loading && newsItems.length === 0) {

@@ -21,7 +21,8 @@ export const HelveticaText: React.FC<HelveticaTextProps> = ({
   const ref = useRef<THREE.Group>(null);
   
   // Convert three.js fontSize to CSS px
-  const cssSize = fontSize * 100;
+  // Use a more dramatic scaling to match the cube power scaling in TagCloud3D.tsx
+  const cssSize = fontSize * 120; // Increased multiplier for more dramatic effect
   
   return (
     <group ref={ref}>

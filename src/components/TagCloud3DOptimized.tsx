@@ -7,63 +7,69 @@ import { throttle, detectDeviceCapabilities, getAdaptiveRenderingSettings, Perfo
 import './TagCloud3D.css';
 import * as THREE from 'three';
 
-// Animated spheres component that uses useFrame
-const AnimatedSpheres: React.FC<{
-  spheres: {
-    words: TagCloudWord[];
-    positions: [number, number, number][];
-  }[];
+// Random starfield component that displays words randomly distributed
+const StarfieldTags: React.FC<{
+  words: TagCloudWord[];
+  positions: [number, number, number][];
   onWordClick: (word: TagCloudWord) => void;
   selectedWord: string | null;
   newWords: Set<string>;
   getFontSize: (value: number) => number;
   getBiasColor: (bias: string) => string;
   renderSettings: any;
-}> = ({ spheres, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
-  const sphereRefs = useRef<(THREE.Group | null)[]>([]);
-  const NUM_SPHERES = spheres.length;
+}> = ({ words, positions, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  // A consistent fontSize function
+  const getConsistentFontSize = (value: number): number => {
+    // Fixed size for all words to ensure complete consistency
+    return 0.4;
+  };
 
-  // Animate sphere movements
+  // Add gentle continuous movement
   useFrame((state) => {
-    sphereRefs.current.forEach((sphere, index) => {
-      if (sphere) {
-        // Create unique circular motion for each sphere
-        const time = state.clock.getElapsedTime();
-        const radius = 2;
-        const speed = 0.2;
-        const phaseOffset = (2 * Math.PI * index) / NUM_SPHERES;
-        
-        sphere.position.x = Math.sin(time * speed + phaseOffset) * radius;
-        sphere.position.y = Math.cos(time * speed * 0.5 + phaseOffset) * radius * 0.5;
-        sphere.position.z = Math.cos(time * speed + phaseOffset) * radius;
-      }
+    if (!groupRef.current) return;
+    
+    const time = state.clock.getElapsedTime();
+    
+    // Individual word movement
+    words.forEach((_, index) => {
+      const child = groupRef.current?.children[index];
+      if (!child) return;
+
+      // Create unique but stable movement for each word
+      const uniqueOffset = Math.sin(index * 0.1) * 10; // Use word index for stable offset
+      const xFreq = 0.2 + Math.sin(index * 0.05) * 0.1; // Increased frequency per word
+      const yFreq = 0.25 + Math.cos(index * 0.05) * 0.1;
+      const zFreq = 0.3 + Math.sin(index * 0.05) * 0.1;
+      
+      // Apply more noticeable floating movement relative to original position
+      const originalPosition = positions[index];
+      child.position.set(
+        originalPosition[0] + Math.sin(time * xFreq + uniqueOffset) * 0.5, // Increased amplitude from 0.2 to 0.5
+        originalPosition[1] + Math.cos(time * yFreq + uniqueOffset) * 0.5,
+        originalPosition[2] + Math.sin(time * zFreq + uniqueOffset) * 0.5
+      );
     });
   });
 
   return (
-    <>
-      {spheres.map((sphere, sphereIndex) => (
-        <group 
-          key={sphereIndex}
-          ref={el => sphereRefs.current[sphereIndex] = el}
-        >
-          {sphere.words.map((word, i) => (
-            <Word
-              key={word.text}
-              word={word}
-              position={sphere.positions[i]}
-              fontSize={getFontSize(word.value)}
-              color={getBiasColor(word.bias)}
-              onClick={() => onWordClick(word)}
-              isSelected={selectedWord === word.text}
-              isNew={newWords.has(word.text)}
-              animationSpeed={renderSettings.animationSpeed}
-              useSimpleRendering={renderSettings.useSimpleRendering}
-            />
-          ))}
-        </group>
+    <group ref={groupRef}>
+      {words.map((word, i) => (
+        <Word
+          key={word.text}
+          word={word}
+          position={positions[i]}
+          fontSize={getConsistentFontSize(word.value)}
+          color={getBiasColor(word.bias)}
+          onClick={() => onWordClick(word)}
+          isSelected={selectedWord === word.text}
+          isNew={newWords.has(word.text)}
+          animationSpeed={renderSettings.animationSpeed}
+          useSimpleRendering={renderSettings.useSimpleRendering}
+        />
       ))}
-    </>
+    </group>
   );
 };
 
@@ -74,11 +80,8 @@ const TagCloud3D: React.FC<{
   selectedWord: string | null;
   newWords: Set<string>;
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
-  // Commented out unused variables to fix linter warnings
-  // const [deviceCapabilities, setDeviceCapabilities] = useState(detectDeviceCapabilities());
   const [renderSettings, setRenderSettings] = useState(getAdaptiveRenderingSettings());
-  // const [fps, setFps] = useState<number>(60);
-  const NUM_SPHERES = 3;
+  const [positions, setPositions] = useState<[number, number, number][]>([]);
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: string): string => {
@@ -94,43 +97,35 @@ const TagCloud3D: React.FC<{
   
   // Calculate font size based on word frequency with more dramatic variation
   const getFontSize = useCallback((value: number): number => {
-    const minSize = 0.2; // Smaller minimum
-    const maxSize = 2.0; // Larger maximum
-    const maxValue = Math.max(...words.map(w => w.value), 1);
-    return minSize + ((value / maxValue) * (maxSize - minSize));
-  }, [words]);
+    // Fixed size for all words to ensure complete consistency
+    return 0.4;
+  }, []);
   
-  // Generate positions for words in a sphere-like shape
-  const generatePositions = useCallback((count: number, sphereIndex: number): [number, number, number][] => {
+  // Generate random positions in a starfield configuration
+  const generateStarfieldPositions = useCallback((count: number): [number, number, number][] => {
     const positions: [number, number, number][] = [];
-    const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
-    const sphereRadius = 5;
-    // const sphereOffset = sphereIndex * sphereRadius * 2.5; // Space spheres apart
+    const STARFIELD_SIZE = 40; // Size of the starfield cube
     
     for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2;
-      const radius = Math.sqrt(1 - y * y);
-      const theta = phi * i;
+      // Generate random positions in a cube
+      const x = (Math.random() - 0.5) * STARFIELD_SIZE;
+      const y = (Math.random() - 0.5) * STARFIELD_SIZE;
+      const z = (Math.random() - 0.5) * STARFIELD_SIZE;
       
-      const x = Math.cos(theta) * radius;
-      const z = Math.sin(theta) * radius;
-      
-      // Position relative to sphere center
-      positions.push([
-        x * sphereRadius + (sphereIndex - 1) * sphereRadius * 2.5,
-        y * sphereRadius,
-        z * sphereRadius
-      ]);
+      positions.push([x, y, z]);
     }
     
     return positions;
   }, []);
+
+  // Update positions when words change
+  useEffect(() => {
+    setPositions(generateStarfieldPositions(words.length));
+  }, [words, generateStarfieldPositions]);
   
   // Initialize performance monitor
   useEffect(() => {
     const monitor = new PerformanceMonitor((currentFps) => {
-      // setFps(currentFps);
-      // Using the FPS data for potential future optimizations but not currently using the state
       if (currentFps < 30) {
         setRenderSettings(prev => ({
           ...prev,
@@ -151,7 +146,6 @@ const TagCloud3D: React.FC<{
   // Update device capabilities on window resize
   useEffect(() => {
     const handleResize = throttle(() => {
-      // setDeviceCapabilities(detectDeviceCapabilities());
       setRenderSettings(getAdaptiveRenderingSettings());
     }, 500);
     
@@ -162,17 +156,6 @@ const TagCloud3D: React.FC<{
     };
   }, []);
   
-  // Distribute words among spheres
-  const wordsPerSphere = Math.ceil(words.length / NUM_SPHERES);
-  const spheres = Array.from({ length: NUM_SPHERES }, (_, sphereIndex) => {
-    const startIdx = sphereIndex * wordsPerSphere;
-    const sphereWords = words.slice(startIdx, startIdx + wordsPerSphere);
-    return {
-      words: sphereWords,
-      positions: generatePositions(sphereWords.length, sphereIndex)
-    };
-  });
-  
   return (
     <Canvas 
       camera={{ position: [0, 0, 20], fov: 75 }}
@@ -182,8 +165,9 @@ const TagCloud3D: React.FC<{
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
       
-      <AnimatedSpheres
-        spheres={spheres}
+      <StarfieldTags
+        words={words}
+        positions={positions}
         onWordClick={onWordClick}
         selectedWord={selectedWord}
         newWords={newWords}
@@ -194,11 +178,11 @@ const TagCloud3D: React.FC<{
       
       <OrbitControls 
         enableZoom={true}
-        enablePan={false}
-        autoRotate={renderSettings.enableAutoRotate}
-        autoRotateSpeed={0.5}
-        minDistance={10}
-        maxDistance={40}
+        enablePan={true}
+        enableRotate={true}
+        autoRotate={false}
+        minDistance={1}
+        maxDistance={100}
       />
     </Canvas>
   );
