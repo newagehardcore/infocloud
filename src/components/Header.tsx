@@ -9,36 +9,53 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ selectedCategory, onCategoryChange }) => {
   const categories = [
+    // Main
     { value: NewsCategory.All, label: 'All' },
-    { value: NewsCategory.World, label: 'World' },
+    
+    // News & Politics
     { value: NewsCategory.US, label: 'US' },
+    { value: NewsCategory.World, label: 'World' },
+    { value: NewsCategory.Politics, label: 'Politics' },
+    { value: NewsCategory.Military, label: 'Military' },
+    { value: NewsCategory.Crime, label: 'Crime' },
+    
+    // Science & Tech
     { value: NewsCategory.Tech, label: 'Tech' },
-    { value: NewsCategory.Business, label: 'Business' },
-    { value: NewsCategory.Entertainment, label: 'Entertainment' },
-    { value: NewsCategory.Sports, label: 'Sports' },
-    { value: NewsCategory.Health, label: 'Health' },
+    { value: NewsCategory.AI, label: 'AI' },
     { value: NewsCategory.Science, label: 'Science' },
+    { value: NewsCategory.Space, label: 'Space' },
+    
+    // Economy
+    { value: NewsCategory.Business, label: 'Business' },
+    { value: NewsCategory.Finance, label: 'Finance' },
+    
+    // Society
+    { value: NewsCategory.Health, label: 'Health' },
+    { value: NewsCategory.Education, label: 'Education' },
+    { value: NewsCategory.Environment, label: 'Environment' },
+    
+    // Culture
+    { value: NewsCategory.Entertainment, label: 'Entertainment' },
+    { value: NewsCategory.Art, label: 'Art' },
+    { value: NewsCategory.Sports, label: 'Sports' }
   ];
 
   return (
     <header className="header">
       <div className="logo">
         <h1>INFOCLOUD</h1>
-        <p className="tagline">Real-time News Tag Cloud</p>
       </div>
       <nav className="category-nav">
         <ul>
           {categories.map((category) => (
             <li key={category.value}>
-              <label className="category-checkbox">
-                <input
-                  type="radio"
-                  name="category"
-                  checked={selectedCategory === category.value}
-                  onChange={() => onCategoryChange(category.value)}
-                />
-                <span className="category-label">{category.label}</span>
-              </label>
+              <button
+                className={`category-button ${selectedCategory === category.value ? 'active' : ''}`}
+                onClick={() => onCategoryChange(category.value)}
+                aria-pressed={selectedCategory === category.value}
+              >
+                {category.label}
+              </button>
             </li>
           ))}
         </ul>

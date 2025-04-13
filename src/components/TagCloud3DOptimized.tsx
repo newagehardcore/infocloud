@@ -20,6 +20,11 @@ const StarfieldTags: React.FC<{
 }> = ({ words, positions, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
   const groupRef = useRef<THREE.Group>(null);
   
+  // Ensure we have valid positions for all words
+  const validPositions = positions.length >= words.length ? 
+    positions : 
+    Array(words.length).fill([0, 0, 0]);
+
   // A consistent fontSize function
   const getConsistentFontSize = (value: number): number => {
     // Fixed size for all words to ensure complete consistency
@@ -38,15 +43,15 @@ const StarfieldTags: React.FC<{
       if (!child) return;
 
       // Create unique but stable movement for each word
-      const uniqueOffset = Math.sin(index * 0.1) * 10; // Use word index for stable offset
-      const xFreq = 0.2 + Math.sin(index * 0.05) * 0.1; // Increased frequency per word
+      const uniqueOffset = Math.sin(index * 0.1) * 10;
+      const xFreq = 0.2 + Math.sin(index * 0.05) * 0.1;
       const yFreq = 0.25 + Math.cos(index * 0.05) * 0.1;
       const zFreq = 0.3 + Math.sin(index * 0.05) * 0.1;
       
       // Apply more noticeable floating movement relative to original position
-      const originalPosition = positions[index];
+      const originalPosition = validPositions[index];
       child.position.set(
-        originalPosition[0] + Math.sin(time * xFreq + uniqueOffset) * 0.5, // Increased amplitude from 0.2 to 0.5
+        originalPosition[0] + Math.sin(time * xFreq + uniqueOffset) * 0.5,
         originalPosition[1] + Math.cos(time * yFreq + uniqueOffset) * 0.5,
         originalPosition[2] + Math.sin(time * zFreq + uniqueOffset) * 0.5
       );
@@ -59,8 +64,8 @@ const StarfieldTags: React.FC<{
         <Word
           key={word.text}
           word={word}
-          position={positions[i]}
-          fontSize={getConsistentFontSize(word.value)}
+          position={validPositions[i]}
+          fontSize={getFontSize(word.value)}
           color={getBiasColor(word.bias)}
           onClick={() => onWordClick(word)}
           isSelected={selectedWord === word.text}

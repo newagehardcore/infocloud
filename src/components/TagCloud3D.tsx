@@ -28,6 +28,11 @@ const Word = ({
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
   
+  // Validate position and ensure it's a proper tuple
+  const safePosition: [number, number, number] = Array.isArray(position) && position.length === 3 
+    ? [position[0], position[1], position[2]]
+    : [0, 0, 0];
+  
   // Animation for new words
   useEffect(() => {
     if (ref.current && isNew) {
@@ -37,7 +42,7 @@ const Word = ({
   
   // Frame animation
   useFrame((state, delta) => {
-    if (!ref.current) return;
+    if (!ref.current || !safePosition) return;
     
     // Always face the camera (billboarding)
     ref.current.quaternion.copy(camera.quaternion);
@@ -60,14 +65,16 @@ const Word = ({
       ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, 1, delta * 5);
     }
     
-    // Subtle floating animation
-    ref.current.position.y += Math.sin(state.clock.elapsedTime * 0.5 + position[0] * 100) * 0.01;
+    // Only apply floating animation if we have valid position data
+    if (typeof safePosition[0] === 'number') {
+      ref.current.position.y += Math.sin(state.clock.elapsedTime * 0.5 + safePosition[0] * 100) * 0.01;
+    }
   });
   
   return (
     <mesh
       ref={ref}
-      position={position}
+      position={safePosition}
       onClick={onClick}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
@@ -116,53 +123,143 @@ const TagCloud3D: React.FC<{
   };
   
   // Calculate font size based on word frequency
-  const getFontSize = (value: number): number => {
-    const minSize = 0.01; // Extremely tiny for least frequent words
-    const maxSize = 1.0;  // Large maximum for frequent words
-    const maxValue = Math.max(...words.map(w => w.value), 1);
+  const getFontSize = (value: number, wordsArray: TagCloudWord[]): number => {
+    const minSize = 0.002; // Extremely tiny for least frequent words
+    const maxSize = 3.0;   // Much larger maximum for top stories
+    const maxValue = Math.max(...wordsArray.map(w => w.value), 1);
     
     // Use a non-linear scale with a higher power for extreme differentiation
     const normalizedValue = value / maxValue;
     
-    // Apply a power curve with power of 4 for even more dramatic difference
-    // This creates an extremely long tail of small words with only the most frequent being large
-    return minSize + (Math.pow(normalizedValue, 4) * (maxSize - minSize));
+    // Get the rank of this word (1-based, where 1 is highest frequency)
+    const rank = wordsArray.filter(w => w.value > value).length + 1;
+    
+    // For top 3 stories, use special scaling
+    if (rank <= 3) {
+      // Scale from 1.5 to 3.0 for top 3
+      return 1.5 + ((3 - rank) * 0.75);
+    }
+    
+    // For all other stories, use a very steep power curve
+    // Power of 12 creates an extremely long tail of tiny words
+    return minSize + (Math.pow(normalizedValue, 12) * 0.8);
   };
   
   // Generate positions for words in a sphere-like shape
-  const generatePositions = (count: number): [number, number, number][] => {
+  const generatePositions = (count: number, wordsToUse: TagCloudWord[]): [number, number, number][] => {
     const positions: [number, number, number][] = [];
+    
+    // Special case for single word
+    if (count === 1) {
+      positions.push([0, 0, 0]);
+      return positions;
+    }
+    
     const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
     
+    // First, generate initial positions on a larger sphere
     for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2; // y goes from 1 to -1
-      const radius = Math.sqrt(1 - y * y); // radius at y
-      
-      const theta = phi * i; // Golden angle increment
+      const y = 1 - (i / (count - 1)) * 2;
+      const radius = Math.sqrt(1 - y * y);
+      const theta = phi * i;
       
       const x = Math.cos(theta) * radius;
       const z = Math.sin(theta) * radius;
       
-      // Scale to fit in a sphere with radius 5
-      positions.push([x * 5, y * 5, z * 5]);
+      // Scale to fit in a larger initial sphere
+      positions.push([x * 8, y * 8, z * 8] as [number, number, number]);
+    }
+    
+    // Get font sizes for all words to use in repulsion calculations
+    const fontSizes = wordsToUse.map(word => getFontSize(word.value, wordsToUse));
+    
+    // Apply repulsion forces to adjust positions
+    const iterations = 100; // More iterations for better separation
+    const repulsionForce = 0.15; // Stronger repulsion
+    
+    for (let iter = 0; iter < iterations; iter++) {
+      for (let i = 0; i < positions.length; i++) {
+        const pos1 = positions[i];
+        let dx = 0, dy = 0, dz = 0;
+        
+        // Calculate repulsion from all other words
+        for (let j = 0; j < positions.length; j++) {
+          if (i === j) continue;
+          
+          const pos2 = positions[j];
+          const distance = Math.sqrt(
+            Math.pow(pos1[0] - pos2[0], 2) +
+            Math.pow(pos1[1] - pos2[1], 2) +
+            Math.pow(pos1[2] - pos2[2], 2)
+          );
+          
+          // Calculate minimum distance based on both words' sizes
+          const combinedSize = (fontSizes[i] + fontSizes[j]) * 3;
+          const minDistance = Math.max(2, combinedSize);
+          
+          // Apply repulsion if words are too close
+          if (distance < minDistance) {
+            // Stronger repulsion for bigger words
+            const force = (minDistance - distance) * repulsionForce * 
+              (1 + Math.max(fontSizes[i], fontSizes[j]));
+            
+            dx += ((pos1[0] - pos2[0]) / distance) * force;
+            dy += ((pos1[1] - pos2[1]) / distance) * force;
+            dz += ((pos1[2] - pos2[2]) / distance) * force;
+          }
+        }
+        
+        // Update position with repulsion forces
+        positions[i] = [
+          pos1[0] + dx,
+          pos1[1] + dy,
+          pos1[2] + dz
+        ] as [number, number, number];
+        
+        // Keep words within bounds
+        const maxRadius = 12; // Larger maximum radius
+        const dist = Math.sqrt(
+          positions[i][0] * positions[i][0] +
+          positions[i][1] * positions[i][1] +
+          positions[i][2] * positions[i][2]
+        );
+        
+        if (dist > maxRadius) {
+          const scale = maxRadius / dist;
+          positions[i] = [
+            positions[i][0] * scale,
+            positions[i][1] * scale,
+            positions[i][2] * scale
+          ] as [number, number, number];
+        }
+      }
     }
     
     return positions;
   };
+
+  // Ensure words array is valid
+  const validWords = Array.isArray(words) ? words : [];
   
-  const positions = generatePositions(words.length);
+  // Generate positions only if we have valid words
+  const positions = validWords.length > 0 ? generatePositions(validWords.length, validWords) : [];
+  
+  // Return early if no valid words
+  if (validWords.length === 0) {
+    return null;
+  }
   
   return (
     <Canvas camera={{ position: [0, 0, 10], fov: 75 }}>
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
       
-      {words.map((word, i) => (
+      {validWords.map((word, i) => (
         <Word
           key={word.text}
           word={word}
-          position={positions[i]}
-          fontSize={getFontSize(word.value)}
+          position={positions[i] || [0, 0, 0]}
+          fontSize={getFontSize(word.value, validWords)}
           color={getBiasColor(word.bias)}
           onClick={() => onWordClick(word)}
           isSelected={selectedWord === word.text}
@@ -173,7 +270,7 @@ const TagCloud3D: React.FC<{
       <OrbitControls 
         enableZoom={true}
         enablePan={false}
-        autoRotate={!isTimeMachineMode} // Only auto-rotate in live mode
+        autoRotate={!isTimeMachineMode}
         autoRotateSpeed={0.5}
         minDistance={6}
         maxDistance={20}

@@ -4,13 +4,13 @@ import Header from './components/Header';
 import TagCloud3DOptimized from './components/TagCloud3DOptimized';
 import NewsDetail from './components/NewsDetail';
 import TimeControls from './components/TimeControls';
-import CategoryFilter from './components/CategoryFilter';
 import RelatedNewsPanel from './components/RelatedNewsPanel';
 import ResponsiveContainer from './components/ResponsiveContainer';
 import ApiDebugPanel, { API_SOURCE_CHANGE_EVENT } from './components/ApiDebugPanel';
 import { NewsCategory, NewsItem, TagCloudWord } from './types';
 import { fetchNewsFromAPI } from './services/newsService';
-import { getTimeSnapshot, createTimeSnapshot, initializeWithMockSnapshots, processNewsToWords } from './services/timeSnapshotService';
+import { getTimeSnapshot, createTimeSnapshot } from './services/timeSnapshotService';
+import { processNewsToWords, DEFAULT_WORD_PROCESSING_CONFIG, analyzeWordDistribution } from './utils/wordProcessing';
 import { detectDeviceCapabilities } from './utils/performance';
 import { preloadFonts } from './utils/fonts';
 import './App.css';
@@ -77,8 +77,21 @@ const App: React.FC = () => {
         }
         setNewsItems(news);
         
-        // Process news items to generate tag cloud words
-        const words = await processNewsToWords(news);
+        // Process news items to generate tag cloud words with refined filtering
+        const words = await processNewsToWords(news, {
+          ...DEFAULT_WORD_PROCESSING_CONFIG,
+          minFrequency: 1, // Allow words that appear only once
+          maxWords: 500, // Increase maximum words significantly
+          minWordLength: 2, // Allow shorter words
+          removeStopWords: true, // Keep filtering stop words
+          combineWordForms: false // Don't combine word forms to preserve more variety
+        });
+
+        // Log word distribution analysis in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Word distribution analysis:', analyzeWordDistribution(words));
+        }
+
         setTagCloudWords(words);
       } catch (error) {
         console.error('Error loading news:', error);
@@ -155,11 +168,6 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={
               <>
-                <CategoryFilter 
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={handleCategoryChange}
-                />
-                
                 {error ? (
                   <div className="error-message">
                     <p>{error}</p>

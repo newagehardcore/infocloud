@@ -25,12 +25,21 @@ export enum NewsCategory {
   All = 'all',
   World = 'world',
   US = 'us',
+  Politics = 'politics',
   Tech = 'tech',
+  AI = 'ai',
   Business = 'business',
+  Finance = 'finance',
   Entertainment = 'entertainment',
+  Art = 'art',
   Sports = 'sports',
   Health = 'health',
-  Science = 'science'
+  Science = 'science',
+  Education = 'education',
+  Environment = 'environment',
+  Military = 'military',
+  Crime = 'crime',
+  Space = 'space'
 }
 
 export interface TagCloudWord {

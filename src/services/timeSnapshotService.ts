@@ -104,48 +104,9 @@ export const processNewsToWords = async (news: NewsItem[]): Promise<TagCloudWord
     .slice(0, 100); // Limit to top 100 words for performance
 };
 
-// Initialize with some mock snapshots for development
-export const initializeWithMockSnapshots = async () => {
-  console.log('Initializing mock snapshots...');
-  // Create snapshots for the past 24 hours, one per hour
-  const now = new Date();
-  
-  for (let i = 0; i < 24; i++) {
-    const time = new Date(now);
-    time.setHours(now.getHours() - i);
-    
-    // Mock different news for different times
-    const category = i % 9 === 0 ? NewsCategory.Tech :
-                    i % 9 === 1 ? NewsCategory.Business :
-                    i % 9 === 2 ? NewsCategory.Entertainment :
-                    i % 9 === 3 ? NewsCategory.Sports :
-                    i % 9 === 4 ? NewsCategory.Health :
-                    i % 9 === 5 ? NewsCategory.Science :
-                    i % 9 === 6 ? NewsCategory.World :
-                    i % 9 === 7 ? NewsCategory.US :
-                    NewsCategory.All;
-    
-    // Set the timestamp manually to match the time
-    const newsItems = await fetchNewsFromAPI(category);
-    const words = await processNewsToWords(newsItems);
-    
-    const snapshot: TimeSnapshot = {
-      timestamp: time.toISOString(),
-      words,
-      newsItems
-    };
-    
-    timeSnapshots.set(time.toISOString(), snapshot);
-    console.log(`Created snapshot for ${time.toISOString()} with ${newsItems.length} news items and ${words.length} words`);
-  }
-  
-  console.log(`Total snapshots initialized: ${timeSnapshots.size}`);
-};
-
 export default {
   createTimeSnapshot,
   getTimeSnapshot,
   getAvailableSnapshotTimes,
-  initializeWithMockSnapshots,
   processNewsToWords
 };

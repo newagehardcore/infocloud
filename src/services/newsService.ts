@@ -25,9 +25,17 @@ const mapTheNewsAPIToCategory = (apiCategory: string): NewsCategory | null => {
     case 'science': return NewsCategory.Science;
     case 'sports': return NewsCategory.Sports;
     case 'technology': return NewsCategory.Tech;
-    case 'politics': return NewsCategory.US;
+    case 'ai': return NewsCategory.AI;
+    case 'art': return NewsCategory.Art;
+    case 'space': return NewsCategory.Space;
+    case 'politics': return NewsCategory.Politics;
     case 'world': return NewsCategory.World;
     case 'general': return NewsCategory.All;
+    case 'finance': return NewsCategory.Finance;
+    case 'education': return NewsCategory.Education;
+    case 'environment': return NewsCategory.Environment;
+    case 'military': return NewsCategory.Military;
+    case 'crime': return NewsCategory.Crime;
     default: return null;
   }
 };
@@ -365,14 +373,14 @@ const isApiEnabled = (apiName: string, defaultValue: boolean = true): boolean =>
 };
 
 // Function to fetch news from multiple API sources
-export const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> => {
+const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> => {
   try {
     // Check if any API keys are available
     const hasKeys = NEWS_API_KEY || GNEWS_API_KEY || THE_NEWS_API_KEY;
     
     if (!hasKeys) {
-      console.warn('No API keys found. Using mock data instead.');
-      return getMockNewsData(category);
+      console.warn('No API keys found. Returning empty array.');
+      return [];
     }
 
     // Fetch from all available sources in parallel
@@ -418,8 +426,8 @@ export const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All
     let combinedNews: NewsItem[] = allNewsResults.flat();
     
     if (combinedNews.length === 0) {
-      console.warn('No articles found from any API. Using mock data instead.');
-      return getMockNewsData(category);
+      console.warn('No articles found from any API.');
+      return [];
     }
 
     // Deduplicate articles with the same title (from different sources)
@@ -435,8 +443,7 @@ export const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All
     return combinedNews;
   } catch (error) {
     console.error('Error fetching news from APIs:', error);
-    console.warn('Falling back to mock data.');
-    return getMockNewsData(category);
+    return [];
   }
 };
 
@@ -449,9 +456,9 @@ const mapCategoryToNewsAPI = (category: NewsCategory): string | null => {
     case NewsCategory.Science: return 'science';
     case NewsCategory.Sports: return 'sports';
     case NewsCategory.Tech: return 'technology';
-    case NewsCategory.US: return null; // Use country=us parameter instead
-    case NewsCategory.World: return null; // Not directly mappable
-    case NewsCategory.All: return null;
+    case NewsCategory.US: return 'politics';
+    case NewsCategory.World: return 'world';
+    case NewsCategory.All: return 'general';
     default: return null;
   }
 };
@@ -506,35 +513,65 @@ const mapArticleToNewsItem = (article: any, index: number, apiSource: string): N
 };
 
 // Extract keywords from a news item
-export const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
+const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
   // Combine title and description for better keyword extraction
   const text = `${newsItem.title} ${newsItem.description}`;
   
   try {
-    // Use compromise NLP to extract nouns and noun phrases
+    // Use compromise NLP to extract various types of terms
     const doc = nlp(text);
+    
+    // Get topics (main subjects)
     const topics = doc.topics().json({ normal: true });
+    
+    // Get all nouns (including proper nouns)
     const nouns = doc.nouns().json({ normal: true });
     
-    // Combine topics and nouns, remove duplicates
-    const allTerms = [...topics, ...nouns].map(term => term.normal || term.text);
+    // Get organizations and company names
+    const organizations = doc.organizations().json({ normal: true });
+    
+    // Get places and locations
+    const places = doc.places().json({ normal: true });
+    
+    // Get verbs (actions) - can be important in news context
+    const verbs = doc.verbs().json({ normal: true });
+    
+    // Combine all terms and remove duplicates
+    const allTerms = [
+      ...topics,
+      ...nouns,
+      ...organizations,
+      ...places,
+      ...verbs
+    ].map(term => term.normal || term.text);
+    
     const uniqueTerms = Array.from(new Set(allTerms));
     
-    // Filter out stop words and short terms
-    const filteredTerms = uniqueTerms.filter(
-      term => term.length > 3 && !stopWords.includes(term.toLowerCase())
-    );
+    // Filter out stop words, short terms, and numbers
+    const filteredTerms = uniqueTerms.filter(term => {
+      const lowerTerm = term.toLowerCase();
+      return (
+        term.length > 2 && // Allow slightly shorter terms
+        !/^\d+$/.test(term) && // Filter out pure numbers
+        !stopWords.includes(lowerTerm) // Filter out stop words
+      );
+    });
     
-    // Return top 10 keywords
-    return filteredTerms.slice(0, 10);
+    // Return more keywords (up to 30 per article)
+    return filteredTerms.slice(0, 30);
   } catch (error) {
     console.error('Error extracting keywords:', error);
-    return [];
+    // Return some basic keywords from the title as fallback
+    return newsItem.title
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 3 && !stopWords.includes(word))
+      .slice(0, 10);
   }
 };
 
 // Analyze political bias of a media source
-export const analyzeMediaBias = (sourceName: string): PoliticalBias => {
+const analyzeMediaBias = (sourceName: string): PoliticalBias => {
   // This is a simplified mapping of news sources to political bias
   // In a real application, this would be based on a comprehensive database or API
   const sourceMapping: Record<string, PoliticalBias> = {
@@ -594,17 +631,32 @@ const determineCategoryFromArticle = (article: any): NewsCategory => {
   if (sectionName) {
     const lowerSection = sectionName.toLowerCase();
     
-    if (lowerSection.includes('business') || lowerSection.includes('finance') || lowerSection.includes('economy')) {
+    if (lowerSection.includes('business')) {
       return NewsCategory.Business;
     }
-    if (lowerSection.includes('entertainment') || lowerSection.includes('culture') || lowerSection.includes('arts')) {
+    if (lowerSection.includes('finance') || lowerSection.includes('market') || lowerSection.includes('stock')) {
+      return NewsCategory.Finance;
+    }
+    if (lowerSection.includes('entertainment')) {
       return NewsCategory.Entertainment;
+    }
+    if (lowerSection.includes('art') || lowerSection.includes('culture') || lowerSection.includes('museum')) {
+      return NewsCategory.Art;
     }
     if (lowerSection.includes('health') || lowerSection.includes('wellness')) {
       return NewsCategory.Health;
     }
-    if (lowerSection.includes('science') || lowerSection.includes('environment')) {
+    if (lowerSection.includes('science')) {
       return NewsCategory.Science;
+    }
+    if (lowerSection.includes('space') || lowerSection.includes('astronomy') || lowerSection.includes('nasa')) {
+      return NewsCategory.Space;
+    }
+    if (lowerSection.includes('education') || lowerSection.includes('school') || lowerSection.includes('university')) {
+      return NewsCategory.Education;
+    }
+    if (lowerSection.includes('environment') || lowerSection.includes('climate')) {
+      return NewsCategory.Environment;
     }
     if (lowerSection.includes('sport') || lowerSection.includes('sports')) {
       return NewsCategory.Sports;
@@ -612,7 +664,19 @@ const determineCategoryFromArticle = (article: any): NewsCategory => {
     if (lowerSection.includes('tech') || lowerSection.includes('technology')) {
       return NewsCategory.Tech;
     }
-    if (lowerSection.includes('us') || lowerSection.includes('nation') || lowerSection.includes('politics')) {
+    if (lowerSection.includes('ai') || lowerSection.includes('artificial intelligence') || lowerSection.includes('machine learning')) {
+      return NewsCategory.AI;
+    }
+    if (lowerSection.includes('politics') || lowerSection.includes('election')) {
+      return NewsCategory.Politics;
+    }
+    if (lowerSection.includes('military') || lowerSection.includes('defense')) {
+      return NewsCategory.Military;
+    }
+    if (lowerSection.includes('crime') || lowerSection.includes('police') || lowerSection.includes('court')) {
+      return NewsCategory.Crime;
+    }
+    if (lowerSection.includes('us') || lowerSection.includes('nation')) {
       return NewsCategory.US;
     }
     if (lowerSection.includes('world') || lowerSection.includes('international')) {
@@ -624,25 +688,52 @@ const determineCategoryFromArticle = (article: any): NewsCategory => {
   const title = article.title || '';
   const lowerTitle = title.toLowerCase();
   
-  if (lowerTitle.includes('business') || lowerTitle.includes('economy') || lowerTitle.includes('market')) {
+  if (lowerTitle.includes('business')) {
     return NewsCategory.Business;
   }
-  if (lowerTitle.includes('entertainment') || lowerTitle.includes('movie') || lowerTitle.includes('music')) {
+  if (lowerTitle.includes('finance') || lowerTitle.includes('market') || lowerTitle.includes('stock')) {
+    return NewsCategory.Finance;
+  }
+  if (lowerTitle.includes('entertainment')) {
     return NewsCategory.Entertainment;
+  }
+  if (lowerTitle.includes('art') || lowerTitle.includes('artist') || lowerTitle.includes('museum')) {
+    return NewsCategory.Art;
   }
   if (lowerTitle.includes('health') || lowerTitle.includes('medicine') || lowerTitle.includes('covid')) {
     return NewsCategory.Health;
   }
-  if (lowerTitle.includes('science') || lowerTitle.includes('research') || lowerTitle.includes('study')) {
+  if (lowerTitle.includes('science') || lowerTitle.includes('research')) {
     return NewsCategory.Science;
+  }
+  if (lowerTitle.includes('space') || lowerTitle.includes('nasa') || lowerTitle.includes('astronomy')) {
+    return NewsCategory.Space;
+  }
+  if (lowerTitle.includes('education') || lowerTitle.includes('school') || lowerTitle.includes('university')) {
+    return NewsCategory.Education;
+  }
+  if (lowerTitle.includes('environment') || lowerTitle.includes('climate')) {
+    return NewsCategory.Environment;
   }
   if (lowerTitle.includes('sport') || lowerTitle.includes('game') || lowerTitle.includes('team')) {
     return NewsCategory.Sports;
   }
-  if (lowerTitle.includes('tech') || lowerTitle.includes('ai') || lowerTitle.includes('digital')) {
+  if (lowerTitle.includes('tech') || lowerTitle.includes('digital')) {
     return NewsCategory.Tech;
   }
-  if (lowerTitle.includes('politic') || lowerTitle.includes('congress') || lowerTitle.includes('senate')) {
+  if (lowerTitle.includes('ai') || lowerTitle.includes('artificial intelligence') || lowerTitle.includes('machine learning') || lowerTitle.includes('chatgpt')) {
+    return NewsCategory.AI;
+  }
+  if (lowerTitle.includes('politic') || lowerTitle.includes('election')) {
+    return NewsCategory.Politics;
+  }
+  if (lowerTitle.includes('military') || lowerTitle.includes('defense') || lowerTitle.includes('war')) {
+    return NewsCategory.Military;
+  }
+  if (lowerTitle.includes('crime') || lowerTitle.includes('police') || lowerTitle.includes('court')) {
+    return NewsCategory.Crime;
+  }
+  if (lowerTitle.includes('congress') || lowerTitle.includes('senate')) {
     return NewsCategory.US;
   }
   if (lowerTitle.includes('world') || lowerTitle.includes('global') || lowerTitle.includes('international')) {
@@ -653,12 +744,12 @@ const determineCategoryFromArticle = (article: any): NewsCategory => {
   return NewsCategory.All;
 };
 
-export const saveTimeSnapshot = (snapshot: TimeSnapshot): void => {
+const saveTimeSnapshot = (snapshot: TimeSnapshot): void => {
   console.log('Saving time snapshot:', snapshot);
   // Implementation will depend on storage mechanism (localStorage, IndexedDB, server API, etc.)
 };
 
-export const getTimeSnapshot = (timestamp: string): TimeSnapshot | null => {
+const getTimeSnapshot = (timestamp: string): TimeSnapshot | null => {
   console.log('Getting time snapshot for:', timestamp);
   // Implementation will depend on storage mechanism
   return null;
@@ -675,177 +766,6 @@ const stopWords = [
   'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those',
   'through', 'too', 'under', 'until', 'very', 'was', 'way', 'were', 'what',
   'when', 'where', 'which', 'while', 'who', 'with', 'would', 'you', 'your'
-];
-
-// Mock news data for development
-const getMockNewsData = (category: NewsCategory): NewsItem[] => {
-  const allNews = mockNewsData;
-  
-  if (category === NewsCategory.All) {
-    return allNews;
-  }
-  
-  return allNews.filter(item => item.category === category);
-};
-
-// Enhanced mock news data with more realistic content
-const mockNewsData: NewsItem[] = [
-  {
-    id: '1',
-    title: 'Tech Giants Announce New AI Ethics Coalition',
-    description: 'Major technology companies including Google, Microsoft, and OpenAI have formed a partnership to develop ethical standards for artificial intelligence development and deployment.',
-    url: 'https://example.com/tech-ai-ethics-coalition',
-    source: {
-      name: 'Tech Today',
-      bias: PoliticalBias.Centrist
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Tech,
-    keywords: ['artificial intelligence', 'ethics', 'technology', 'standards', 'coalition']
-  },
-  {
-    id: '2',
-    title: 'Global Climate Summit Reaches Historic Carbon Agreement',
-    description: 'World leaders at the UN Climate Summit have agreed on ambitious new targets to reduce carbon emissions by 50% by 2030, with developing nations receiving financial support for green transitions.',
-    url: 'https://example.com/climate-summit-agreement',
-    source: {
-      name: 'World News Network',
-      bias: PoliticalBias.MainstreamLeft
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.World,
-    keywords: ['climate', 'carbon', 'emissions', 'agreement', 'summit']
-  },
-  {
-    id: '3',
-    title: 'Stock Market Reaches All-Time High on Tech Earnings',
-    description: 'The S&P 500 and Nasdaq closed at record highs today, driven by stronger-than-expected earnings reports from major technology companies and positive economic indicators.',
-    url: 'https://example.com/stock-market-record-high',
-    source: {
-      name: 'Business Daily',
-      bias: PoliticalBias.MainstreamRight
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Business,
-    keywords: ['stock market', 'earnings', 'technology', 'economy', 'record']
-  },
-  {
-    id: '4',
-    title: 'Universal Healthcare Bill Introduced in Congress',
-    description: 'Progressive lawmakers have introduced a comprehensive healthcare reform bill aimed at establishing a single-payer system that would provide coverage to all Americans regardless of income.',
-    url: 'https://example.com/universal-healthcare-bill',
-    source: {
-      name: 'Progressive Voice',
-      bias: PoliticalBias.AlternativeLeft
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.US,
-    keywords: ['healthcare', 'congress', 'single-payer', 'reform', 'progressive']
-  },
-  {
-    id: '5',
-    title: 'NASA and SpaceX Announce 2028 Mars Mission Timeline',
-    description: 'NASA in partnership with SpaceX has set a target date of 2028 for the first human mission to Mars, with preparations for habitat construction and life support systems already underway.',
-    url: 'https://example.com/nasa-spacex-mars-mission',
-    source: {
-      name: 'Science Today',
-      bias: PoliticalBias.Centrist
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Science,
-    keywords: ['NASA', 'SpaceX', 'Mars', 'mission', 'space exploration']
-  },
-  {
-    id: '6',
-    title: 'Underdog Team Wins Championship in Overtime Thriller',
-    description: 'In one of the most dramatic finals in recent history, the underdog team overcame a 15-point deficit to win the national championship in overtime, ending a 25-year title drought.',
-    url: 'https://example.com/championship-overtime-thriller',
-    source: {
-      name: 'Sports Network',
-      bias: PoliticalBias.Unclear
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Sports,
-    keywords: ['championship', 'overtime', 'underdog', 'comeback', 'sports']
-  },
-  {
-    id: '7',
-    title: 'New Study Shows Mediterranean Diet Reduces Heart Disease Risk by 30%',
-    description: 'A comprehensive 10-year study involving over 100,000 participants has confirmed that following a Mediterranean diet can significantly reduce the risk of heart disease and stroke compared to typical Western diets.',
-    url: 'https://example.com/mediterranean-diet-heart-study',
-    source: {
-      name: 'Health Journal',
-      bias: PoliticalBias.Centrist
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Health,
-    keywords: ['Mediterranean diet', 'heart disease', 'health', 'nutrition', 'research']
-  },
-  {
-    id: '8',
-    title: 'Streaming Platform Announces $200M Budget for New Sci-Fi Series',
-    description: 'A major streaming service has revealed plans for its most expensive original production yet, a high-concept science fiction series from acclaimed directors with a $200 million budget for the first season.',
-    url: 'https://example.com/streaming-scifi-series-budget',
-    source: {
-      name: 'Entertainment Weekly',
-      bias: PoliticalBias.MainstreamLeft
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Entertainment,
-    keywords: ['streaming', 'science fiction', 'television', 'production', 'entertainment']
-  },
-  {
-    id: '9',
-    title: 'Government Proposes Tax Cuts for Middle-Income Families',
-    description: 'The administration has unveiled a tax reform proposal that would reduce rates for households earning between $50,000 and $100,000 annually while increasing capital gains taxes on high-income earners.',
-    url: 'https://example.com/middle-class-tax-cuts',
-    source: {
-      name: 'Conservative Tribune',
-      bias: PoliticalBias.AlternativeRight
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.US,
-    keywords: ['tax cuts', 'middle class', 'government', 'reform', 'economy']
-  },
-  {
-    id: '10',
-    title: 'Revolutionary Battery Technology Doubles Electric Vehicle Range',
-    description: 'Scientists have developed a new solid-state battery technology that could double the range of electric vehicles while reducing charging time to under 10 minutes, potentially accelerating EV adoption.',
-    url: 'https://example.com/battery-technology-breakthrough',
-    source: {
-      name: 'Tech Review',
-      bias: PoliticalBias.MainstreamLeft
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Tech,
-    keywords: ['battery', 'electric vehicles', 'technology', 'innovation', 'energy']
-  },
-  {
-    id: '11',
-    title: 'International Tensions Rise Over Disputed Territory',
-    description: 'Diplomatic relations have deteriorated as two nations claim sovereignty over a resource-rich border region, with military forces conducting exercises nearby and global powers calling for de-escalation.',
-    url: 'https://example.com/international-territory-dispute',
-    source: {
-      name: 'Global Affairs',
-      bias: PoliticalBias.Centrist
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.World,
-    keywords: ['international', 'territory', 'dispute', 'diplomatic', 'military']
-  },
-  {
-    id: '12',
-    title: 'Breakthrough Drug Shows Promise in Alzheimer\'s Treatment',
-    description: 'A new pharmaceutical treatment has demonstrated significant reduction in cognitive decline during late-stage clinical trials, potentially offering the first effective therapy for Alzheimer\'s disease progression.',
-    url: 'https://example.com/alzheimers-drug-breakthrough',
-    source: {
-      name: 'Medical News',
-      bias: PoliticalBias.Centrist
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.Health,
-    keywords: ['Alzheimer\'s', 'treatment', 'pharmaceutical', 'clinical trials', 'medicine']
-  }
 ];
 
 // Helper function to create a placeholder news item for error cases
@@ -865,7 +785,7 @@ const createPlaceholderNewsItem = (index: number, sourceName: string, errorMessa
   };
 };
 
-export default {
+export {
   fetchNewsFromAPI,
   extractKeywords,
   analyzeMediaBias,

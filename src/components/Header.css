@@ -1,62 +1,109 @@
 .header {
-  background-color: #1e1e1e;
-  padding: 15px 20px;
-  display: flex;
-  flex-direction: column;
+  padding: 0.25rem;
   border-bottom: 1px solid #333;
+  background: #111;
 }
 
 .logo {
-  margin-bottom: 15px;
+  text-align: left;
+  margin-bottom: 0.25rem;
+  padding-left: 0.5rem;
 }
 
 .logo h1 {
-  margin: 0;
-  font-size: 1.8rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
   color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
-.tagline {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #aaa;
+.category-nav {
+  width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #333 #111;
+}
+
+.category-nav::-webkit-scrollbar {
+  height: 1px;
+}
+
+.category-nav::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.category-nav::-webkit-scrollbar-thumb {
+  background: #333;
 }
 
 .category-nav ul {
-  display: flex;
   list-style: none;
   padding: 0;
   margin: 0;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.category-checkbox {
   display: flex;
-  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.category-nav li {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.category-button {
+  background: transparent;
+  border: 1px solid #333;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  color: #ccc;
   cursor: pointer;
+  transition: all 0.1s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
-.category-checkbox input {
-  margin-right: 5px;
+.category-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #444;
 }
 
-.category-label {
-  font-size: 0.9rem;
-  color: #ddd;
+.category-button.active {
+  background-color: #333;
+  color: #fff;
+  border-color: #444;
+}
+
+/* Remove category group spacing */
+.category-nav ul li:nth-child(1),
+.category-nav ul li:nth-child(2),
+.category-nav ul li:nth-child(7),
+.category-nav ul li:nth-child(11),
+.category-nav ul li:nth-child(13),
+.category-nav ul li:nth-child(16) {
+  margin-left: 0;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .header {
-    padding: 10px;
+    padding: 4px;
   }
   
-  .category-nav ul {
-    gap: 5px;
+  .logo h1 {
+    font-size: 1.25rem;
   }
   
-  .category-label {
-    font-size: 0.8rem;
+  .category-button {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
   }
 }

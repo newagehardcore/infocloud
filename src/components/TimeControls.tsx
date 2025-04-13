@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTimeSnapshot, getAvailableSnapshotTimes, initializeWithMockSnapshots } from '../services/timeSnapshotService';
+import { getTimeSnapshot, getAvailableSnapshotTimes } from '../services/timeSnapshotService';
 import { NewsCategory, TimeSnapshot } from '../types';
 import './TimeControls.css';
 
@@ -26,7 +26,6 @@ const TimeControls: React.FC<TimeControlsProps> = ({
   useEffect(() => {
     if (!initialized) {
       const initialize = async () => {
-        await initializeWithMockSnapshots();
         setAvailableSnapshots(getAvailableSnapshotTimes());
         setInitialized(true);
       };

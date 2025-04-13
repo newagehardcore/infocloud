@@ -140,16 +140,25 @@ const TagCloudContainer: React.FC<{
   }
   
   return (
-    <div className="tag-cloud-container" ref={containerRef}>
-      <div className="status-indicator">
-        {isTimeMachineMode ? (
-          <span className="historical-indicator">
-            Viewing historical data: {currentTime.toLocaleString()}
-          </span>
-        ) : (
-          <span className="live-indicator">Live Updates</span>
-        )}
-      </div>
+    <div ref={containerRef} className="tag-cloud-container">
+      {loading ? (
+        <div className="loading-state">Loading news data...</div>
+      ) : newsItems.length === 0 ? (
+        <div className="empty-state">
+          <h2>No News Available</h2>
+          <p>There are currently no news articles available for this category. Please try again later or select a different category.</p>
+        </div>
+      ) : (
+        <div className="status-indicator">
+          {isTimeMachineMode ? (
+            <span className="historical-indicator">
+              Viewing historical data: {currentTime.toLocaleString()}
+            </span>
+          ) : (
+            <span className="live-indicator">Live Updates</span>
+          )}
+        </div>
+      )}
       
       {/* Placeholder for Three.js visualization */}
       <div className="tag-cloud-placeholder">
