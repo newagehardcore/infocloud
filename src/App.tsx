@@ -7,7 +7,7 @@ import TimeControls from './components/TimeControls';
 import RelatedNewsPanel from './components/RelatedNewsPanel';
 import ResponsiveContainer from './components/ResponsiveContainer';
 import ApiDebugPanel, { API_SOURCE_CHANGE_EVENT, RSS_FEED_TOGGLE_EVENT } from './components/ApiDebugPanel';
-import { NewsCategory, NewsItem, TagCloudWord } from './types';
+import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias } from './types';
 import { fetchNewsFromAPI, DEFAULT_RSS_FEEDS } from './services/newsService';
 import { getTimeSnapshot, createTimeSnapshot } from './services/timeSnapshotService';
 import { processNewsToWords, DEFAULT_WORD_PROCESSING_CONFIG, analyzeWordDistribution } from './utils/wordProcessing';
@@ -16,12 +16,25 @@ import { preloadFonts } from './utils/fonts';
 import './App.css';
 import './components/TagFonts.css';
 
+// Custom event name for bias updates
+export const BIAS_UPDATE_EVENT = 'biasUpdate';
+
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
+
+// Helper function to filter news items by bias
+const filterNewsByBias = (items: NewsItem[], enabledBiases: Set<PoliticalBias>) => {
+  return items.filter(item => {
+    // Convert both to strings for comparison since localStorage stores strings
+    const itemBias = item.source.bias.toString();
+    return Array.from(enabledBiases).some(bias => bias.toString() === itemBias);
+  });
+};
 
 const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.All);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]); // Store unfiltered items
   const [tagCloudWords, setTagCloudWords] = useState<TagCloudWord[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [relatedNews, setRelatedNews] = useState<NewsItem[]>([]);
@@ -69,7 +82,11 @@ const App: React.FC = () => {
       const event = e as CustomEvent;
       // Only process if we have news items already
       if (newsItems.length > 0) {
-        // Filter news items based on current feed settings
+        // Get enabled biases from localStorage
+        const savedBiases = localStorage.getItem('enabled_biases');
+        const enabledBiases = savedBiases ? new Set(JSON.parse(savedBiases)) : new Set(Object.values(PoliticalBias));
+
+        // Filter news items based on current feed settings and bias filters
         const rssFeedEnabledMap: Record<string, boolean> = {};
         
         // Get current feed settings from localStorage
@@ -83,8 +100,14 @@ const App: React.FC = () => {
         });
         
         // Filter news items that are from enabled RSS feeds or non-RSS sources
+        // AND match the enabled bias filters
         const filteredItems = newsItems.filter(item => {
-          // Non-RSS sources are kept
+          // First check bias
+          if (!enabledBiases.has(item.source.bias)) {
+            return false;
+          }
+
+          // Then check RSS feed status
           if (!item.id.startsWith('RSS-')) {
             return true;
           }
@@ -125,7 +148,39 @@ const App: React.FC = () => {
     };
   }, [newsItems]);
 
-  // Fetch news data when category changes or API sources change
+  // Listen for bias update events
+  useEffect(() => {
+    const handleBiasUpdate = async () => {
+      // Get enabled biases from localStorage
+      const savedBiases = localStorage.getItem('enabled_biases');
+      const enabledBiases = savedBiases ? 
+        new Set(JSON.parse(savedBiases) as PoliticalBias[]) : 
+        new Set(Object.values(PoliticalBias));
+
+      // Filter news items by enabled biases
+      const biasFilteredNews = filterNewsByBias(unfilteredNewsItems, enabledBiases);
+      setNewsItems(biasFilteredNews);
+
+      // Process the filtered news items to update tag cloud
+      const words = await processNewsToWords(biasFilteredNews, {
+        ...DEFAULT_WORD_PROCESSING_CONFIG,
+        minFrequency: 1,
+        maxWords: 500,
+        minWordLength: 2,
+        removeStopWords: true,
+        combineWordForms: false
+      });
+
+      setTagCloudWords(words);
+    };
+
+    window.addEventListener(BIAS_UPDATE_EVENT, handleBiasUpdate);
+    return () => {
+      window.removeEventListener(BIAS_UPDATE_EVENT, handleBiasUpdate);
+    };
+  }, [unfilteredNewsItems]);
+
+  // Modify the loadNews function in the existing useEffect
   useEffect(() => {
     const loadNews = async () => {
       setLoading(true);
@@ -137,19 +192,30 @@ const App: React.FC = () => {
         if (news.length === 0) {
           setError('No news available for the selected category. Please try a different category.');
         }
-        setNewsItems(news);
+
+        // Store unfiltered news
+        setUnfilteredNewsItems(news);
+
+        // Get enabled biases from localStorage
+        const savedBiases = localStorage.getItem('enabled_biases');
+        const enabledBiases = savedBiases ? 
+          new Set(JSON.parse(savedBiases) as PoliticalBias[]) : 
+          new Set(Object.values(PoliticalBias));
+
+        // Filter news items by enabled biases
+        const biasFilteredNews = filterNewsByBias(news, enabledBiases);
+        setNewsItems(biasFilteredNews);
         
-        // Process news items to generate tag cloud words with refined filtering
-        const words = await processNewsToWords(news, {
+        // Process news items to generate tag cloud words
+        const words = await processNewsToWords(biasFilteredNews, {
           ...DEFAULT_WORD_PROCESSING_CONFIG,
-          minFrequency: 1, // Allow words that appear only once
-          maxWords: 500, // Increase maximum words significantly
-          minWordLength: 2, // Allow shorter words
-          removeStopWords: true, // Keep filtering stop words
-          combineWordForms: false // Don't combine word forms to preserve more variety
+          minFrequency: 1,
+          maxWords: 500,
+          minWordLength: 2,
+          removeStopWords: true,
+          combineWordForms: false
         });
 
-        // Log word distribution analysis in development
         if (process.env.NODE_ENV === 'development') {
           console.log('Word distribution analysis:', analyzeWordDistribution(words));
         }
@@ -165,7 +231,6 @@ const App: React.FC = () => {
     
     loadNews();
     
-    // Set up interval for real-time updates (every 5 minutes)
     const interval = setInterval(loadNews, 5 * 60 * 1000);
     
     return () => {
@@ -224,7 +289,7 @@ const App: React.FC = () => {
       <div className="app">
         <Header 
           selectedCategory={selectedCategory} 
-          onCategoryChange={handleCategoryChange} 
+          onSelectCategory={handleCategoryChange}
         />
         <main className="main-content">
           <Routes>
@@ -266,6 +331,15 @@ const App: React.FC = () => {
         
         {/* API Debug Panel */}
         <ApiDebugPanel visible={SHOW_DEBUG_PANEL} />
+
+        {/* Related News Panel Popup */}
+        {selectedWord && relatedNews.length > 0 && (
+          <RelatedNewsPanel
+            newsItems={relatedNews}
+            selectedKeyword={selectedWord}
+            onClose={handleCloseRelatedNews}
+          />
+        )}
       </div>
     </Router>
   );
