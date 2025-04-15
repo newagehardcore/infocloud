@@ -15,6 +15,17 @@ const NEWS_SPECIFIC_WORDS = new Set([
   'breaking', 'exclusive', 'update', 'live', 'developing', 'urgent'
 ]);
 
+// Common news source names to filter out
+const NEWS_SOURCE_NAMES = new Set([
+  'cnn', 'msnbc', 'nytimes', 'times', 'post', 'wapo', 'npr', 'abc', 'cbs', 'nbc', 
+  'mother', 'jones', 'nation', 'huffington', 'vox', 'vanity', 'fair', 'newyorker', 
+  'truthout', 'alternet', 'intercept', 'truthdig', 'reuters', 'bbc', 'axios', 
+  'bloomberg', 'wall', 'journal', 'wsj', 'forbes', 'dailywire', 'breitbart', 'fox',
+  'economist', 'aljazeera', 'guardian', 'dw', 'cnbc', 'wires', 'news', 'newsmax', 
+  'american', 'conservative', 'unz', 'daily', 'caller', 'politicalinsider', 'source',
+  'ap', 'associated', 'press', 'hill', 'newsweek'
+]);
+
 // Configuration options for word processing
 export interface WordProcessingConfig {
   minWordLength: number;        // Minimum length of words to include
@@ -35,24 +46,21 @@ export const DEFAULT_WORD_PROCESSING_CONFIG: WordProcessingConfig = {
   combineWordForms: false  // Don't combine word forms to preserve variety
 };
 
-// Simple stemming rules for combining word forms
-const COMMON_SUFFIXES = [
-  'ing', 'ed', 's', 'es', 'er', 'est', 'ly', 'ment'
-];
-
 /**
- * Attempts to find the root form of a word by removing common suffixes
+ * Simple word stemming function to find word roots
+ * For example: "running" -> "run", "politics" -> "politic"
  */
 const findWordRoot = (word: string): string => {
-  for (const suffix of COMMON_SUFFIXES) {
-    if (word.endsWith(suffix)) {
-      const root = word.slice(0, -suffix.length);
-      // Only remove suffix if remaining root is at least 3 characters
-      if (root.length >= 3) {
-        return root;
-      }
-    }
-  }
+  if (word.length <= 3) return word;
+  
+  // Handle common suffixes
+  if (word.endsWith('ing')) return word.slice(0, -3);
+  if (word.endsWith('ed')) return word.slice(0, -2);
+  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+  if (word.endsWith('ly')) return word.slice(0, -2);
+  if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
+  if (word.endsWith('es')) return word.slice(0, -2);
+  
   return word;
 };
 
@@ -70,6 +78,11 @@ const shouldKeepWord = (
 
   // Check if it's a stop word (but allow news-specific exceptions)
   if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) {
+    return false;
+  }
+  
+  // Check if it's a news source name
+  if (NEWS_SOURCE_NAMES.has(word)) {
     return false;
   }
 

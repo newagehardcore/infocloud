@@ -6,9 +6,9 @@ import NewsDetail from './components/NewsDetail';
 import TimeControls from './components/TimeControls';
 import RelatedNewsPanel from './components/RelatedNewsPanel';
 import ResponsiveContainer from './components/ResponsiveContainer';
-import ApiDebugPanel, { API_SOURCE_CHANGE_EVENT } from './components/ApiDebugPanel';
+import ApiDebugPanel, { API_SOURCE_CHANGE_EVENT, RSS_FEED_TOGGLE_EVENT } from './components/ApiDebugPanel';
 import { NewsCategory, NewsItem, TagCloudWord } from './types';
-import { fetchNewsFromAPI } from './services/newsService';
+import { fetchNewsFromAPI, DEFAULT_RSS_FEEDS } from './services/newsService';
 import { getTimeSnapshot, createTimeSnapshot } from './services/timeSnapshotService';
 import { processNewsToWords, DEFAULT_WORD_PROCESSING_CONFIG, analyzeWordDistribution } from './utils/wordProcessing';
 import { detectDeviceCapabilities } from './utils/performance';
@@ -62,6 +62,68 @@ const App: React.FC = () => {
       window.removeEventListener(API_SOURCE_CHANGE_EVENT, handleApiSourceChange);
     };
   }, []);
+
+  // Listen for RSS feed toggle events for immediate UI update
+  useEffect(() => {
+    const handleRssFeedToggle = async (e: Event) => {
+      const event = e as CustomEvent;
+      // Only process if we have news items already
+      if (newsItems.length > 0) {
+        // Filter news items based on current feed settings
+        const rssFeedEnabledMap: Record<string, boolean> = {};
+        
+        // Get current feed settings from localStorage
+        DEFAULT_RSS_FEEDS.forEach(feed => {
+          const feedId = `rssfeed_${feed.name.replace(/\s+/g, '_')}`;
+          const savedEnabled = localStorage.getItem(feedId);
+          // If we have a saved setting, use that. Otherwise default to enabled
+          rssFeedEnabledMap[feed.name] = savedEnabled === null ? 
+            true : 
+            savedEnabled === 'true';
+        });
+        
+        // Filter news items that are from enabled RSS feeds or non-RSS sources
+        const filteredItems = newsItems.filter(item => {
+          // Non-RSS sources are kept
+          if (!item.id.startsWith('RSS-')) {
+            return true;
+          }
+          
+          // Extract feed name from ID
+          const parts = item.id.split('-');
+          if (parts.length < 3) return false;
+          
+          // Find the source by combining parts until we reach the numeric value
+          let feedName = '';
+          for (let i = 1; i < parts.length; i++) {
+            if (/^\d+$/.test(parts[i])) break;
+            feedName += (feedName ? '-' : '') + parts[i];
+          }
+          
+          // Check if this feed is enabled
+          return rssFeedEnabledMap[feedName] || false;
+        });
+        
+        // Process the filtered news items to update tag cloud
+        const words = await processNewsToWords(filteredItems, {
+          ...DEFAULT_WORD_PROCESSING_CONFIG,
+          minFrequency: 1,
+          maxWords: 500, 
+          minWordLength: 2,
+          removeStopWords: true,
+          combineWordForms: false
+        });
+        
+        setTagCloudWords(words);
+      }
+    };
+    
+    window.addEventListener(RSS_FEED_TOGGLE_EVENT, handleRssFeedToggle);
+    
+    return () => {
+      window.removeEventListener(RSS_FEED_TOGGLE_EVENT, handleRssFeedToggle);
+    };
+  }, [newsItems]);
 
   // Fetch news data when category changes or API sources change
   useEffect(() => {

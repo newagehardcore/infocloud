@@ -91,10 +91,10 @@ const TagCloud3D: React.FC<{
   // Get color based on political bias
   const getBiasColor = useCallback((bias: string): string => {
     switch (bias) {
-      case 'mainstream-left': return '#6495ED'; // Pale blue
-      case 'alternative-left': return '#0000FF'; // Bright blue
+      case 'mainstream-left': return '#6495ED'; // Light blue
+      case 'alternative-left': return '#00008B'; // Dark blue
       case 'centrist': return '#800080'; // Purple
-      case 'mainstream-right': return '#F08080'; // Pale red
+      case 'mainstream-right': return '#FFB6C1'; // Light red
       case 'alternative-right': return '#FF0000'; // Bright red
       default: return '#808080'; // Gray for unclear
     }

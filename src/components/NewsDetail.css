@@ -40,27 +40,27 @@
 }
 
 .bias-indicator.mainstream-left {
-  background-color: #6495ED;
+  background-color: #6495ED; /* Light blue */
   color: #fff;
 }
 
 .bias-indicator.alternative-left {
-  background-color: #0000FF;
+  background-color: #00008B; /* Dark blue */
   color: #fff;
 }
 
 .bias-indicator.centrist {
-  background-color: #800080;
+  background-color: #800080; /* Purple */
   color: #fff;
 }
 
 .bias-indicator.mainstream-right {
-  background-color: #F08080;
+  background-color: #FFB6C1; /* Light red */
   color: #000;
 }
 
 .bias-indicator.alternative-right {
-  background-color: #FF0000;
+  background-color: #FF0000; /* Bright red */
   color: #fff;
 }
 

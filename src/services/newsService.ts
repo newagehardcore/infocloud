@@ -1,12 +1,71 @@
 import axios from 'axios';
 import nlp from 'compromise';
+import { parse as parseRSS } from 'rss-to-json';
+import Parser from 'rss-parser';
 import { NewsItem, PoliticalBias, NewsCategory, TimeSnapshot } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { parseRawRssXml } from '../utils/rssUtils';
+
+// Initialize RSS parser as fallback
+const parser = new Parser();
 
 // Get the API keys from environment variables
 const NEWS_API_KEY = process.env.REACT_APP_NEWS_API_KEY;
 const GNEWS_API_KEY = process.env.REACT_APP_GNEWS_API_KEY;
 const THE_NEWS_API_KEY = process.env.REACT_APP_THE_NEWS_API_KEY;
+
+// Default RSS feeds - can be expanded or made configurable
+export const DEFAULT_RSS_FEEDS = [
+  // Mainstream Left
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', name: 'New York Times' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml', name: 'New York Times Politics' },
+  { url: 'https://feeds.npr.org/1001/rss.xml', name: 'NPR News' },
+  { url: 'https://www.vox.com/rss/world-politics/index.xml', name: 'Vox World Politics' },
+  { url: 'https://www.vanityfair.com/news/politics/rss', name: 'Vanity Fair Politics' },
+  { url: 'https://www.newyorker.com/feed/everything', name: 'The New Yorker' },
+  
+  // Alternative Left
+  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones' },
+  { url: 'https://www.thenation.com/feed/', name: 'The Nation' },
+  { url: 'https://fair.org/feed/', name: 'FAIR' },
+  { url: 'https://truthout.org/latest/feed', name: 'Truthout' },
+  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet' },
+  { url: 'https://theintercept.com/feed/?rss', name: 'The Intercept' },
+  { url: 'https://www.truthdig.com/feed/', name: 'Truthdig' },
+  
+  // Centrist
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', name: 'BBC News World' },
+  { url: 'https://www.pbs.org/newshour/feeds/rss/headlines', name: 'PBS NewsHour' },
+  
+  // Mainstream Right
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/world/', name: 'Washington Times World' },
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/politics/', name: 'Washington Times Politics' },
+  { url: 'https://moxie.foxnews.com/google-publisher/world.xml', name: 'Fox News World' },
+  { url: 'https://moxie.foxnews.com/google-publisher/politics.xml', name: 'Fox News Politics' },
+  { url: 'https://moxie.foxnews.com/google-publisher/us.xml', name: 'Fox News US' },
+  { url: 'http://feeds.foxnews.com/foxnews/politics', name: 'Fox News Politics (Alt)' },
+  { url: 'https://nypost.com/feed/', name: 'New York Post' },
+  { url: 'https://www.nationalreview.com/feed/', name: 'National Review' },
+  
+  // Alternative Right
+  { url: 'https://www.breitbart.com/feed/', name: 'Breitbart News' },
+  { url: 'http://feeds.feedburner.com/breitbart', name: 'Breitbart News (Alt)' },
+  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire' },
+  { url: 'https://dailycaller.com/feed/', name: 'The Daily Caller' },
+  { url: 'https://www.theamericanconservative.com/feed/', name: 'The American Conservative' },
+  { url: 'https://thepoliticalinsider.com/feed/', name: 'The Political Insider' },
+  { url: 'https://www.unz.com/xfeed/rss/all/', name: 'The Unz Review' },
+  
+  // Business/Financial
+  { url: 'https://www.economist.com/the-world-this-week/rss.xml', name: 'The Economist' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', name: 'CNBC World' },
+  
+  // International Perspectives
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
+  { url: 'https://feeds.theguardian.com/theguardian/world/rss', name: 'The Guardian World' },
+  { url: 'https://rss.dw.com/rdf/rss-en-all', name: 'Deutsche Welle News' },
+  { url: 'https://timesofindia.indiatimes.com/rssfeeds_us/-2128936835.cms', name: 'Times of India' }
+];
 
 // News Source interface - any news API we add should implement this
 interface NewsSource {
@@ -359,11 +418,143 @@ class TheNewsAPISource implements NewsSource {
   }
 }
 
+// RSS Source implementation
+class RSSSource implements NewsSource {
+  async fetchNews(category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
+    try {
+      const newsItems: NewsItem[] = [];
+      let successfulFeeds = 0;
+      let failedFeeds = 0;
+      
+      console.log('Starting to fetch RSS feeds...');
+      
+      // Check which feeds should be enabled based on localStorage settings
+      const enabledFeeds = DEFAULT_RSS_FEEDS.filter(feed => {
+        const feedId = `rssfeed_${feed.name.replace(/\s+/g, '_')}`;
+        const savedSetting = localStorage.getItem(feedId);
+        
+        // If we have a saved setting, use that. Otherwise use the default (not disabled)
+        if (savedSetting !== null) {
+          return savedSetting === 'true';
+        }
+        return true;
+      });
+      
+      console.log(`Using ${enabledFeeds.length} enabled feeds out of ${DEFAULT_RSS_FEEDS.length} total feeds`);
+      
+      // Fetch from all configured RSS feeds in parallel
+      const feedPromises = enabledFeeds.map(async feed => {
+        try {
+          console.log(`Fetching RSS feed from: ${feed.name} (${feed.url})`);
+          
+          // Use our proxy endpoint instead of direct fetching
+          const response = await axios.get('/api/rss-feed', {
+            params: { url: feed.url },
+            timeout: 15000
+          });
+          
+          if (!response.data.success) {
+            console.warn(`Proxy returned error for ${feed.name}: `, response.data.error);
+            failedFeeds++;
+            return;
+          }
+          
+          let feedContent = response.data.feed;
+          
+          // Check if we received raw XML content that needs parsing
+          if (response.data.rawContent && feedContent.rawXml) {
+            console.log(`Received raw XML for ${feed.name}, parsing manually...`);
+            try {
+              feedContent = parseRawRssXml(feedContent.rawXml);
+            } catch (parseError) {
+              console.error(`Failed to parse raw XML for ${feed.name}:`, parseError);
+              failedFeeds++;
+              return;
+            }
+          }
+          
+          if (!feedContent || !feedContent.items) {
+            console.warn(`No items found in RSS feed: ${feed.name}`);
+            failedFeeds++;
+            return;
+          }
+          
+          console.log(`Successfully fetched ${feedContent.items.length} items from ${feed.name}`);
+          
+          // Map RSS items to our NewsItem format
+          const items = await Promise.all(
+            (feedContent.items || []).slice(0, 10).map(async (item: any, index: number) => {
+              try {
+                const newsItem: NewsItem = {
+                  id: `RSS-${feed.name}-${index}-${Date.now()}`,
+                  title: item.title || 'No title',
+                  description: item.description || item.content || item.contentEncoded || item['content:encoded'] || 'No description',
+                  url: item.link || item.url || '',
+                  source: {
+                    name: feed.name,
+                    bias: analyzeMediaBias(feed.name)
+                  },
+                  publishedAt: item.published || item.pubDate || item.isoDate || new Date().toISOString(),
+                  category: determineCategoryFromArticle(item),
+                  keywords: [] as string[]
+                };
+                
+                // Clean up description (remove HTML tags if present)
+                newsItem.description = newsItem.description.replace(/<[^>]*>/g, '');
+                
+                // Extract keywords for each article
+                newsItem.keywords = await extractKeywords(newsItem);
+                return newsItem;
+              } catch (itemError) {
+                console.error(`Error processing RSS item from ${feed.name}:`, itemError);
+                return null;
+              }
+            })
+          );
+          
+          // Filter out any null items from errors and explicitly type as NewsItem[]
+          const validItems: NewsItem[] = items.filter((item): item is NewsItem => item !== null);
+          newsItems.push(...validItems);
+          successfulFeeds++;
+          
+        } catch (error) {
+          console.error(`Error fetching RSS feed ${feed.name} (${feed.url}):`, error);
+          failedFeeds++;
+        }
+      });
+      
+      await Promise.all(feedPromises);
+      
+      console.log(`RSS feed fetch summary:
+        - Successful feeds: ${successfulFeeds}
+        - Failed feeds: ${failedFeeds}
+        - Total news items: ${newsItems.length}`);
+      
+      // If we have a specific category, filter the items
+      if (category !== NewsCategory.All) {
+        const filteredItems = newsItems.filter(item => item.category === category);
+        console.log(`Filtered ${newsItems.length} items to ${filteredItems.length} items for category: ${category}`);
+        return filteredItems;
+      }
+      
+      return newsItems;
+    } catch (error) {
+      console.error('Error in RSS fetchNews:', error);
+      return [];
+    }
+  }
+
+  getSourceName(): string {
+    return 'RSS';
+  }
+}
+
 // Initialize the news sources
 const newsSources: NewsSource[] = [
   new NewsAPISource(),
   new GNewsAPISource(),
-  new TheNewsAPISource()
+  new TheNewsAPISource(),
+  new RSSSource()
 ];
 
 // Helper function to check if an API is enabled in localStorage
@@ -395,6 +586,9 @@ const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Prom
       if (source instanceof TheNewsAPISource) {
         return THE_NEWS_API_KEY && isApiEnabled('TheNewsAPI');
       }
+      if (source instanceof RSSSource) {
+        return isApiEnabled('RSS');
+      }
       return false;
     });
 
@@ -416,6 +610,7 @@ const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Prom
       if (source instanceof NewsAPISource) apiName = 'NewsAPI';
       else if (source instanceof GNewsAPISource) apiName = 'GNews';
       else if (source instanceof TheNewsAPISource) apiName = 'TheNewsAPI';
+      else if (source instanceof RSSSource) apiName = 'RSS';
       
       if (apiName) {
         localStorage.setItem(`api_${apiName.replace(/\s+/g, '')}_working`, isWorking ? 'true' : 'false');
@@ -512,6 +707,69 @@ const mapArticleToNewsItem = (article: any, index: number, apiSource: string): N
   };
 };
 
+// Common English stop words to filter out
+const stopWords = [
+  'about', 'after', 'again', 'all', 'also', 'and', 'any', 'are', 'because',
+  'been', 'before', 'being', 'between', 'both', 'but', 'came', 'can',
+  'come', 'could', 'did', 'does', 'doing', 'during', 'each', 'even',
+  'from', 'further', 'had', 'has', 'have', 'having', 'here', 'how',
+  'into', 'just', 'like', 'more', 'most', 'much', 'now', 'only', 'other',
+  'our', 'over', 'said', 'same', 'should', 'some', 'such', 'than', 'that',
+  'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those',
+  'through', 'too', 'under', 'until', 'very', 'was', 'way', 'were', 'what',
+  'when', 'where', 'which', 'while', 'who', 'with', 'would', 'you', 'your'
+];
+
+// List of media source names to filter out from keywords
+const mediaSourceNames = [
+  // Mainstream Left
+  'cnn', 'msnbc', 'new york times', 'the new york times', 'washington post',
+  'npr', 'abc news', 'cbs news', 'nbc news', 'time', 
+  
+  // Alternative Left
+  'mother jones', 'the nation', 'democracy now', 'huffington post', 'vox',
+  'vanity fair', 'the new yorker', 'fair', 'truthout', 'alternet', 
+  'the intercept', 'truthdig', 'raw story',
+  
+  // Centrist
+  'associated press', 'reuters', 'bbc', 'christian science monitor',
+  'axios', 'bloomberg', 'usa today', 'the hill', 'pbs',
+  
+  // Mainstream Right
+  'wall street journal', 'washington times', 'national review', 'fox news',
+  'new york post', 'forbes',
+  
+  // Alternative Right
+  'the daily wire', 'the american conservative', 'breitbart', 'the daily caller',
+  'the political insider', 'the unz review', 'newsmax',
+  
+  // Mixed/Financial
+  'the economist', 'financial times', 'cnbc',
+  
+  // International
+  'al jazeera', 'the guardian', 'deutsche welle', 'france 24', 'times of india',
+  
+  // Shortened forms that might appear
+  'breitbart', 'fox', 'dailywire', 'dailycaller', 'nytimes', 'wapo'
+];
+
+// Helper function to create a placeholder news item for error cases
+const createPlaceholderNewsItem = (index: number, sourceName: string, errorMessage: string): NewsItem => {
+  return {
+    id: `error-${sourceName}-${index}-${Date.now()}`,
+    title: `Error processing article from ${sourceName}`,
+    description: errorMessage,
+    url: '',
+    source: {
+      name: sourceName,
+      bias: PoliticalBias.Unclear
+    },
+    publishedAt: new Date().toISOString(),
+    category: NewsCategory.All,
+    keywords: []
+  };
+};
+
 // Extract keywords from a news item
 const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
   // Combine title and description for better keyword extraction
@@ -547,13 +805,14 @@ const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
     
     const uniqueTerms = Array.from(new Set(allTerms));
     
-    // Filter out stop words, short terms, and numbers
+    // Filter out stop words, short terms, numbers, and source names
     const filteredTerms = uniqueTerms.filter(term => {
       const lowerTerm = term.toLowerCase();
       return (
         term.length > 2 && // Allow slightly shorter terms
         !/^\d+$/.test(term) && // Filter out pure numbers
-        !stopWords.includes(lowerTerm) // Filter out stop words
+        !stopWords.includes(lowerTerm) && // Filter out stop words
+        !mediaSourceNames.some(source => lowerTerm === source || lowerTerm.includes(source)) // Filter out source names
       );
     });
     
@@ -565,7 +824,11 @@ const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
     return newsItem.title
       .toLowerCase()
       .split(/\s+/)
-      .filter(word => word.length > 3 && !stopWords.includes(word))
+      .filter(word => 
+        word.length > 3 && 
+        !stopWords.includes(word) && 
+        !mediaSourceNames.some(source => word === source || word.includes(source))
+      )
       .slice(0, 10);
   }
 };
@@ -573,38 +836,59 @@ const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
 // Analyze political bias of a media source
 const analyzeMediaBias = (sourceName: string): PoliticalBias => {
   // This is a simplified mapping of news sources to political bias
-  // In a real application, this would be based on a comprehensive database or API
   const sourceMapping: Record<string, PoliticalBias> = {
+    // Mainstream Left
     'CNN': PoliticalBias.MainstreamLeft,
     'MSNBC': PoliticalBias.MainstreamLeft,
     'New York Times': PoliticalBias.MainstreamLeft,
     'The New York Times': PoliticalBias.MainstreamLeft,
     'Washington Post': PoliticalBias.MainstreamLeft,
-    'Huffington Post': PoliticalBias.AlternativeLeft,
-    'Vox': PoliticalBias.AlternativeLeft,
-    'Associated Press': PoliticalBias.Centrist,
-    'Reuters': PoliticalBias.Centrist,
-    'Bloomberg': PoliticalBias.Centrist,
-    'BBC': PoliticalBias.Centrist,
-    'The Guardian': PoliticalBias.MainstreamLeft,
     'NPR': PoliticalBias.MainstreamLeft,
-    'Fox News': PoliticalBias.MainstreamRight,
-    'Wall Street Journal': PoliticalBias.MainstreamRight,
-    'New York Post': PoliticalBias.MainstreamRight,
-    'Breitbart': PoliticalBias.AlternativeRight,
-    'The Daily Caller': PoliticalBias.AlternativeRight,
-    'CNBC': PoliticalBias.Centrist,
     'ABC News': PoliticalBias.MainstreamLeft,
     'CBS News': PoliticalBias.MainstreamLeft,
     'NBC News': PoliticalBias.MainstreamLeft,
-    'Politico': PoliticalBias.MainstreamLeft,
-    'The Hill': PoliticalBias.Centrist,
-    'Forbes': PoliticalBias.MainstreamRight,
     'Time': PoliticalBias.MainstreamLeft,
-    'Newsweek': PoliticalBias.MainstreamLeft,
+    
+    // Alternative Left
+    'Mother Jones': PoliticalBias.AlternativeLeft,
+    'The Nation': PoliticalBias.AlternativeLeft,
+    'Democracy Now': PoliticalBias.AlternativeLeft,
+    'Huffington Post': PoliticalBias.AlternativeLeft,
+    'Vox': PoliticalBias.AlternativeLeft,
+    
+    // Centrist
+    'Associated Press': PoliticalBias.Centrist,
+    'Reuters': PoliticalBias.Centrist,
+    'BBC': PoliticalBias.Centrist,
+    'Christian Science Monitor': PoliticalBias.Centrist,
+    'Axios': PoliticalBias.Centrist,
+    'Bloomberg': PoliticalBias.Centrist,
     'USA Today': PoliticalBias.Centrist,
-    'The Atlantic': PoliticalBias.MainstreamLeft,
-    'National Review': PoliticalBias.MainstreamRight
+    'The Hill': PoliticalBias.Centrist,
+    
+    // Mainstream Right
+    'Wall Street Journal': PoliticalBias.MainstreamRight,
+    'Washington Times': PoliticalBias.MainstreamRight,
+    'National Review': PoliticalBias.MainstreamRight,
+    'Fox News': PoliticalBias.MainstreamRight,
+    'New York Post': PoliticalBias.MainstreamRight,
+    'Forbes': PoliticalBias.MainstreamRight,
+    
+    // Alternative Right
+    'The Daily Wire': PoliticalBias.AlternativeRight,
+    'The American Conservative': PoliticalBias.AlternativeRight,
+    'Breitbart': PoliticalBias.AlternativeRight,
+    'The Daily Caller': PoliticalBias.AlternativeRight,
+    
+    // Mixed/Financial
+    'The Economist': PoliticalBias.Centrist,
+    'Financial Times': PoliticalBias.Centrist,
+    
+    // International
+    'Al Jazeera': PoliticalBias.Centrist,
+    'The Guardian': PoliticalBias.MainstreamLeft,
+    'Deutsche Welle': PoliticalBias.Centrist,
+    'France 24': PoliticalBias.Centrist
   };
   
   // Look for exact match
@@ -753,36 +1037,6 @@ const getTimeSnapshot = (timestamp: string): TimeSnapshot | null => {
   console.log('Getting time snapshot for:', timestamp);
   // Implementation will depend on storage mechanism
   return null;
-};
-
-// Common English stop words to filter out
-const stopWords = [
-  'about', 'after', 'again', 'all', 'also', 'and', 'any', 'are', 'because',
-  'been', 'before', 'being', 'between', 'both', 'but', 'came', 'can',
-  'come', 'could', 'did', 'does', 'doing', 'during', 'each', 'even',
-  'from', 'further', 'had', 'has', 'have', 'having', 'here', 'how',
-  'into', 'just', 'like', 'more', 'most', 'much', 'now', 'only', 'other',
-  'our', 'over', 'said', 'same', 'should', 'some', 'such', 'than', 'that',
-  'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those',
-  'through', 'too', 'under', 'until', 'very', 'was', 'way', 'were', 'what',
-  'when', 'where', 'which', 'while', 'who', 'with', 'would', 'you', 'your'
-];
-
-// Helper function to create a placeholder news item for error cases
-const createPlaceholderNewsItem = (index: number, sourceName: string, errorMessage: string): NewsItem => {
-  return {
-    id: `error-${sourceName}-${index}-${Date.now()}`,
-    title: `Error processing article from ${sourceName}`,
-    description: errorMessage,
-    url: '',
-    source: {
-      name: sourceName,
-      bias: PoliticalBias.Unclear
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.All,
-    keywords: []
-  };
 };
 
 export {

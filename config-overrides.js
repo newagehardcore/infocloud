@@ -18,6 +18,7 @@ module.exports = function override(config, env) {
     "zlib": require.resolve("browserify-zlib"),
     "querystring": require.resolve("querystring-es3"),
     "process": require.resolve("process/browser"),
+    "timers": false
   };
 
   // Add buffer and process polyfills
