@@ -101,12 +101,12 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
                 <ul className="news-list">
                   {items.map(item => (
                     <li key={item.id} className="news-item">
-                      <a href={`/news/${item.id}`} className="news-link">
+                      <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
                         <h4 className="news-title">{item.title}</h4>
                         <div className="news-meta">
                           <span className="source-name">{item.source.name}</span>
                           <span className="publish-date">
-                            {new Date(item.publishedAt).toLocaleDateString()}
+                            {new Date(item.publishedAt).toLocaleString()}
                           </span>
                         </div>
                       </a>

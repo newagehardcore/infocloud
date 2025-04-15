@@ -118,7 +118,7 @@ app.get('/api/rss-feed', async (req, res) => {
       return res.status(400).json({ error: 'Missing feed URL parameter' });
     }
     
-    console.log(`Backend server fetching RSS feed: ${feedUrl}`);
+    console.log(`\n[RSS] Attempting to fetch: ${feedUrl}`);
     
     // Get the appropriate config for this feed
     const config = getFeedConfig(feedUrl);
@@ -126,7 +126,7 @@ app.get('/api/rss-feed', async (req, res) => {
     // If this is a feed we know needs direct fetching, skip the parser
     if (config.useDirectFetch) {
       try {
-        console.log(`Using direct fetch for ${feedUrl}`);
+        console.log(`[RSS] Using direct fetch for ${feedUrl}`);
         
         // Use the retry function for direct fetches
         const fetchWithRetry = async (url, maxRetries = 2) => {
@@ -139,87 +139,79 @@ app.get('/api/rss-feed', async (req, res) => {
           for (let attempt = 0; attempt <= retries; attempt++) {
             attempts++;
             try {
-              console.log(`Attempt ${attempt + 1}/${retries + 1} for ${currentUrl}`);
+              console.log(`[RSS] Attempt ${attempt + 1}/${retries + 1} for ${currentUrl}`);
+              console.log('[RSS] Using headers:', JSON.stringify(config.headers, null, 2));
+              
               const response = await axios.get(currentUrl, {
                 headers: config.headers,
-                timeout: config.timeout
+                timeout: config.timeout,
+                validateStatus: false // Don't throw on any status code
               });
+              
+              console.log(`[RSS] Response status: ${response.status} for ${currentUrl}`);
               
               // Handle redirects manually if needed
               if (response.status === 301 || response.status === 302) {
                 if (response.headers.location) {
-                  console.log(`Following redirect from ${currentUrl} to ${response.headers.location}`);
+                  console.log(`[RSS] Following redirect from ${currentUrl} to ${response.headers.location}`);
                   currentUrl = response.headers.location;
                   continue; // Try the new URL
                 }
               }
               
               if (response.status !== 200) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                throw new Error(`HTTP error! Status: ${response.status}, Response: ${response.data?.substring(0, 200)}`);
               }
               
               return response;
             } catch (error) {
               lastError = error;
-              const status = error.response?.status;
-              
-              // Log detailed error information
-              console.error(`Attempt ${attempt + 1}/${retries + 1} failed for ${currentUrl}: ${error.message}`);
-              if (status) {
-                console.error(`Server returned status code: ${status}`);
-              }
+              console.error(`[RSS] Attempt ${attempt + 1} failed for ${currentUrl}:`, {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                headers: error.response?.headers,
+                data: error.response?.data?.substring(0, 200),
+                code: error.code
+              });
               
               // Special handling for common error types
-              if (status === 404) {
-                console.error(`Feed not found (404) at URL: ${currentUrl}`);
-              } else if (status === 403) {
-                console.error(`Access denied (403) for URL: ${currentUrl}`);
+              if (error.response?.status === 404) {
+                console.error(`[RSS] Feed not found (404) at URL: ${currentUrl}`);
+              } else if (error.response?.status === 403) {
+                console.error(`[RSS] Access denied (403) for URL: ${currentUrl}`);
               } else if (error.code === 'ECONNABORTED') {
-                console.error(`Connection timed out for URL: ${currentUrl}`);
+                console.error(`[RSS] Connection timed out for URL: ${currentUrl}`);
               } else if (error.code === 'ENOTFOUND') {
-                console.error(`Host not found for URL: ${currentUrl}`);
+                console.error(`[RSS] Host not found for URL: ${currentUrl}`);
               }
               
               // Check for multiple fallback URLs
               if (config.fallbackUrls && Array.isArray(config.fallbackUrls) && fallbackIndex < config.fallbackUrls.length) {
-                console.log(`Trying fallback URL #${fallbackIndex + 1}: ${config.fallbackUrls[fallbackIndex]}`);
+                console.log(`[RSS] Trying fallback URL #${fallbackIndex + 1}: ${config.fallbackUrls[fallbackIndex]}`);
                 currentUrl = config.fallbackUrls[fallbackIndex];
                 fallbackIndex++;
               }
               // Try single fallback URL if available and not already tried
               else if (config.fallbackUrl && currentUrl !== config.fallbackUrl) {
-                console.log(`Trying fallback URL for ${url}: ${config.fallbackUrl}`);
+                console.log(`[RSS] Trying fallback URL for ${url}: ${config.fallbackUrl}`);
                 currentUrl = config.fallbackUrl;
               } 
               // Otherwise wait before retrying the same URL
               else if (attempt < retries) {
                 // Wait before retrying (exponential backoff)
                 const delay = 1000 * Math.pow(2, attempt);
-                console.log(`Waiting ${delay}ms before retrying...`);
+                console.log(`[RSS] Waiting ${delay}ms before retrying...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
               }
             }
           }
           
-          // All attempts failed - create a detailed error
-          const errorDetails = {
-            url: url,
-            attempts: attempts,
-            lastAttemptedUrl: currentUrl,
-            message: lastError.message,
-            code: lastError.code || 'UNKNOWN',
-            responseStatus: lastError.response?.status,
-            responseData: lastError.response?.data
-          };
-          
-          // Log the full error details for server debugging
-          console.error(`All ${attempts} fetch attempts failed:`, errorDetails);
-          
-          // Throw with comprehensive error information
-          throw new Error(`Failed to fetch RSS feed after ${attempts} attempts: ${lastError.message}`);
+          throw new Error(`Failed to fetch RSS feed after ${attempts} attempts. Last error: ${lastError.message}`);
         };
         
         const response = await fetchWithRetry(feedUrl);
+        console.log(`[RSS] Successfully fetched ${feedUrl}`);
         
         return res.json({ 
           success: true, 
@@ -231,65 +223,37 @@ app.get('/api/rss-feed', async (req, res) => {
           } 
         });
       } catch (axiosError) {
-        console.error(`All fetch attempts failed for: ${feedUrl}`, axiosError.message);
+        console.error(`[RSS] All fetch attempts failed for: ${feedUrl}`, axiosError.message);
         return res.status(500).json({ 
           error: 'Failed to fetch feed after multiple attempts', 
           details: axiosError.message,
-          url: feedUrl,
-          stack: process.env.NODE_ENV === 'development' ? axiosError.stack : undefined
+          url: feedUrl
         });
       }
     }
     
-    // Try parsing with RSS parser first
+    // Try parsing with RSS parser
     try {
-      // Clone the parser and set custom configs
-      const customParser = new Parser({
-        ...parser.options,
-        headers: config.headers,
-        timeout: config.timeout
-      });
-      
-      console.log(`Attempting to parse ${feedUrl} with RSS parser`);
-      const feed = await customParser.parseURL(feedUrl);
+      console.log(`[RSS] Attempting to parse ${feedUrl} with RSS parser`);
+      const feed = await parser.parseURL(feedUrl);
+      console.log(`[RSS] Successfully parsed ${feedUrl}, found ${feed.items?.length || 0} items`);
       return res.json({ success: true, feed });
-    } catch (parserError) {
-      console.error(`RSS parser failed for ${feedUrl}:`, parserError.message);
-      
-      // If parser fails, try a direct fetch as a fallback
-      try {
-        console.log(`Falling back to direct fetch for ${feedUrl}`);
-        const response = await axios.get(feedUrl, {
-          headers: config.headers,
-          timeout: config.timeout
-        });
-        
-        return res.json({ 
-          success: true, 
-          rawContent: true,
-          feed: { 
-            items: [], 
-            feedUrl,
-            rawXml: response.data 
-          } 
-        });
-      } catch (axiosError) {
-        console.error(`Direct fetch also failed for: ${feedUrl}`, axiosError.message);
-        return res.status(500).json({ 
-          error: 'Failed to fetch feed', 
-          details: `Parser error: ${parserError.message}. Fetch error: ${axiosError.message}`,
-          url: feedUrl,
-          stack: process.env.NODE_ENV === 'development' ? axiosError.stack : undefined
-        });
-      }
+    } catch (parseError) {
+      console.error(`[RSS] Parser error for ${feedUrl}:`, {
+        message: parseError.message,
+        code: parseError.code,
+        response: parseError.response?.status,
+        data: parseError.response?.data?.substring(0, 200)
+      });
+      return res.status(500).json({ 
+        error: 'Failed to parse feed', 
+        details: parseError.message,
+        url: feedUrl
+      });
     }
   } catch (error) {
-    console.error('Error in RSS endpoint:', error.message);
-    return res.status(500).json({ 
-      error: 'Server error', 
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('[RSS] Unexpected error:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 

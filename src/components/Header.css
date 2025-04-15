@@ -1,18 +1,22 @@
 .header {
-  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
   border-bottom: 1px solid #333;
   background: #111;
+  gap: 1rem;
 }
 
 .logo {
   text-align: left;
-  margin-bottom: 0.25rem;
-  padding-left: 0.5rem;
+  margin-bottom: 0;
+  padding-left: 0;
+  flex-shrink: 0;
 }
 
 .logo h1 {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 900;
   color: #fff;
   letter-spacing: -0.02em;

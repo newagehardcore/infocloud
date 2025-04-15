@@ -1,75 +1,80 @@
 import axios from 'axios';
 import nlp from 'compromise';
-import { parse as parseRSS } from 'rss-to-json';
-import Parser from 'rss-parser';
 import { NewsItem, PoliticalBias, NewsCategory, TimeSnapshot } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { parseRawRssXml } from '../utils/rssUtils';
-
-// Initialize RSS parser as fallback
-const parser = new Parser();
 
 // Get the API keys from environment variables
 const NEWS_API_KEY = process.env.REACT_APP_NEWS_API_KEY;
 const GNEWS_API_KEY = process.env.REACT_APP_GNEWS_API_KEY;
 const THE_NEWS_API_KEY = process.env.REACT_APP_THE_NEWS_API_KEY;
 
-// Default RSS feeds - can be expanded or made configurable
-export const DEFAULT_RSS_FEEDS = [
-  // Mainstream Left
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', name: 'New York Times' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml', name: 'New York Times Politics' },
-  { url: 'https://feeds.npr.org/1001/rss.xml', name: 'NPR News' },
-  { url: 'https://www.vox.com/rss/world-politics/index.xml', name: 'Vox World Politics' },
-  { url: 'https://www.vanityfair.com/news/politics/rss', name: 'Vanity Fair Politics' },
-  { url: 'https://www.newyorker.com/feed/everything', name: 'The New Yorker' },
-  
-  // Alternative Left
-  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones' },
-  { url: 'https://www.thenation.com/feed/', name: 'The Nation' },
-  { url: 'https://fair.org/feed/', name: 'FAIR' },
-  { url: 'https://truthout.org/latest/feed', name: 'Truthout' },
-  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet' },
-  { url: 'https://theintercept.com/feed/?rss', name: 'The Intercept' },
-  { url: 'https://www.truthdig.com/feed/', name: 'Truthdig' },
-  
-  // Centrist
-  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', name: 'BBC News World' },
-  { url: 'https://www.pbs.org/newshour/feeds/rss/headlines', name: 'PBS NewsHour' },
-  
-  // Mainstream Right
-  { url: 'https://www.washingtontimes.com/rss/headlines/news/world/', name: 'Washington Times World' },
-  { url: 'https://www.washingtontimes.com/rss/headlines/news/politics/', name: 'Washington Times Politics' },
-  { url: 'https://moxie.foxnews.com/google-publisher/world.xml', name: 'Fox News World' },
-  { url: 'https://moxie.foxnews.com/google-publisher/politics.xml', name: 'Fox News Politics' },
-  { url: 'https://moxie.foxnews.com/google-publisher/us.xml', name: 'Fox News US' },
-  { url: 'http://feeds.foxnews.com/foxnews/politics', name: 'Fox News Politics (Alt)' },
-  { url: 'https://nypost.com/feed/', name: 'New York Post' },
-  { url: 'https://www.nationalreview.com/feed/', name: 'National Review' },
-  
-  // Alternative Right
-  { url: 'https://www.breitbart.com/feed/', name: 'Breitbart News' },
-  { url: 'http://feeds.feedburner.com/breitbart', name: 'Breitbart News (Alt)' },
-  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire' },
-  { url: 'https://dailycaller.com/feed/', name: 'The Daily Caller' },
-  { url: 'https://www.theamericanconservative.com/feed/', name: 'The American Conservative' },
-  { url: 'https://thepoliticalinsider.com/feed/', name: 'The Political Insider' },
-  { url: 'https://www.unz.com/xfeed/rss/all/', name: 'The Unz Review' },
-  
+// Interface for RSS Feed configuration including category
+interface RssFeedConfig {
+  url: string;
+  name: string;
+  category: NewsCategory;
+  bias: PoliticalBias; // Optional: We can also store bias here
+}
+
+// Default RSS feeds - Now includes category and bias using Enums
+export const DEFAULT_RSS_FEEDS: RssFeedConfig[] = [
+  // Mainstream Left (Politics, World, US)
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', name: 'New York Times', category: NewsCategory.World, bias: PoliticalBias.MainstreamLeft },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml', name: 'New York Times Politics', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamLeft },
+  { url: 'https://feeds.npr.org/1001/rss.xml', name: 'NPR News', category: NewsCategory.US, bias: PoliticalBias.MainstreamLeft },
+  { url: 'https://www.vox.com/rss/world-politics/index.xml', name: 'Vox World Politics', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamLeft }, // Also World
+  { url: 'https://www.vanityfair.com/news/politics/rss', name: 'Vanity Fair Politics', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamLeft }, // Also Entertainment?
+  { url: 'https://www.newyorker.com/feed/everything', name: 'The New Yorker', category: NewsCategory.All, bias: PoliticalBias.MainstreamLeft }, // Broad
+
+  // Alternative Left (Politics, US)
+  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
+  { url: 'https://www.thenation.com/feed/', name: 'The Nation', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
+  { url: 'https://fair.org/feed/', name: 'FAIR', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft }, // Media criticism
+  { url: 'https://truthout.org/latest/feed', name: 'Truthout', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
+  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
+  { url: 'https://theintercept.com/feed/?rss', name: 'The Intercept', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft }, // Investigative
+  { url: 'https://www.truthdig.com/feed/', name: 'Truthdig', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
+
+  // Centrist (World, US)
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', name: 'BBC News World', category: NewsCategory.World, bias: PoliticalBias.Centrist },
+  { url: 'https://www.pbs.org/newshour/feeds/rss/headlines', name: 'PBS NewsHour', category: NewsCategory.US, bias: PoliticalBias.Centrist },
+  // Consider adding Reuters, AP if needed for Centrist
+
+  // Mainstream Right (Politics, World, US)
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/world/', name: 'Washington Times World', category: NewsCategory.World, bias: PoliticalBias.MainstreamRight },
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/politics/', name: 'Washington Times Politics', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRight },
+  { url: 'https://moxie.foxnews.com/google-publisher/world.xml', name: 'Fox News World', category: NewsCategory.World, bias: PoliticalBias.MainstreamRight },
+  { url: 'https://moxie.foxnews.com/google-publisher/politics.xml', name: 'Fox News Politics', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRight },
+  { url: 'https://moxie.foxnews.com/google-publisher/us.xml', name: 'Fox News US', category: NewsCategory.US, bias: PoliticalBias.MainstreamRight },
+  { url: 'http://feeds.foxnews.com/foxnews/politics', name: 'Fox News Politics (Alt)', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRight },
+  { url: 'https://nypost.com/feed/', name: 'New York Post', category: NewsCategory.All, bias: PoliticalBias.MainstreamRight }, // Broad, leans US/Crime
+  { url: 'https://www.nationalreview.com/feed/', name: 'National Review', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRight },
+
+  // Alternative Right (Politics)
+  { url: 'https://www.breitbart.com/feed/', name: 'Breitbart News', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'http://feeds.feedburner.com/breitbart', name: 'Breitbart News (Alt)', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'https://dailycaller.com/feed/', name: 'The Daily Caller', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'https://www.theamericanconservative.com/feed/', name: 'The American Conservative', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'https://thepoliticalinsider.com/feed/', name: 'The Political Insider', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeRight },
+  { url: 'https://www.unz.com/xfeed/rss/all/', name: 'The Unz Review', category: NewsCategory.All, bias: PoliticalBias.AlternativeRight }, // Broad, controversial
+
   // Business/Financial
-  { url: 'https://www.economist.com/the-world-this-week/rss.xml', name: 'The Economist' },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', name: 'CNBC World' },
-  
-  // International Perspectives
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
-  { url: 'https://feeds.theguardian.com/theguardian/world/rss', name: 'The Guardian World' },
-  { url: 'https://rss.dw.com/rdf/rss-en-all', name: 'Deutsche Welle News' },
-  { url: 'https://timesofindia.indiatimes.com/rssfeeds_us/-2128936835.cms', name: 'Times of India' }
+  { url: 'https://www.economist.com/the-world-this-week/rss.xml', name: 'The Economist', category: NewsCategory.Business, bias: PoliticalBias.Centrist }, // More World/Politics too
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', name: 'CNBC World', category: NewsCategory.Business, bias: PoliticalBias.Centrist }, // More Finance
+
+  // International Perspectives (Often World)
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera', category: NewsCategory.World, bias: PoliticalBias.MainstreamLeft }, // Often considered left-leaning internationally
+  { url: 'https://feeds.theguardian.com/theguardian/world/rss', name: 'The Guardian World', category: NewsCategory.World, bias: PoliticalBias.MainstreamLeft },
+  { url: 'https://rss.dw.com/rdf/rss-en-all', name: 'Deutsche Welle News', category: NewsCategory.World, bias: PoliticalBias.Centrist },
+  { url: 'https://timesofindia.indiatimes.com/rssfeeds_us/-2128936835.cms', name: 'Times of India', category: NewsCategory.World, bias: PoliticalBias.Centrist }, // Indian perspective
 ];
 
 // News Source interface - any news API we add should implement this
 interface NewsSource {
-  fetchNews(category: NewsCategory): Promise<NewsItem[]>;
+  // Pass the originally requested category down
+  fetchNews(requestedCategory: NewsCategory): Promise<NewsItem[]>;
   getSourceName(): string;
 }
 
@@ -101,7 +106,7 @@ const mapTheNewsAPIToCategory = (apiCategory: string): NewsCategory | null => {
 
 // NewsAPI implementation
 class NewsAPISource implements NewsSource {
-  async fetchNews(category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
+  async fetchNews(requestedCategory: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
     try {
       if (!NEWS_API_KEY) {
         console.warn('No NewsAPI key found.');
@@ -109,7 +114,7 @@ class NewsAPISource implements NewsSource {
       }
 
       // Map our category to NewsAPI category
-      const apiCategory = mapCategoryToNewsAPI(category);
+      const apiCategory = mapCategoryToNewsAPI(requestedCategory);
       
       // Fetch real data from NewsAPI
       const response = await axios.get(
@@ -122,17 +127,21 @@ class NewsAPISource implements NewsSource {
         return [];
       }
 
-      // Map the API response to our NewsItem format
-      const newsItems: NewsItem[] = await Promise.all(
+      // Map the API response, passing requestedCategory
+      const mappedItems: (NewsItem | null)[] = await Promise.all(
         response.data.articles.map(async (article: any, index: number) => {
-          const newsItem = mapArticleToNewsItem(article, index, 'NewsAPI');
-          // Extract keywords for each article
-          newsItem.keywords = await extractKeywords(newsItem);
+          // Pass requestedCategory to the mapping function
+          const newsItem = mapArticleToNewsItem(article, index, 'NewsAPI', undefined, requestedCategory); 
+          if (newsItem) {
+            newsItem.keywords = await extractKeywords(newsItem);
+          }
           return newsItem;
         })
       );
-
-      return newsItems;
+      
+      // Filter out nulls
+      const validItems = mappedItems.filter((item): item is NewsItem => item !== null);
+      return validItems;
     } catch (error) {
       console.error('Error fetching news from NewsAPI:', error);
       return [];
@@ -146,7 +155,7 @@ class NewsAPISource implements NewsSource {
 
 // GNews API implementation
 class GNewsAPISource implements NewsSource {
-  async fetchNews(category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
+  async fetchNews(requestedCategory: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
     try {
       if (!GNEWS_API_KEY) {
         console.warn('No GNews API key found.');
@@ -154,7 +163,7 @@ class GNewsAPISource implements NewsSource {
       }
 
       // Map our category to GNews API topic
-      const apiTopic = mapCategoryToGNews(category);
+      const apiTopic = mapCategoryToGNews(requestedCategory);
       
       // Fetch data from GNews API
       const url = new URL('https://gnews.io/api/v4/top-headlines');
@@ -179,15 +188,16 @@ class GNewsAPISource implements NewsSource {
         return [];
       }
 
-      return this.processArticles(response.data.articles);
+      // Process articles, passing requestedCategory
+      return this.processArticles(response.data.articles, requestedCategory);
     } catch (error) {
       console.error('Error fetching news from GNews API:', error);
       return [];
     }
   }
 
-  private async processArticles(articles: any[]): Promise<NewsItem[]> {
-    return await Promise.all(
+  private async processArticles(articles: any[], requestedCategory: NewsCategory): Promise<NewsItem[]> {
+    const mappedItems: (NewsItem | null)[] = await Promise.all(
       articles.map(async (article: any, index: number) => {
         const gNewsArticle = {
           title: article.title,
@@ -201,11 +211,16 @@ class GNewsAPISource implements NewsSource {
           section: article.topic || ''  // GNews uses 'topic' instead of 'section'
         };
         
-        const newsItem = mapArticleToNewsItem(gNewsArticle, index, 'GNews');
-        newsItem.keywords = await extractKeywords(newsItem);
+        // Pass requestedCategory to the mapping function
+        const newsItem = mapArticleToNewsItem(gNewsArticle, index, 'GNews', undefined, requestedCategory); 
+        if (newsItem) {
+          newsItem.keywords = await extractKeywords(newsItem);
+        }
         return newsItem;
       })
     );
+    // Filter out nulls
+    return mappedItems.filter((item): item is NewsItem => item !== null);
   }
 
   getSourceName(): string {
@@ -215,7 +230,9 @@ class GNewsAPISource implements NewsSource {
 
 // TheNewsAPI implementation
 class TheNewsAPISource implements NewsSource {
-  async fetchNews(category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
+  // Pass requestedCategory here
+  async fetchNews(requestedCategory: NewsCategory = NewsCategory.All): Promise<NewsItem[]> { 
+    let articles: any[] = [];
     try {
       if (!THE_NEWS_API_KEY) {
         console.warn('No TheNewsAPI key found');
@@ -226,7 +243,7 @@ class TheNewsAPISource implements NewsSource {
       console.log(`TheNewsAPI key length: ${THE_NEWS_API_KEY.length}, first/last chars: ${THE_NEWS_API_KEY.substring(0, 3)}...${THE_NEWS_API_KEY.substring(THE_NEWS_API_KEY.length - 3)}`);
 
       // Map our category to TheNewsAPI category
-      const apiCategory = mapCategoryToTheNewsAPI(category);
+      const apiCategory = mapCategoryToTheNewsAPI(requestedCategory);
       
       // Try top news endpoint first
       const topNewsUrl = new URL('https://api.thenewsapi.com/v1/news/top');
@@ -255,7 +272,7 @@ class TheNewsAPISource implements NewsSource {
         
         if (topResponse.data.data && topResponse.data.data.length > 0) {
           console.log(`TheNewsAPI returned ${topResponse.data.data.length} top news articles`);
-          return this.processArticles(topResponse.data.data);
+          articles = articles.concat(topResponse.data.data);
         } else {
           console.warn('No top articles found from TheNewsAPI, trying all news endpoint');
         }
@@ -263,87 +280,103 @@ class TheNewsAPISource implements NewsSource {
         console.warn('Error fetching top news from TheNewsAPI, trying all news endpoint:', error);
       }
       
-      // Try all news endpoint
-      const allNewsUrl = new URL('https://api.thenewsapi.com/v1/news/all');
-      allNewsUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
-      allNewsUrl.searchParams.append('language', 'en');
-      allNewsUrl.searchParams.append('limit', '10');
-      
-      // Try without specifying domains to get more results
-      // Add a more general search term 
-      allNewsUrl.searchParams.append('search', 'current events');
-      
-      if (apiCategory) {
-        allNewsUrl.searchParams.append('categories', apiCategory);
+      // If top news failed or returned few results, try 'all' endpoint as fallback
+      if (articles.length < 5) { 
+        console.log('Fetching from TheNewsAPI \'all\' endpoint as fallback...');
+        // Try all news endpoint
+        const allNewsUrl = new URL('https://api.thenewsapi.com/v1/news/all');
+        allNewsUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
+        allNewsUrl.searchParams.append('language', 'en');
+        allNewsUrl.searchParams.append('limit', '10');
+        
+        // Try without specifying domains to get more results
+        // Add a more general search term 
+        allNewsUrl.searchParams.append('search', 'current events');
+        
+        if (apiCategory) {
+          allNewsUrl.searchParams.append('categories', apiCategory);
+        }
+        
+        console.log(`Fetching from TheNewsAPI all news endpoint: ${allNewsUrl.toString().replace(THE_NEWS_API_KEY, '[REDACTED]')}`);
+        
+        try {
+          const allResponse = await axios.get(allNewsUrl.toString(), {
+            timeout: 10000,
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'InfoCloud/1.0'
+            }
+          });
+          
+          console.log(`TheNewsAPI all news response status: ${allResponse.status}`);
+          
+          if (!allResponse.data.data || allResponse.data.data.length === 0) {
+            console.warn('No articles found from TheNewsAPI all news endpoint, trying with domains');
+            
+            // Last attempt with specified domains
+            const domainsUrl = new URL('https://api.thenewsapi.com/v1/news/all');
+            domainsUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
+            domainsUrl.searchParams.append('language', 'en');
+            domainsUrl.searchParams.append('limit', '10');
+            domainsUrl.searchParams.append('domains', 'cnn.com,bbc.com,reuters.com');
+            
+            const domainsResponse = await axios.get(domainsUrl.toString(), {
+              timeout: 10000,
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'InfoCloud/1.0'
+              }
+            });
+            
+            if (!domainsResponse.data.data || domainsResponse.data.data.length === 0) {
+              console.warn('No articles found from TheNewsAPI with domains');
+              return [];
+            }
+            
+            articles = articles.concat(domainsResponse.data.data);
+          }
+          
+          console.log(`TheNewsAPI returned ${allResponse.data.data.length} all news articles`);
+          articles = articles.concat(allResponse.data.data);
+        } catch (error) {
+          console.error('Error fetching all news from TheNewsAPI:', error);
+          
+          // Final attempt with simpler parameters
+          try {
+            const simpleUrl = new URL('https://api.thenewsapi.com/v1/news/all');
+            simpleUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
+            simpleUrl.searchParams.append('limit', '5');
+            
+            const simpleResponse = await axios.get(simpleUrl.toString(), {
+              timeout: 10000,
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'InfoCloud/1.0'
+              }
+            });
+            
+            if (simpleResponse.data.data && simpleResponse.data.data.length > 0) {
+              articles = articles.concat(simpleResponse.data.data);
+            }
+          } catch (finalError) {
+            console.error('Final attempt to fetch from TheNewsAPI failed:', finalError);
+          }
+          
+          return [];
+        }
       }
       
-      console.log(`Fetching from TheNewsAPI all news endpoint: ${allNewsUrl.toString().replace(THE_NEWS_API_KEY, '[REDACTED]')}`);
-      
-      try {
-        const allResponse = await axios.get(allNewsUrl.toString(), {
-          timeout: 10000,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'InfoCloud/1.0'
-          }
-        });
-        
-        console.log(`TheNewsAPI all news response status: ${allResponse.status}`);
-        
-        if (!allResponse.data.data || allResponse.data.data.length === 0) {
-          console.warn('No articles found from TheNewsAPI all news endpoint, trying with domains');
-          
-          // Last attempt with specified domains
-          const domainsUrl = new URL('https://api.thenewsapi.com/v1/news/all');
-          domainsUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
-          domainsUrl.searchParams.append('language', 'en');
-          domainsUrl.searchParams.append('limit', '10');
-          domainsUrl.searchParams.append('domains', 'cnn.com,bbc.com,reuters.com');
-          
-          const domainsResponse = await axios.get(domainsUrl.toString(), {
-            timeout: 10000,
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'InfoCloud/1.0'
-            }
-          });
-          
-          if (!domainsResponse.data.data || domainsResponse.data.data.length === 0) {
-            console.warn('No articles found from TheNewsAPI with domains');
-            return [];
-          }
-          
-          return this.processArticles(domainsResponse.data.data);
-        }
-        
-        console.log(`TheNewsAPI returned ${allResponse.data.data.length} all news articles`);
-        return this.processArticles(allResponse.data.data);
-      } catch (error) {
-        console.error('Error fetching all news from TheNewsAPI:', error);
-        
-        // Final attempt with simpler parameters
-        try {
-          const simpleUrl = new URL('https://api.thenewsapi.com/v1/news/all');
-          simpleUrl.searchParams.append('api_token', THE_NEWS_API_KEY);
-          simpleUrl.searchParams.append('limit', '5');
-          
-          const simpleResponse = await axios.get(simpleUrl.toString(), {
-            timeout: 10000,
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'InfoCloud/1.0'
-            }
-          });
-          
-          if (simpleResponse.data.data && simpleResponse.data.data.length > 0) {
-            return this.processArticles(simpleResponse.data.data);
-          }
-        } catch (finalError) {
-          console.error('Final attempt to fetch from TheNewsAPI failed:', finalError);
-        }
-        
+      // Deduplicate articles based on URL before processing
+      const uniqueArticles = Array.from(new Map(articles.map(a => [a.url, a])).values());
+      console.log(`Processing ${uniqueArticles.length} unique articles from TheNewsAPI.`);
+
+      if (uniqueArticles.length === 0) {
         return [];
       }
+      
+      // Process articles, passing requestedCategory
+      return this.processArticles(uniqueArticles, requestedCategory);
+
     } catch (error) {
       console.error('Error fetching news from TheNewsAPI:', error);
       if (axios.isAxiosError(error)) {
@@ -360,57 +393,24 @@ class TheNewsAPISource implements NewsSource {
     }
   }
 
-  /**
-   * Process raw articles from TheNewsAPI into our standard NewsItem format
-   * @param articles - Raw articles from TheNewsAPI
-   * @returns Processed news items
-   */
-  private async processArticles(articles: any[]): Promise<NewsItem[]> {
-    try {
-      return await Promise.all(
-        articles.map(async (article: any, index: number) => {
-          try {
-            // Ensure categories is always an array
-            const categories = article.categories || [];
-            
-            // Map to standard format
-            const theNewsAPIArticle = {
-              title: article.title || 'No title available',
-              description: article.description || article.snippet || 'No description available',
-              url: article.url,
-              source: {
-                name: article.source || 'TheNewsAPI',
-                id: 'thenewsapi'
-              },
-              publishedAt: article.published_at || article.publishedAt || new Date().toISOString(),
-              section: Array.isArray(categories) ? categories.join(', ') : categories.toString()
-            };
-            
-            // Convert to our standard NewsItem format
-            const newsItem = mapArticleToNewsItem(theNewsAPIArticle, index, 'TheNewsAPI');
-            
-            // If we have categories from the API, try to map them to our internal categories
-            if (categories && categories.length > 0) {
-              // Use the first category as the primary one for mapping
-              const primaryCategory = Array.isArray(categories) ? categories[0] : categories;
-              newsItem.category = mapTheNewsAPIToCategory(primaryCategory) || newsItem.category;
-            }
-            
-            // Extract keywords for each article
-            newsItem.keywords = await extractKeywords(newsItem);
-            
-            return newsItem;
-          } catch (error) {
-            console.error(`Error processing article at index ${index}:`, error);
-            // Return a placeholder for failed articles to maintain array length
-            return createPlaceholderNewsItem(index, 'TheNewsAPI', 'Error processing article');
-          }
-        })
-      );
-    } catch (error) {
-      console.error('Error processing articles batch:', error);
-      return [];
-    }
+  private async processArticles(articles: any[], requestedCategory: NewsCategory): Promise<NewsItem[]> {
+    const mappedItems: (NewsItem | null)[] = await Promise.all(
+      articles.map(async (article: any, index: number) => {
+        const newsItem = mapArticleToNewsItem(article, index, 'TheNewsAPI', undefined, requestedCategory);
+        // Keywords only if mapping is successful
+        if (newsItem) {
+            // Add rudimentary keyword extraction if needed, or rely on API keywords if provided
+            // Example: if (!newsItem.keywords || newsItem.keywords.length === 0) {
+            //    newsItem.keywords = await extractKeywords(newsItem);
+            // }
+            // Currently, mapArticleToNewsItem initializes keywords as []
+             newsItem.keywords = await extractKeywords(newsItem); // Keep extracting for now
+        }
+        return newsItem;
+      })
+    );
+    // Filter out nulls
+    return mappedItems.filter((item): item is NewsItem => item !== null);
   }
 
   getSourceName(): string {
@@ -420,128 +420,105 @@ class TheNewsAPISource implements NewsSource {
 
 // RSS Source implementation
 class RSSSource implements NewsSource {
-  async fetchNews(category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> {
-    try {
-      const newsItems: NewsItem[] = [];
-      let successfulFeeds = 0;
-      let failedFeeds = 0;
-      
-      console.log('Starting to fetch RSS feeds...');
-      
-      // Check which feeds should be enabled based on localStorage settings
-      const enabledFeeds = DEFAULT_RSS_FEEDS.filter(feed => {
-        const feedId = `rssfeed_${feed.name.replace(/\s+/g, '_')}`;
-        const savedSetting = localStorage.getItem(feedId);
-        
-        // If we have a saved setting, use that. Otherwise use the default (not disabled)
-        if (savedSetting !== null) {
-          return savedSetting === 'true';
-        }
-        return true;
-      });
-      
-      console.log(`Using ${enabledFeeds.length} enabled feeds out of ${DEFAULT_RSS_FEEDS.length} total feeds`);
-      
-      // Fetch from all configured RSS feeds in parallel
-      const feedPromises = enabledFeeds.map(async feed => {
-        try {
-          console.log(`Fetching RSS feed from: ${feed.name} (${feed.url})`);
-          
-          // Use our proxy endpoint instead of direct fetching
-          const response = await axios.get('/api/rss-feed', {
-            params: { url: feed.url },
-            timeout: 15000
-          });
-          
-          if (!response.data.success) {
-            console.warn(`Proxy returned error for ${feed.name}: `, response.data.error);
-            failedFeeds++;
-            return;
+  // Pass requestedCategory here
+  async fetchNews(requestedCategory: NewsCategory = NewsCategory.All): Promise<NewsItem[]> { 
+    let allRssItems: NewsItem[] = [];
+    const state = getRssFeedState();
+    
+    // Filter feeds based on category and enabled status
+    const activeFeeds = DEFAULT_RSS_FEEDS.filter(feed => 
+      state[feed.url]?.enabled !== false &&
+      // Use requestedCategory for filtering
+      (requestedCategory === NewsCategory.All || feed.category === requestedCategory || feed.category === NewsCategory.All) 
+    );
+
+    console.log(`[RSS] Fetching ${activeFeeds.length} feeds for category: ${requestedCategory}`);
+
+    const feedPromises = activeFeeds.map(async (feedConfig) => {
+      try {
+        console.log(`[RSS] Backend proxy fetching RSS feed: ${feedConfig.url}`);
+        // Use the backend proxy endpoint
+        const response = await axios.get(`/api/rss-feed?url=${encodeURIComponent(feedConfig.url)}`, { timeout: 15000 });
+        const feedData = response.data; // Assuming proxy returns parsed JSON matching rss-parser structure
+
+        // Handle both parsed feed and raw XML content
+        let feedItems = [];
+        if (feedData.success) {
+          if (feedData.rawContent) {
+            // Parse the raw XML content
+            const parsedFeed = await parseRawRssXml(feedData.feed.rawXml);
+            feedItems = parsedFeed.items || [];
+          } else {
+            // Use the pre-parsed feed data
+            feedItems = feedData.feed.items || [];
           }
-          
-          let feedContent = response.data.feed;
-          
-          // Check if we received raw XML content that needs parsing
-          if (response.data.rawContent && feedContent.rawXml) {
-            console.log(`Received raw XML for ${feed.name}, parsing manually...`);
-            try {
-              feedContent = parseRawRssXml(feedContent.rawXml);
-            } catch (parseError) {
-              console.error(`Failed to parse raw XML for ${feed.name}:`, parseError);
-              failedFeeds++;
-              return;
+        }
+
+        if (!feedItems || feedItems.length === 0) {
+          console.warn(`[RSS] No items found or failed to parse feed: ${feedConfig.name} (${feedConfig.url})`);
+          return [];
+        }
+
+        // Process items, passing requestedCategory
+        const mappedItems: (NewsItem | null)[] = await Promise.all(
+          feedItems.map(async (item: any, index: number) => {
+            const rssItem = {
+              title: item.title || 'No Title',
+              description: item.contentSnippet || item.content || item.summary || 'No description',
+              url: item.link || '',
+              source: { name: feedConfig.name, id: feedConfig.url }, // Use config name/URL
+              publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
+              section: feedConfig.category, // Use category from config
+              author: item.creator || item.author || ''
+            };
+            // Pass requestedCategory (though RSS uses feedConfig directly)
+            const newsItem = mapArticleToNewsItem(rssItem, index, 'RSS', feedConfig, requestedCategory); 
+            if (newsItem) { 
+              newsItem.keywords = await extractKeywords(newsItem); 
             }
+            return newsItem;
+          })
+        );
+        
+        // Filter out nulls
+        const validItems = mappedItems.filter((item): item is NewsItem => item !== null);
+        return validItems;
+
+      } catch (error: any) {
+        // ... (keep existing error handling)
+        let errorMessage = `Error fetching or parsing RSS feed: ${feedConfig.name}`;
+        if (axios.isAxiosError(error)) {
+          errorMessage += ` (Status: ${error.response?.status}, URL: ${feedConfig.url})`;
+          if (error.code === 'ECONNABORTED') {
+            errorMessage += ' - Timeout';
           }
-          
-          if (!feedContent || !feedContent.items) {
-            console.warn(`No items found in RSS feed: ${feed.name}`);
-            failedFeeds++;
-            return;
-          }
-          
-          console.log(`Successfully fetched ${feedContent.items.length} items from ${feed.name}`);
-          
-          // Map RSS items to our NewsItem format
-          const items = await Promise.all(
-            (feedContent.items || []).slice(0, 10).map(async (item: any, index: number) => {
-              try {
-                const newsItem: NewsItem = {
-                  id: `RSS-${feed.name}-${index}-${Date.now()}`,
-                  title: item.title || 'No title',
-                  description: item.description || item.content || item.contentEncoded || item['content:encoded'] || 'No description',
-                  url: item.link || item.url || '',
-                  source: {
-                    name: feed.name,
-                    bias: analyzeMediaBias(feed.name)
-                  },
-                  publishedAt: item.published || item.pubDate || item.isoDate || new Date().toISOString(),
-                  category: determineCategoryFromArticle(item),
-                  keywords: [] as string[]
-                };
-                
-                // Clean up description (remove HTML tags if present)
-                newsItem.description = newsItem.description.replace(/<[^>]*>/g, '');
-                
-                // Extract keywords for each article
-                newsItem.keywords = await extractKeywords(newsItem);
-                return newsItem;
-              } catch (itemError) {
-                console.error(`Error processing RSS item from ${feed.name}:`, itemError);
-                return null;
-              }
-            })
-          );
-          
-          // Filter out any null items from errors and explicitly type as NewsItem[]
-          const validItems: NewsItem[] = items.filter((item): item is NewsItem => item !== null);
-          newsItems.push(...validItems);
-          successfulFeeds++;
-          
-        } catch (error) {
-          console.error(`Error fetching RSS feed ${feed.name} (${feed.url}):`, error);
-          failedFeeds++;
+        } else if (error instanceof Error) {
+          errorMessage += `: ${error.message}`;
         }
-      });
-      
-      await Promise.all(feedPromises);
-      
-      console.log(`RSS feed fetch summary:
-        - Successful feeds: ${successfulFeeds}
-        - Failed feeds: ${failedFeeds}
-        - Total news items: ${newsItems.length}`);
-      
-      // If we have a specific category, filter the items
-      if (category !== NewsCategory.All) {
-        const filteredItems = newsItems.filter(item => item.category === category);
-        console.log(`Filtered ${newsItems.length} items to ${filteredItems.length} items for category: ${category}`);
-        return filteredItems;
+        console.error(errorMessage);
+        // Optionally create a placeholder item indicating the error
+        // return [createPlaceholderNewsItem(0, feedConfig.name, errorMessage)];
+        return []; // Return empty array on error for this feed
       }
-      
-      return newsItems;
-    } catch (error) {
-      console.error('Error in RSS fetchNews:', error);
-      return [];
-    }
+    });
+
+    // Wait for all feed fetches to complete
+    const results = await Promise.allSettled(feedPromises);
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        // result.value is already NewsItem[] because nulls were filtered above
+        allRssItems = allRssItems.concat(result.value);
+      } else if (result.status === 'rejected') {
+        // Log rejected promises if not already handled inside the map
+         console.error('[RSS] Feed promise rejected:', result.reason);
+      }
+    });
+
+    // Deduplicate items based on URL or title 
+    const uniqueItems = Array.from(new Map(allRssItems.map(item => [item.url || item.title, item])).values());
+
+    console.log(`[RSS] Total unique items fetched for category ${requestedCategory}: ${uniqueItems.length}`);
+    return uniqueItems;
   }
 
   getSourceName(): string {
@@ -564,7 +541,8 @@ const isApiEnabled = (apiName: string, defaultValue: boolean = true): boolean =>
 };
 
 // Function to fetch news from multiple API sources
-const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Promise<NewsItem[]> => {
+// Accepts the user-requested category
+const fetchNewsFromAPI = async (requestedCategory: NewsCategory = NewsCategory.All): Promise<NewsItem[]> => {
   try {
     // Check if any API keys are available
     const hasKeys = NEWS_API_KEY || GNEWS_API_KEY || THE_NEWS_API_KEY;
@@ -598,7 +576,8 @@ const fetchNewsFromAPI = async (category: NewsCategory = NewsCategory.All): Prom
       return [];
     }
 
-    const allNewsPromises = sourcesWithKeys.map(source => source.fetchNews(category));
+    // Pass the requestedCategory to each source's fetchNews method
+    const allNewsPromises = sourcesWithKeys.map(source => source.fetchNews(requestedCategory));
     const allNewsResults = await Promise.all(allNewsPromises);
     
     // Store working status in localStorage for the debug panel
@@ -690,21 +669,125 @@ const mapCategoryToTheNewsAPI = (category: NewsCategory): string | null => {
   }
 };
 
-// Helper function to map API article to our NewsItem format
-const mapArticleToNewsItem = (article: any, index: number, apiSource: string): NewsItem => {
-  return {
-    id: `${apiSource}-${index}-${Date.now()}`,
-    title: article.title || 'No title',
-    description: article.description || 'No description',
-    url: article.url,
-    source: {
-      name: article.source?.name || apiSource,
-      bias: analyzeMediaBias(article.source?.name || apiSource)
-    },
-    publishedAt: article.publishedAt || article.published_at || new Date().toISOString(),
-    category: determineCategoryFromArticle(article),
-    keywords: [] // Will be filled by extractKeywords function
-  };
+// Helper function to map article data to our NewsItem format
+// Added feedConfig and requestedCategory parameters
+const mapArticleToNewsItem = (
+  article: any, 
+  index: number, 
+  apiSource: string, 
+  feedConfig?: RssFeedConfig,
+  requestedCategory?: NewsCategory // Added parameter
+): NewsItem | null => {
+  try {
+    let category: NewsCategory;
+    let bias: PoliticalBias;
+    let sourceName = '';
+    let sourceId = '';
+
+    if (apiSource === 'RSS' && feedConfig) {
+      sourceName = feedConfig.name;
+      sourceId = feedConfig.url;
+      bias = feedConfig.bias; 
+      category = feedConfig.category; // 1. Use category from RSS config first
+    } else if (apiSource === 'TheNewsAPI') {
+      sourceName = article.source || 'TheNewsAPI';
+      sourceId = article.uuid || 'thenewsapi';
+      bias = analyzeMediaBias(sourceName); 
+      // 2. Try mapping API's category
+      const apiCategories = article.categories || [];
+      const mappedCategory = apiCategories.length > 0 ? mapTheNewsAPIToCategory(apiCategories[0]) : null;
+      // 3. Use mapped API category, or fallback to the originally requested category
+      category = mappedCategory || requestedCategory || NewsCategory.All; 
+    } else if (apiSource === 'NewsAPI' || apiSource === 'GNews') {
+      // These APIs might not provide reliable per-article categories easily mapped
+      sourceName = article.source?.name || apiSource;
+      sourceId = article.source?.id || apiSource.toLowerCase();
+      bias = analyzeMediaBias(sourceName);
+      // 4. Directly use the originally requested category for these APIs
+      category = requestedCategory || NewsCategory.All; 
+    } else {
+      // Fallback / Unknown source
+      sourceName = article.source?.name || 'Unknown Source';
+      sourceId = 'unknown';
+      bias = analyzeMediaBias(sourceName);
+      // 5. Use requested category if available, else default to All
+      category = requestedCategory || NewsCategory.All; 
+    }
+    
+    // Sanitize description (basic example)
+    let description = article.description || article.content || '';
+    if (description && description.length > 500) { // Limit description length
+        description = description.substring(0, 497) + '...';
+    }
+    // Remove potential HTML tags (very basic)
+    description = description.replace(/<[^>]*>?/gm, '');
+
+
+    // Ensure required fields have defaults
+    const title = article.title || 'Untitled';
+    const url = article.url || '';
+    // Enhanced date parsing with multiple format support
+    let publishedAt = new Date();
+    
+    try {
+      // Try to get the date from various possible fields
+      const dateStr = article.publishedAt || article.pubDate || article.date;
+      
+      if (dateStr) {
+        // First try direct parsing
+        let parsedDate = new Date(dateStr);
+        
+        // If invalid, try cleaning up the string
+        if (isNaN(parsedDate.getTime())) {
+          // Replace timezone abbreviations with offsets
+          let cleanDateStr = dateStr
+            .replace(' PT', '-0700')  // Pacific Time
+            .replace(' ET', '-0400')  // Eastern Time
+            .replace(' GMT', '+0000') // GMT
+            .replace(' IST', '+0530'); // Indian Standard Time
+            
+          parsedDate = new Date(cleanDateStr);
+          
+          // If still invalid, try parsing without timezone
+          if (isNaN(parsedDate.getTime())) {
+            cleanDateStr = dateStr.replace(/\s[A-Z]{2,3}$/, '');
+            parsedDate = new Date(cleanDateStr);
+          }
+        }
+        
+        // Use parsed date if valid, otherwise keep current time
+        if (!isNaN(parsedDate.getTime())) {
+          publishedAt = parsedDate;
+        } else {
+          console.warn(`Could not parse date: "${dateStr}" for article: "${article.title}"`);
+        }
+      }
+    } catch (error) {
+      console.warn(`Error parsing date for article: "${article.title}"`, error);
+    }
+    const id = `${apiSource}-${sourceId}-${uuidv4()}`; // Generate unique ID
+
+    // Ensure the assigned category is valid, default to All if not
+    if (!Object.values(NewsCategory).includes(category)) {
+        console.warn(`Invalid category determined/assigned for article: ${title}, defaulting to All.`);
+        category = NewsCategory.All;
+    }
+
+
+    return {
+      id: id,
+      title: title,
+      description: description,
+      url: url,
+      source: { name: sourceName, bias: bias },
+      publishedAt: publishedAt.toISOString(),
+      category: category, // Use the determined/assigned category
+      keywords: [], // Keywords will be added later
+    };
+  } catch (error) {
+    console.error(`Error mapping article from ${apiSource}:`, article, error);
+    return null;
+  }
 };
 
 // Common English stop words to filter out
@@ -752,23 +835,6 @@ const mediaSourceNames = [
   // Shortened forms that might appear
   'breitbart', 'fox', 'dailywire', 'dailycaller', 'nytimes', 'wapo'
 ];
-
-// Helper function to create a placeholder news item for error cases
-const createPlaceholderNewsItem = (index: number, sourceName: string, errorMessage: string): NewsItem => {
-  return {
-    id: `error-${sourceName}-${index}-${Date.now()}`,
-    title: `Error processing article from ${sourceName}`,
-    description: errorMessage,
-    url: '',
-    source: {
-      name: sourceName,
-      bias: PoliticalBias.Unclear
-    },
-    publishedAt: new Date().toISOString(),
-    category: NewsCategory.All,
-    keywords: []
-  };
-};
 
 // Extract keywords from a news item
 const extractKeywords = async (newsItem: NewsItem): Promise<string[]> => {
@@ -907,127 +973,6 @@ const analyzeMediaBias = (sourceName: string): PoliticalBias => {
   return PoliticalBias.Unclear;
 };
 
-// Helper to determine category from an article when the API doesn't provide it
-const determineCategoryFromArticle = (article: any): NewsCategory => {
-  // Try to use the section, category, or topic provided by the API
-  const sectionName = article.section || article.category || article.topic;
-  
-  if (sectionName) {
-    const lowerSection = sectionName.toLowerCase();
-    
-    if (lowerSection.includes('business')) {
-      return NewsCategory.Business;
-    }
-    if (lowerSection.includes('finance') || lowerSection.includes('market') || lowerSection.includes('stock')) {
-      return NewsCategory.Finance;
-    }
-    if (lowerSection.includes('entertainment')) {
-      return NewsCategory.Entertainment;
-    }
-    if (lowerSection.includes('art') || lowerSection.includes('culture') || lowerSection.includes('museum')) {
-      return NewsCategory.Art;
-    }
-    if (lowerSection.includes('health') || lowerSection.includes('wellness')) {
-      return NewsCategory.Health;
-    }
-    if (lowerSection.includes('science')) {
-      return NewsCategory.Science;
-    }
-    if (lowerSection.includes('space') || lowerSection.includes('astronomy') || lowerSection.includes('nasa')) {
-      return NewsCategory.Space;
-    }
-    if (lowerSection.includes('education') || lowerSection.includes('school') || lowerSection.includes('university')) {
-      return NewsCategory.Education;
-    }
-    if (lowerSection.includes('environment') || lowerSection.includes('climate')) {
-      return NewsCategory.Environment;
-    }
-    if (lowerSection.includes('sport') || lowerSection.includes('sports')) {
-      return NewsCategory.Sports;
-    }
-    if (lowerSection.includes('tech') || lowerSection.includes('technology')) {
-      return NewsCategory.Tech;
-    }
-    if (lowerSection.includes('ai') || lowerSection.includes('artificial intelligence') || lowerSection.includes('machine learning')) {
-      return NewsCategory.AI;
-    }
-    if (lowerSection.includes('politics') || lowerSection.includes('election')) {
-      return NewsCategory.Politics;
-    }
-    if (lowerSection.includes('military') || lowerSection.includes('defense')) {
-      return NewsCategory.Military;
-    }
-    if (lowerSection.includes('crime') || lowerSection.includes('police') || lowerSection.includes('court')) {
-      return NewsCategory.Crime;
-    }
-    if (lowerSection.includes('us') || lowerSection.includes('nation')) {
-      return NewsCategory.US;
-    }
-    if (lowerSection.includes('world') || lowerSection.includes('international')) {
-      return NewsCategory.World;
-    }
-  }
-  
-  // If we couldn't determine the category, try analyzing the title
-  const title = article.title || '';
-  const lowerTitle = title.toLowerCase();
-  
-  if (lowerTitle.includes('business')) {
-    return NewsCategory.Business;
-  }
-  if (lowerTitle.includes('finance') || lowerTitle.includes('market') || lowerTitle.includes('stock')) {
-    return NewsCategory.Finance;
-  }
-  if (lowerTitle.includes('entertainment')) {
-    return NewsCategory.Entertainment;
-  }
-  if (lowerTitle.includes('art') || lowerTitle.includes('artist') || lowerTitle.includes('museum')) {
-    return NewsCategory.Art;
-  }
-  if (lowerTitle.includes('health') || lowerTitle.includes('medicine') || lowerTitle.includes('covid')) {
-    return NewsCategory.Health;
-  }
-  if (lowerTitle.includes('science') || lowerTitle.includes('research')) {
-    return NewsCategory.Science;
-  }
-  if (lowerTitle.includes('space') || lowerTitle.includes('nasa') || lowerTitle.includes('astronomy')) {
-    return NewsCategory.Space;
-  }
-  if (lowerTitle.includes('education') || lowerTitle.includes('school') || lowerTitle.includes('university')) {
-    return NewsCategory.Education;
-  }
-  if (lowerTitle.includes('environment') || lowerTitle.includes('climate')) {
-    return NewsCategory.Environment;
-  }
-  if (lowerTitle.includes('sport') || lowerTitle.includes('game') || lowerTitle.includes('team')) {
-    return NewsCategory.Sports;
-  }
-  if (lowerTitle.includes('tech') || lowerTitle.includes('digital')) {
-    return NewsCategory.Tech;
-  }
-  if (lowerTitle.includes('ai') || lowerTitle.includes('artificial intelligence') || lowerTitle.includes('machine learning') || lowerTitle.includes('chatgpt')) {
-    return NewsCategory.AI;
-  }
-  if (lowerTitle.includes('politic') || lowerTitle.includes('election')) {
-    return NewsCategory.Politics;
-  }
-  if (lowerTitle.includes('military') || lowerTitle.includes('defense') || lowerTitle.includes('war')) {
-    return NewsCategory.Military;
-  }
-  if (lowerTitle.includes('crime') || lowerTitle.includes('police') || lowerTitle.includes('court')) {
-    return NewsCategory.Crime;
-  }
-  if (lowerTitle.includes('congress') || lowerTitle.includes('senate')) {
-    return NewsCategory.US;
-  }
-  if (lowerTitle.includes('world') || lowerTitle.includes('global') || lowerTitle.includes('international')) {
-    return NewsCategory.World;
-  }
-  
-  // Default to All category if we couldn't determine
-  return NewsCategory.All;
-};
-
 const saveTimeSnapshot = (snapshot: TimeSnapshot): void => {
   console.log('Saving time snapshot:', snapshot);
   // Implementation will depend on storage mechanism (localStorage, IndexedDB, server API, etc.)
@@ -1038,6 +983,55 @@ const getTimeSnapshot = (timestamp: string): TimeSnapshot | null => {
   // Implementation will depend on storage mechanism
   return null;
 };
+
+// Function to get and set RSS feed enabled state (simple example using localStorage)
+interface RssFeedState {
+  [url: string]: { enabled: boolean };
+}
+
+const RSS_STATE_KEY = 'rssFeedState';
+
+export const getRssFeedState = (): RssFeedState => {
+  try {
+    const storedState = localStorage.getItem(RSS_STATE_KEY);
+    return storedState ? JSON.parse(storedState) : {};
+  } catch (e) {
+    console.error("Failed to parse RSS state from localStorage", e);
+    return {};
+  }
+};
+
+export const updateRssFeedState = (url: string, enabled: boolean): void => {
+  const currentState = getRssFeedState();
+  currentState[url] = { enabled };
+  try {
+    localStorage.setItem(RSS_STATE_KEY, JSON.stringify(currentState));
+  } catch (e) {
+    console.error("Failed to save RSS state to localStorage", e);
+  }
+};
+
+// Initialize state for any default feeds not already in storage
+const initializeRssState = () => {
+  const currentState = getRssFeedState();
+  let updated = false;
+  DEFAULT_RSS_FEEDS.forEach(feed => {
+    if (!(feed.url in currentState)) {
+      currentState[feed.url] = { enabled: true }; // Default to enabled
+      updated = true;
+    }
+  });
+  if (updated) {
+    try {
+      localStorage.setItem(RSS_STATE_KEY, JSON.stringify(currentState));
+    } catch (e) {
+      console.error("Failed to initialize RSS state in localStorage", e);
+    }
+  }
+};
+
+// Call initialization on service load
+initializeRssState();
 
 export {
   fetchNewsFromAPI,
