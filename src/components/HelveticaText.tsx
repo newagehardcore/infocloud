@@ -7,41 +7,62 @@ interface HelveticaTextProps {
   fontSize: number;
   color: string;
   isSelected?: boolean;
+  onClick?: () => void;
 }
 
 /**
  * Custom text component that uses HTML+CSS to display Helvetica text in a Three.js scene
  */
-export const HelveticaText: React.FC<HelveticaTextProps> = ({ 
+const HelveticaText: React.FC<HelveticaTextProps> = ({ 
   children, 
   fontSize, 
   color,
-  isSelected = false
+  isSelected = false,
+  onClick
 }) => {
   const ref = useRef<THREE.Group>(null);
   
-  // Convert three.js fontSize to CSS px
-  // Use a more dramatic scaling to match the cube power scaling in TagCloud3D.tsx
-  const cssSize = fontSize * 120; // Increased multiplier for more dramatic effect
+  // Convert three.js fontSize to CSS px with more dramatic scaling
+  const cssSize = fontSize * 2000; // Even more extreme scaling
   
   return (
     <group ref={ref}>
       <Html
         transform
-        occlude
         distanceFactor={10}
+        className="drei-html"
+        prepend
+        center
         style={{
           fontSize: `${cssSize}px`,
           color: color,
-          fontFamily: 'Helvetica, Arial, sans-serif',
-          fontWeight: 500,
+          fontFamily: "Arial, Helvetica, sans-serif",
+          fontWeight: 600,
           letterSpacing: '-0.05em',
           whiteSpace: 'nowrap',
           textAlign: 'center',
-          pointerEvents: 'none', // Don't block raycasting
-          userSelect: 'none', // Prevent text selection
+          pointerEvents: 'auto',
+          userSelect: 'none',
           textShadow: isSelected ? '0px 0px 5px white' : 'none',
-          transform: 'translate(-50%, -50%)', // Center the text
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000,
+          textTransform: 'lowercase',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          fontStretch: 'condensed',
+          fontKerning: 'normal',
+          fontOpticalSizing: 'auto',
+          fontFeatureSettings: '"kern" 1',
+          textRendering: 'optimizeLegibility',
+          display: 'block',
+          width: 'auto',
+          height: 'auto',
+          position: 'relative',
+          overflow: 'visible',
+        }}
+        onClick={e => {
+          e.stopPropagation();
+          if (onClick) onClick();
         }}
       >
         {children}

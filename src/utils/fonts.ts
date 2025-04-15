@@ -5,9 +5,10 @@
  * For drei's Text component, we need to use an empty string
  * to make it use the default font without trying to load any font files
  */
-export const getTagFont = (): string => {
-  // Empty string makes three.js use its built-in font
-  return '';
+export const getTagFont = (): string | undefined => {
+  // Return path to a standard font file (e.g., TTF, OTF, WOFF)
+  // Make sure this file exists in /public/fonts/
+  return '/fonts/Helvetica.ttf'; // Use a standard format
 };
 
 /**
@@ -20,14 +21,19 @@ export const preloadFonts = (): void => {
     const style = document.createElement('style');
     style.textContent = `      
       /* Force Helvetica throughout the app */
-      body, canvas, .tag-cloud-word {
+      body, canvas, .tag-cloud-word, .tag-cloud-3d text {
         font-family: Helvetica, Arial, sans-serif !important;
         letter-spacing: -0.05em;
         font-weight: 600;
       }
       
       /* Ensure Helvetica is forced in Three.js context */
-      canvas text {
+      canvas text, .tag-cloud-3d text, .tag-cloud-3d .word-text {
+        font-family: Helvetica, Arial, sans-serif !important;
+      }
+      
+      /* Additional specificity for Three.js text */
+      .tag-cloud-3d .drei-text {
         font-family: Helvetica, Arial, sans-serif !important;
       }
     `;
