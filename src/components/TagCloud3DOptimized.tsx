@@ -3,7 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NewsCategory, TagCloudWord } from '../types';
 import { Word } from './Word';
-import { throttle, detectDeviceCapabilities, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
+import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
 import * as THREE from 'three';
 
@@ -24,12 +24,6 @@ const StarfieldTags: React.FC<{
   const validPositions = positions.length >= words.length ? 
     positions : 
     Array(words.length).fill([0, 0, 0]);
-
-  // A consistent fontSize function
-  const getConsistentFontSize = (value: number): number => {
-    // Fixed size for all words to ensure complete consistency
-    return 0.4;
-  };
 
   // Add gentle continuous movement
   useFrame((state) => {
@@ -102,9 +96,17 @@ const TagCloud3D: React.FC<{
   
   // Calculate font size based on word frequency with more dramatic variation
   const getFontSize = useCallback((value: number): number => {
-    // Fixed size for all words to ensure complete consistency
-    return 0.4;
-  }, []);
+    const minSize = 0.1; // Smaller base size
+    const maxSize = 4.5; // Restored larger maximum size
+    const maxValue = Math.max(...words.map(w => w.value), 1); // Find max frequency
+    
+    // Use a power scale for non-linear sizing
+    const scalePower = 0.8; // Kept high power to keep many words small
+    const normalizedValue = value / maxValue;
+    
+    // Calculate size, ensuring it doesn't go below minSize
+    return minSize + (Math.pow(normalizedValue, scalePower) * (maxSize - minSize));
+  }, [words]);
   
   // Generate random positions in a starfield configuration
   const generateStarfieldPositions = useCallback((count: number): [number, number, number][] => {
