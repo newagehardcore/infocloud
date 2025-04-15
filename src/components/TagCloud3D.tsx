@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Text, OrbitControls } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { NewsCategory, TagCloudWord, NewsItem } from '../types';
 import * as THREE from 'three';
 import './TagCloud3D.css';
-import { getTagFont } from '../utils/fonts';
+import HelveticaText from './HelveticaText';
 
 // Word component for the 3D tag cloud
 const Word = ({ 
@@ -75,23 +75,17 @@ const Word = ({
     <mesh
       ref={ref}
       position={safePosition}
-      onClick={onClick}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <Text
+      <HelveticaText
         fontSize={fontSize}
         color={color}
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={isSelected ? 0.02 : 0}
-        outlineColor="#ffffff"
-        font={getTagFont()}
-        letterSpacing={-0.03}
-        fontWeight="normal"
+        isSelected={isSelected}
+        onClick={onClick}
       >
         {word.text}
-      </Text>
+      </HelveticaText>
       {isNew && (
         <mesh>
           <sphereGeometry args={[fontSize * 0.6, 16, 16]} />
@@ -124,8 +118,8 @@ const TagCloud3D: React.FC<{
   
   // Calculate font size based on word frequency
   const getFontSize = (value: number, wordsArray: TagCloudWord[]): number => {
-    const minSize = 0.002; // Extremely tiny for least frequent words
-    const maxSize = 3.0;   // Much larger maximum for top stories
+    const minSize = 0.01; // Much smaller minimum size
+    const maxSize = 0.25; // Smaller max size since we're scaling up dramatically in HelveticaText
     const maxValue = Math.max(...wordsArray.map(w => w.value), 1);
     
     // Use a non-linear scale with a higher power for extreme differentiation
@@ -136,13 +130,13 @@ const TagCloud3D: React.FC<{
     
     // For top 3 stories, use special scaling
     if (rank <= 3) {
-      // Scale from 1.5 to 3.0 for top 3
-      return 1.5 + ((3 - rank) * 0.75);
+      // Scale from 0.15 to 0.25 for top 3
+      return 0.15 + ((3 - rank) * 0.05);
     }
     
     // For all other stories, use a very steep power curve
-    // Power of 12 creates an extremely long tail of tiny words
-    return minSize + (Math.pow(normalizedValue, 12) * 0.8);
+    // Power of 16 creates an extremely long tail of tiny words
+    return minSize + (Math.pow(normalizedValue, 16) * (maxSize - minSize));
   };
   
   // Generate positions for words in a sphere-like shape
