@@ -29,9 +29,27 @@
     -->
     <title>INFOCLOUD</title>
     <style>
-      /* Ensure Helvetica is used as the preferred font */
-      body {
-        font-family: Helvetica, Arial, sans-serif;
+      /* Force system Helvetica Neue */
+      @font-face {
+        font-family: 'Helvetica Neue Local';
+        src: local('Helvetica Neue Bold'),
+             local('HelveticaNeue-Bold'),
+             local('Helvetica Neue'),
+             local('HelveticaNeue-Regular');
+        font-weight: bold;
+      }
+
+      /* Ensure Helvetica Neue is used throughout the app */
+      body, div, span, canvas {
+        font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Force Helvetica Neue in Three.js context */
+      .drei-html {
+        font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: bold;
       }
     </style>
   </head>

@@ -1,10 +1,10 @@
-# Whats Going On - README
+# INFOCLOUD - README
 
 ## Real-time Interactive News Tag Cloud Application
 
-"Whats Going On" is a real-time news aggregator visualization application that displays current news as an interactive 3D tag cloud. The application visualizes news topics as words sized by frequency, colored by political leaning, and allows users to explore stories by clicking on terms. It also includes a time-travel feature that lets users rewind to see how news evolved throughout the day.
+"INFOCLOUD" is a real-time news aggregator visualization application that displays current news as an interactive 3D tag cloud. The application visualizes news topics as words sized by frequency, colored by political leaning, and allows users to explore stories by clicking on terms. It also includes a time-travel feature that lets users rewind to see how news evolved throughout the day.
 
-![Whats Going On Application](https://example.com/screenshot.png)
+![INFOCLOUD Application](https://example.com/screenshot.png)
 
 ## Core Features
 
