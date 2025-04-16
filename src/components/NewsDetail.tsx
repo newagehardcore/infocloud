@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { NewsItem } from '../types';
-import { fetchNewsFromAPI } from '../services/newsService';
+import { fetchAllNewsItems } from '../services/newsService';
 import './NewsDetail.css';
 
 const NewsDetail: React.FC = () => {
@@ -11,25 +11,31 @@ const NewsDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchNewsItem = async () => {
+    const loadNewsDetail = async () => {
+      if (!newsId) {
+        setError('News ID is missing');
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
-        const news = await fetchNewsFromAPI();
-        const item = news.find((item: NewsItem) => item.id === newsId);
+        const allNews = await fetchAllNewsItems();
+        const item = allNews.find((item: NewsItem) => item.id === newsId);
         
         if (item) {
           setNewsItem(item);
         } else {
-          setError('News item not found');
+          setError('News item not found.');
         }
-      } catch (err) {
-        setError('Error fetching news item');
+      } catch (error) {
+        console.error('Error loading news detail:', error);
+        setError('Failed to load news details.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNewsItem();
+    loadNewsDetail();
   }, [newsId]);
 
   if (loading) {

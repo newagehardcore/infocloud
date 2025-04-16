@@ -268,4 +268,34 @@ input[type="checkbox"] {
   .rss-feeds-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.menu-section.bias-filters {
+  margin-bottom: 16px;
+  background-color: rgba(240, 240, 240, 0.9);
+  padding: 12px;
+  border-radius: 5px;
+}
+
+.menu-section.bias-filters h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #444;
+}
+
+.menu-section.bias-filters .checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.menu-section.bias-filters .checkbox-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.menu-section.bias-filters input[type="checkbox"] {
+  margin-right: 8px;
 } 

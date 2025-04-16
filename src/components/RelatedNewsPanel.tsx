@@ -14,10 +14,18 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
   onClose
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [expandedBiases, setExpandedBiases] = useState<{[key: string]: boolean}>({});
   
   useEffect(() => {
     // Animate panel entrance
     setIsVisible(true);
+    
+    // Initialize all bias groups as expanded
+    const initialExpandedState: {[key: string]: boolean} = {};
+    newsItems.forEach(item => {
+      initialExpandedState[item.source.bias] = true;
+    });
+    setExpandedBiases(initialExpandedState);
     
     // Add escape key listener to close panel
     const handleEscKey = (event: KeyboardEvent) => {
@@ -31,7 +39,7 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
     return () => {
       window.removeEventListener('keydown', handleEscKey);
     };
-  }, [onClose]);
+  }, [onClose, newsItems]);
   
   const handleClose = () => {
     // Animate panel exit
@@ -39,22 +47,39 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
     setTimeout(onClose, 300);
   };
   
+  // Toggle collapse/expand for a bias group
+  const toggleBiasExpand = (bias: string) => {
+    setExpandedBiases(prev => ({
+      ...prev,
+      [bias]: !prev[bias]
+    }));
+  };
+  
   // Get color based on political bias
   const getBiasColor = (bias: string): string => {
     switch (bias) {
-      case 'mainstream-left': return '#6495ED'; // Light blue
+      case 'mainstream-democrat': return '#6495ED'; // Light blue
       case 'alternative-left': return '#00008B'; // Dark blue
       case 'centrist': return '#800080'; // Purple
-      case 'mainstream-right': return '#FFB6C1'; // Light red
+      case 'mainstream-republican': return '#FFB6C1'; // Light red
       case 'alternative-right': return '#FF0000'; // Bright red
       default: return '#808080'; // Gray for unclear
     }
   };
   
+  // Define the desired order for bias groups
+  const biasOrder = [
+    'alternative-left',
+    'mainstream-democrat',
+    'centrist',
+    'unclear',
+    'mainstream-republican',
+    'alternative-right',
+  ];
+
   // Group news items by source bias
   const groupByBias = () => {
     const groups: { [key: string]: NewsItem[] } = {};
-    
     newsItems.forEach(item => {
       const bias = item.source.bias;
       if (!groups[bias]) {
@@ -62,71 +87,87 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
       }
       groups[bias].push(item);
     });
-    
     return groups;
   };
-  
+
   const biasGroups = groupByBias();
+
+  // Get bias groups in the desired order
+  const orderedBiasGroups = biasOrder
+    .map(bias => [bias, biasGroups[bias]] as [string, NewsItem[]])
+    .filter(([, items]) => items && items.length > 0);
   
   // Get bias label for display
   const getBiasLabel = (bias: string): string => {
     switch (bias) {
-      case 'mainstream-left': return 'Mainstream Left';
+      case 'mainstream-democrat': return 'Mainstream Democrat';
       case 'alternative-left': return 'Alternative Left';
       case 'centrist': return 'Centrist';
-      case 'mainstream-right': return 'Mainstream Right';
+      case 'mainstream-republican': return 'Mainstream Republican';
       case 'alternative-right': return 'Alternative Right';
       default: return 'Unclear';
     }
   };
   
   return (
-    <div className={`related-news-panel ${isVisible ? 'visible' : ''}`}>
-      <div className="panel-header">
-        <h2>News related to "{selectedKeyword}"</h2>
-        <button className="close-button" onClick={handleClose} aria-label="Close panel">
-          ×
-        </button>
+    <>
+      <div className={`backdrop-overlay ${isVisible ? 'visible' : ''}`} onClick={handleClose}></div>
+      <div className={`related-news-panel ${isVisible ? 'visible' : ''}`}>
+        <div className="panel-header">
+          <h2>News related to "{selectedKeyword}"</h2>
+          <button className="close-button" onClick={handleClose} aria-label="Close panel">
+            ×
+          </button>
+        </div>
+        
+        <div className="panel-content">
+          {orderedBiasGroups.length > 0 ? (
+            <div className="bias-groups">
+              {orderedBiasGroups.map(([bias, items]) => (
+                <div key={bias} className="bias-group">
+                  <h3 
+                    className="bias-heading" 
+                    style={{ color: getBiasColor(bias) }}
+                    onClick={() => toggleBiasExpand(bias)}
+                  >
+                    {getBiasLabel(bias)} 
+                    <span className="source-count">({items.length} sources)</span>
+                    <span className="accordion-icon">
+                      {expandedBiases[bias] ? '▾' : '▸'}
+                    </span>
+                  </h3>
+                  {expandedBiases[bias] && (
+                    <ul className="news-list">
+                      {items.map(item => (
+                        <li key={item.id} className="news-item">
+                          <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
+                            <h4 className="news-title">{item.title}</h4>
+                            <div className="news-meta">
+                              <span className="source-name">{item.source.name}</span>
+                              <span className="publish-date">
+                                {new Date(item.publishedAt).toLocaleString()}
+                              </span>
+                            </div>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-results">No related news found.</p>
+          )}
+        </div>
+        
+        <div className="panel-footer">
+          <button className="view-all-button" onClick={handleClose}>
+            Return to Tag Cloud
+          </button>
+        </div>
       </div>
-      
-      <div className="panel-content">
-        {Object.keys(biasGroups).length > 0 ? (
-          <div className="bias-groups">
-            {Object.entries(biasGroups).map(([bias, items]) => (
-              <div key={bias} className="bias-group">
-                <h3 className="bias-heading" style={{ color: getBiasColor(bias) }}>
-                  {getBiasLabel(bias)} 
-                  <span className="source-count">({items.length} sources)</span>
-                </h3>
-                <ul className="news-list">
-                  {items.map(item => (
-                    <li key={item.id} className="news-item">
-                      <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
-                        <h4 className="news-title">{item.title}</h4>
-                        <div className="news-meta">
-                          <span className="source-name">{item.source.name}</span>
-                          <span className="publish-date">
-                            {new Date(item.publishedAt).toLocaleString()}
-                          </span>
-                        </div>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="no-results">No related news found.</p>
-        )}
-      </div>
-      
-      <div className="panel-footer">
-        <button className="view-all-button" onClick={handleClose}>
-          Return to Tag Cloud
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 

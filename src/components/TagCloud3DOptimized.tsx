@@ -1,76 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { NewsCategory, TagCloudWord } from '../types';
+import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
 import { Word } from './Word';
 import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
 import * as THREE from 'three';
-
-// Random starfield component that displays words randomly distributed
-const StarfieldTags: React.FC<{
-  words: TagCloudWord[];
-  positions: [number, number, number][];
-  onWordClick: (word: TagCloudWord) => void;
-  selectedWord: string | null;
-  newWords: Set<string>;
-  getFontSize: (value: number) => number;
-  getBiasColor: (bias: string) => string;
-  renderSettings: any;
-}> = ({ words, positions, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
-  const groupRef = useRef<THREE.Group>(null);
-  
-  // Ensure we have valid positions for all words
-  const validPositions = positions.length >= words.length ? 
-    positions : 
-    Array(words.length).fill([0, 0, 0]);
-
-  // Add gentle continuous movement
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    
-    const time = state.clock.getElapsedTime();
-    
-    // Individual word movement
-    words.forEach((_, index) => {
-      const child = groupRef.current?.children[index];
-      if (!child) return;
-
-      // Create unique but stable movement for each word
-      const uniqueOffset = Math.sin(index * 0.1) * 10;
-      const xFreq = 0.2 + Math.sin(index * 0.05) * 0.1;
-      const yFreq = 0.25 + Math.cos(index * 0.05) * 0.1;
-      const zFreq = 0.3 + Math.sin(index * 0.05) * 0.1;
-      
-      // Apply more noticeable floating movement relative to original position
-      const originalPosition = validPositions[index];
-      child.position.set(
-        originalPosition[0] + Math.sin(time * xFreq + uniqueOffset) * 0.5,
-        originalPosition[1] + Math.cos(time * yFreq + uniqueOffset) * 0.5,
-        originalPosition[2] + Math.sin(time * zFreq + uniqueOffset) * 0.5
-      );
-    });
-  });
-
-  return (
-    <group ref={groupRef}>
-      {words.map((word, i) => (
-        <Word
-          key={word.text}
-          word={word}
-          position={validPositions[i]}
-          fontSize={getFontSize(word.value)}
-          color={getBiasColor(word.bias)}
-          onClick={() => onWordClick(word)}
-          isSelected={selectedWord === word.text}
-          isNew={newWords.has(word.text)}
-          animationSpeed={renderSettings.animationSpeed}
-          useSimpleRendering={renderSettings.useSimpleRendering}
-        />
-      ))}
-    </group>
-  );
-};
+import StarfieldTags from './StarfieldTags';
 
 // Main tag cloud component with performance optimizations
 const TagCloud3D: React.FC<{
@@ -83,14 +19,27 @@ const TagCloud3D: React.FC<{
   const [positions, setPositions] = useState<[number, number, number][]>([]);
   
   // Get color based on political bias
-  const getBiasColor = useCallback((bias: string): string => {
-    switch (bias) {
-      case 'mainstream-left': return '#6495ED'; // Light blue
-      case 'alternative-left': return '#00008B'; // Dark blue
-      case 'centrist': return '#800080'; // Purple
-      case 'mainstream-right': return '#FFB6C1'; // Light red
-      case 'alternative-right': return '#FF0000'; // Bright red
-      default: return '#808080'; // Gray for unclear
+  const getBiasColor = useCallback((bias: PoliticalBias): string => {
+    // Debug: Log the bias value to see what's actually being passed
+    console.log('Bias value received:', bias, typeof bias);
+    
+    // Convert to string to ensure consistent comparison
+    const biasString = String(bias);
+    
+    switch (biasString) {
+      case 'mainstream-democrat': 
+        return '#6495ED'; // Light blue
+      case 'alternative-left': 
+        return '#00008B'; // Dark blue
+      case 'centrist': 
+        return '#800080'; // Purple
+      case 'mainstream-republican': 
+        return '#FFB6C1'; // Light red
+      case 'alternative-right': 
+        return '#FF0000'; // Bright red
+      default: 
+        console.log(`Default case hit for bias: "${bias}" (type: ${typeof bias})`);
+        return '#808080'; // Gray for unclear
     }
   }, []);
   
@@ -162,6 +111,19 @@ const TagCloud3D: React.FC<{
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+  
+  // Debug log when words change
+  useEffect(() => {
+    if (words.length > 0) {
+      console.log(`TagCloud3D received ${words.length} words with biases:`, 
+        words.reduce((acc, word) => {
+          acc[word.bias] = (acc[word.bias] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
+    } else {
+      console.log('TagCloud3D received empty words array');
+    }
+  }, [words]);
   
   return (
     <Canvas 
@@ -246,25 +208,23 @@ const TagCloud3DContainer: React.FC<{
   }, [onWordSelect]);
   
   return (
-    <div className="tag-cloud-3d-container">
+    <div className="tag-cloud-3d" style={{ background: '#111', minHeight: 400, width: '100%' }}>
       <div className="status-indicator">
         <span className="live-indicator">Live Updates</span>
       </div>
       
-      <div className="tag-cloud-3d">
-        {isLoading ? (
-          <div className="loading-indicator">Loading visualization...</div>
-        ) : words.length === 0 ? (
-          <div className="no-data-message">No data available for this category.</div>
-        ) : (
-          <TagCloud3D 
-            words={words} 
-            onWordClick={handleWordClick} 
-            selectedWord={selectedWord}
-            newWords={newWords}
-          />
-        )}
-      </div>
+      {isLoading ? (
+        <div className="loading-indicator">Loading visualization...</div>
+      ) : words.length === 0 ? (
+        <div className="no-data-message">No data available for this category.</div>
+      ) : (
+        <TagCloud3D 
+          words={words} 
+          onWordClick={handleWordClick} 
+          selectedWord={selectedWord}
+          newWords={newWords}
+        />
+      )}
     </div>
   );
 };

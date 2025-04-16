@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PoliticalBias } from '../types';
-import { DEFAULT_RSS_FEEDS } from '../services/newsService';
-import { BIAS_UPDATE_EVENT } from '../App';
+import { useFilters } from '../contexts/FilterContext';
 import './EditMenu.css';
-
-interface ApiStatus {
-  name: string;
-  enabled: boolean;
-  working: boolean;
-}
-
-interface RssFeed {
-  name: string;
-  url: string;
-  enabled: boolean;
-}
+import { DEFAULT_RSS_FEEDS } from '../services/newsService';
+import { RssFeedConfig } from '../types';
 
 interface EditMenuProps {
   onClose: () => void; // Called when menu closes
@@ -23,47 +12,18 @@ interface EditMenuProps {
 const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
-  const [enabledBiases, setEnabledBiases] = useState<Set<PoliticalBias>>(new Set(Object.values(PoliticalBias)));
-  const [apis, setApis] = useState<ApiStatus[]>([
-    { name: 'NewsAPI', enabled: false, working: false },
-    { name: 'GNews', enabled: false, working: false },
-    { name: 'TheNewsAPI', enabled: false, working: false },
-    { name: 'RSS', enabled: true, working: false }
-  ]);
-  const [rssFeeds, setRssFeeds] = useState<RssFeed[]>([]);
   const [isApiSourcesOpen, setIsApiSourcesOpen] = useState(false);
   const [isRssFeedsOpen, setIsRssFeedsOpen] = useState(false);
-
-  // Load saved state on mount
-  useEffect(() => {
-    // Load bias filters
-    const savedBiases = localStorage.getItem('enabled_biases');
-    if (savedBiases) {
-      setEnabledBiases(new Set(JSON.parse(savedBiases) as PoliticalBias[]));
-    }
-
-    // Load API states
-    apis.forEach(api => {
-      const savedState = localStorage.getItem(`api_${api.name.replace(/\s+/g, '')}_enabled`);
-      if (savedState !== null) {
-        setApis(prev => prev.map(a => 
-          a.name === api.name ? { ...a, enabled: savedState === 'true' } : a
-        ));
-      }
-    });
-
-    // Load RSS feed states from localStorage
-    const feeds = DEFAULT_RSS_FEEDS.map(feed => {
-      const feedId = `rssfeed_${feed.name.replace(/\s+/g, '_')}`;
-      const savedEnabled = localStorage.getItem(feedId);
-      return {
-        name: feed.name,
-        url: feed.url,
-        enabled: savedEnabled === null ? true : savedEnabled === 'true'
-      };
-    });
-    setRssFeeds(feeds);
-  }, []);
+  
+  // Get filter state from context
+  const { 
+    enabledBiases, 
+    toggleBias, 
+    apiSources, 
+    toggleApiSource, 
+    rssFeeds, 
+    toggleRssFeed
+  } = useFilters();
 
   const toggleMenu = () => {
     if (isOpen) {
@@ -74,42 +34,86 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     setIsOpen(!isOpen);
   };
 
-  const handleBiasToggle = (bias: PoliticalBias) => {
-    const newEnabledBiases = new Set(enabledBiases);
-    if (newEnabledBiases.has(bias)) {
-      newEnabledBiases.delete(bias);
-    } else {
-      newEnabledBiases.add(bias);
-    }
-    setEnabledBiases(newEnabledBiases);
-    
-    // Save to localStorage
-    localStorage.setItem('enabled_biases', JSON.stringify(Array.from(newEnabledBiases)));
-    
-    // Dispatch event for real-time updates
-    window.dispatchEvent(new Event(BIAS_UPDATE_EVENT));
-  };
-
-  const toggleApi = (apiName: string) => {
-    setApis(prev => prev.map(api => 
-      api.name === apiName ? { ...api, enabled: !api.enabled } : api
-    ));
-  };
-
-  const toggleRssFeed = (feedName: string) => {
-    setRssFeeds(prev => prev.map(feed => 
-      feed.name === feedName ? { ...feed, enabled: !feed.enabled } : feed
-    ));
-  };
-
   // Bias category labels
   const biasLabels: { [key in PoliticalBias]?: string } = {
-    [PoliticalBias.MainstreamLeft]: 'Mainstream Left',
+    [PoliticalBias.MainstreamDemocrat]: 'Mainstream Democrat',
     [PoliticalBias.AlternativeLeft]: 'Alternative Left',
     [PoliticalBias.Centrist]: 'Centrist',
-    [PoliticalBias.MainstreamRight]: 'Mainstream Right',
+    [PoliticalBias.MainstreamRepublican]: 'Mainstream Republican',
     [PoliticalBias.AlternativeRight]: 'Alternative Right',
     [PoliticalBias.Unclear]: 'Unclear'
+  };
+
+  // Create an array of bias entries for the requested order
+  const biasEntries = [
+    { value: PoliticalBias.AlternativeLeft, label: biasLabels[PoliticalBias.AlternativeLeft]! },
+    { value: PoliticalBias.MainstreamDemocrat, label: biasLabels[PoliticalBias.MainstreamDemocrat]! },
+    { value: PoliticalBias.Centrist, label: biasLabels[PoliticalBias.Centrist]! },
+    { value: PoliticalBias.Unclear, label: biasLabels[PoliticalBias.Unclear]! },
+    { value: PoliticalBias.MainstreamRepublican, label: biasLabels[PoliticalBias.MainstreamRepublican]! },
+    { value: PoliticalBias.AlternativeRight, label: biasLabels[PoliticalBias.AlternativeRight]! },
+  ];
+
+  // Bias order and labels for RSS grouping
+  const rssBiasOrder: PoliticalBias[] = [
+    PoliticalBias.AlternativeLeft,
+    PoliticalBias.MainstreamDemocrat,
+    PoliticalBias.Centrist,
+    PoliticalBias.Unclear,
+    PoliticalBias.MainstreamRepublican,
+    PoliticalBias.AlternativeRight,
+  ];
+  const rssBiasLabels: { [key in PoliticalBias]: string } = {
+    [PoliticalBias.AlternativeLeft]: 'Alternative Left',
+    [PoliticalBias.MainstreamDemocrat]: 'Mainstream Democrat',
+    [PoliticalBias.Centrist]: 'Centrist',
+    [PoliticalBias.Unclear]: 'Unclear',
+    [PoliticalBias.MainstreamRepublican]: 'Mainstream Republican',
+    [PoliticalBias.AlternativeRight]: 'Alternative Right',
+  };
+
+  // Group RSS feeds by bias
+  const rssFeedsByBias: { [key in PoliticalBias]: typeof rssFeeds } = {
+    [PoliticalBias.AlternativeLeft]: [],
+    [PoliticalBias.MainstreamDemocrat]: [],
+    [PoliticalBias.Centrist]: [],
+    [PoliticalBias.Unclear]: [],
+    [PoliticalBias.MainstreamRepublican]: [],
+    [PoliticalBias.AlternativeRight]: [],
+  };
+  rssFeeds.forEach(feed => {
+    // Find the feed config in DEFAULT_RSS_FEEDS to get its bias
+    const config = DEFAULT_RSS_FEEDS.find((f: RssFeedConfig) => f.name === feed.name);
+    const bias = (config?.bias || PoliticalBias.Unclear) as PoliticalBias;
+    rssFeedsByBias[bias].push(feed);
+  });
+
+  // Helper to check if all feeds in a group are enabled
+  const isGroupEnabled = (feeds: typeof rssFeeds) => feeds.length > 0 && feeds.every(f => f.enabled);
+  // Helper to check if some feeds in a group are enabled
+  const isGroupIndeterminate = (feeds: typeof rssFeeds) => feeds.some(f => f.enabled) && !isGroupEnabled(feeds);
+
+  // Handler to toggle all feeds in a group
+  const toggleRssFeedGroup = (feeds: typeof rssFeeds, enabled: boolean) => {
+    feeds.forEach(feed => {
+      if (feed.enabled !== enabled) toggleRssFeed(feed.name);
+    });
+  };
+
+  // Handler to toggle a political bias and set all RSS feeds for that bias to the new state
+  const handleToggleBias = (bias: PoliticalBias) => {
+    const willEnable = !enabledBiases.has(bias);
+    toggleBias(bias);
+    // Set all RSS feeds for this bias to the new state (always use current rssFeeds)
+    rssFeeds
+      .filter(feed => {
+        const config = DEFAULT_RSS_FEEDS.find((f: RssFeedConfig) => f.name === feed.name);
+        const feedBias = (config?.bias || PoliticalBias.Unclear) as PoliticalBias;
+        return feedBias === bias;
+      })
+      .forEach(feed => {
+        if (feed.enabled !== willEnable) toggleRssFeed(feed.name);
+      });
   };
 
   return (
@@ -126,22 +130,24 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
           </div>
           <div className="edit-menu-content">
             {/* Bias Filters Section */}
-            <div className="menu-section">
+            <div className="menu-section bias-section">
               <h4>Filter by Political Bias</h4>
-              <div className="checkbox-group">
-                {(Object.keys(biasLabels) as PoliticalBias[]).map(bias => (
-                  <div key={bias} className="checkbox-item">
-                    <input 
-                      type="checkbox" 
-                      id={`bias-${bias}`}
-                      checked={enabledBiases.has(bias)}
-                      onChange={() => handleBiasToggle(bias)}
+              <div className="bias-checkbox-group">
+                {biasEntries.map(({ value, label }) => (
+                  <div key={value} className="checkbox-item">
+                    <input
+                      type="checkbox"
+                      id={`bias-${value}`}
+                      checked={enabledBiases.has(value)}
+                      onChange={() => handleToggleBias(value)}
                     />
-                    <label htmlFor={`bias-${bias}`}>{biasLabels[bias]}</label>
+                    <label htmlFor={`bias-${value}`}>{label}</label>
                   </div>
                 ))}
               </div>
             </div>
+
+            <div className="divider" />
 
             {/* News Sources Accordion Section */}
             <div className="menu-section">
@@ -159,15 +165,15 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
                   <div className="source-group">
                     <h5>API Sources</h5>
                     <div className="checkbox-group">
-                      {apis.map(api => (
+                      {apiSources.map(api => (
                         <div key={api.name} className="checkbox-item">
                           <input
                             type="checkbox"
-                            id={`api-${api.name}`}
+                            id={`edit-api-${api.name}`}
                             checked={api.enabled}
-                            onChange={() => toggleApi(api.name)}
+                            onChange={() => toggleApiSource(api.name)}
                           />
-                          <label htmlFor={`api-${api.name}`}>
+                          <label htmlFor={`edit-api-${api.name}`}>
                             {api.name}
                             <span className={`status-dot ${api.working ? 'working' : 'not-working'}`} />
                           </label>
@@ -176,50 +182,45 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
                     </div>
                   </div>
 
-                  {/* RSS Feeds */}
-                  <div className="source-group">
-                    <h5>RSS Feeds</h5>
-                    <div className="checkbox-group">
-                      {rssFeeds.map(feed => (
-                        <div key={feed.name} className="checkbox-item">
-                          <input
-                            type="checkbox"
-                            id={`feed-${feed.name}`}
-                            checked={feed.enabled}
-                            onChange={() => toggleRssFeed(feed.name)}
-                          />
-                          <label 
-                            htmlFor={`feed-${feed.name}`}
-                            title={feed.url}
-                          >
-                            {feed.name}
-                          </label>
+                  {/* RSS FEEDS Section */}
+                  <div className="menu-section rss-section">
+                    <h4>RSS FEEDS</h4>
+                    {rssBiasOrder.map(bias => {
+                      const feeds = rssFeedsByBias[bias];
+                      if (!feeds.length) return null;
+                      const allEnabled = isGroupEnabled(feeds);
+                      const indeterminate = isGroupIndeterminate(feeds);
+                      return (
+                        <div key={bias} className="rss-bias-group">
+                          <div className="rss-bias-header">
+                            <input
+                              type="checkbox"
+                              checked={allEnabled}
+                              ref={el => { if (el) el.indeterminate = indeterminate; }}
+                              onChange={e => toggleRssFeedGroup(feeds, !allEnabled)}
+                              style={{ marginRight: 6, accentColor: '#888', width: 15, height: 15 }}
+                            />
+                            <span>{rssBiasLabels[bias]}</span>
+                          </div>
+                          <div className="rss-checkbox-group">
+                            {feeds.map(feed => (
+                              <div key={feed.name} className="checkbox-item">
+                                <input
+                                  type="checkbox"
+                                  id={`rss-${feed.name}`}
+                                  checked={feed.enabled}
+                                  onChange={() => toggleRssFeed(feed.name)}
+                                />
+                                <label htmlFor={`rss-${feed.name}`}>{feed.name}</label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="menu-section action-buttons">
-              <button 
-                className="test-button"
-                onClick={() => {
-                  // TODO: Implement test functionality
-                }}
-              >
-                Test All Sources
-              </button>
-              <button 
-                className="refresh-button"
-                onClick={() => {
-                  toggleMenu(); // Close menu and trigger refresh
-                }}
-              >
-                Apply Changes
-              </button>
             </div>
           </div>
         </div>

@@ -13,10 +13,10 @@ export interface NewsItem {
 }
 
 export enum PoliticalBias {
-  MainstreamLeft = 'mainstream-left',
+  MainstreamDemocrat = 'mainstream-democrat',
   AlternativeLeft = 'alternative-left',
   Centrist = 'centrist',
-  MainstreamRight = 'mainstream-right',
+  MainstreamRepublican = 'mainstream-republican',
   AlternativeRight = 'alternative-right',
   Unclear = 'unclear'
 }
@@ -27,19 +27,12 @@ export enum NewsCategory {
   US = 'us',
   Politics = 'politics',
   Tech = 'tech',
-  AI = 'ai',
-  Business = 'business',
   Finance = 'finance',
   Entertainment = 'entertainment',
-  Art = 'art',
   Sports = 'sports',
   Health = 'health',
   Science = 'science',
-  Education = 'education',
-  Environment = 'environment',
-  Military = 'military',
-  Crime = 'crime',
-  Space = 'space'
+  Education = 'education'
 }
 
 export interface TagCloudWord {
@@ -54,4 +47,11 @@ export interface TimeSnapshot {
   timestamp: string;
   words: TagCloudWord[];
   newsItems: NewsItem[];
+}
+
+export interface RssFeedConfig {
+  url: string;
+  name: string;
+  category: NewsCategory;
+  bias: PoliticalBias;
 }
