@@ -1,3 +1,117 @@
+/* Edit Menu Container */
+.edit-menu {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Toggle Button */
+.edit-menu-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.edit-menu-toggle .icon {
+  font-size: 1.2rem;
+}
+
+/* Content Panel */
+.edit-menu-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  min-width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.edit-menu.open .edit-menu-content {
+  display: block;
+}
+
+/* Close Button */
+.close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.close-button:hover {
+  color: #fff;
+}
+
+/* Section Headers */
+.edit-menu h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.menu-section {
+  margin-bottom: 24px;
+}
+
+.menu-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: #ccc;
+  font-weight: 500;
+}
+
+/* Checkbox Groups */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #666;
+}
+
+.checkbox-item label {
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* RSS Feeds Section */
+.menu-section.rss-feeds p {
+  color: #999;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 8px 0;
+}
+
 /* Edit Menu Container & Button */
 .edit-menu-container {
   position: absolute;
@@ -72,18 +186,6 @@
 }
 
 /* Sections */
-.menu-section {
-  margin-bottom: 24px;
-  padding: 0 0 0 12px;
-}
-
-.menu-section h4 {
-  margin: 0 0 4px 0;
-  font-size: 1rem;
-  color: #bbb;
-  font-weight: 500;
-}
-
 .bias-section {
   margin-bottom: 18px;
   border-bottom: 1px solid #333;
@@ -123,28 +225,6 @@
   flex-direction: column;
   gap: 4px;
   padding-left: 18px;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0;
-  padding: 2px 0;
-  white-space: nowrap;
-}
-
-.checkbox-item input[type="checkbox"] {
-  margin-right: 6px;
-  accent-color: #888;
-  width: 15px;
-  height: 15px;
-}
-
-.checkbox-item label {
-  font-size: 0.97rem;
-  color: #ddd;
-  cursor: pointer;
-  padding: 0;
 }
 
 /* Placeholder for API/RSS sections - copy relevant styles from ApiDebugPanel.css later */

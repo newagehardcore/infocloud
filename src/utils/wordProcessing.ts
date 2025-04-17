@@ -90,6 +90,9 @@ const NEWS_SOURCE_NAMES = new Set([
   'ap', 'associated', 'press', 'hill', 'newsweek'
 ]);
 
+// Maximum words per bias category to ensure balance
+const MAX_WORDS_PER_BIAS = 100;
+
 // Configuration options for word processing
 export interface WordProcessingConfig {
   minWordLength: number;        // Minimum length of words to include
@@ -102,12 +105,12 @@ export interface WordProcessingConfig {
 
 // Default configuration
 export const DEFAULT_WORD_PROCESSING_CONFIG: WordProcessingConfig = {
-  minWordLength: 2,        // Allow shorter words
+  minWordLength: 3,        // Allow shorter words
   maxWordLength: 30,       // Allow longer words/phrases
   minFrequency: 1,         // Include words that appear only once
   maxWords: 500,           // Allow many more words
   removeStopWords: true,   // Keep filtering stop words
-  combineWordForms: false  // Don't combine word forms to preserve variety
+  combineWordForms: true  // Combine word forms to preserve variety
 };
 
 // Map of known entities and their canonical forms
@@ -363,23 +366,32 @@ const cleanString = (str: string): string => {
   
   // Remove all punctuation except apostrophes in words (like "don't")
   // Keep hyphens in compound words but remove other punctuation
-  return normalizedApostrophes.replace(/[.,;:!?()[\]{}"\/\\|@#$%^&*+=_~<>]/g, '')
-                              .replace(/\s-+\s/g, ' '); // Remove standalone hyphens with spaces around them
+  return normalizedApostrophes.replace(/[.,;:!?()[\]{}"\\|@#$%^&*+=_~<>]/g, '')
+                              .replace(/\s-+\s/g, ' '); // Remove standalone hyphens
 };
 
 /**
- * Processes news items to generate refined tag cloud words
+ * Processes news items to generate refined tag cloud words with balanced bias distribution
  */
 export const processNewsToWords = async (
   news: NewsItem[],
-  config: WordProcessingConfig = DEFAULT_WORD_PROCESSING_CONFIG
+  config = DEFAULT_WORD_PROCESSING_CONFIG
 ): Promise<TagCloudWord[]> => {
-  const wordMap = new Map<string, TagCloudWord & { biasCounts: Map<PoliticalBias, number> }>();
+  // Create separate maps for each bias category
+  const biasMaps = new Map<PoliticalBias, Map<string, TagCloudWord>>();
+  Object.values(PoliticalBias).forEach(bias => {
+    biasMaps.set(bias, new Map<string, TagCloudWord>());
+  });
   
+  // Process words into their respective bias categories
   for (const item of news) {
-    // Process each keyword from the news item
+    // Skip items with undefined bias or keywords
+    if (!item.source?.bias || !item.keywords) continue;
+    
+    // Default to Unclear bias if the bias is not in our map
+    const bias = biasMaps.has(item.source.bias) ? item.source.bias : PoliticalBias.Unclear;
+    
     for (const word of item.keywords) {
-      // Clean and normalize the word: handle HTML entities, apostrophes, and remove punctuation
       let normalizedWord = cleanString(word).toLowerCase().trim();
       
       // Skip words that don't meet basic criteria
@@ -395,63 +407,59 @@ export const processNewsToWords = async (
         normalizedWord = findWordRoot(normalizedWord);
       }
       
-      if (wordMap.has(normalizedWord)) {
+      const biasMap = biasMaps.get(bias)!;
+      
+      if (biasMap.has(normalizedWord)) {
         // Update existing word
-        const existingWord = wordMap.get(normalizedWord)!;
+        const existingWord = biasMap.get(normalizedWord)!;
         existingWord.value += 1;
         if (!existingWord.newsIds.includes(item.id)) {
           existingWord.newsIds.push(item.id);
-          // Update bias counts
-          const currentCount = existingWord.biasCounts.get(item.source.bias) || 0;
-          existingWord.biasCounts.set(item.source.bias, currentCount + 1);
-          
-          // Update the word's bias to the most frequent one
-          let maxCount = 0;
-          let dominantBias = existingWord.bias;
-          existingWord.biasCounts.forEach((count, bias) => {
-            if (count > maxCount) {
-              maxCount = count;
-              dominantBias = bias as PoliticalBias;
-            }
-          });
-          existingWord.bias = dominantBias;
         }
       } else {
-        // Create new word with bias tracking
-        const biasCounts = new Map<PoliticalBias, number>();
-        biasCounts.set(item.source.bias, 1);
-        wordMap.set(normalizedWord, {
+        // Create new word
+        biasMap.set(normalizedWord, {
           text: normalizedWord,
           value: 1,
-          bias: item.source.bias,
+          bias: bias,
           newsIds: [item.id],
-          category: item.category,
-          biasCounts: biasCounts
+          category: item.category
         });
       }
     }
   }
   
-  // Convert map to array and apply frequency threshold
-  let words = Array.from(wordMap.values())
-    .filter(word => word.value >= config.minFrequency)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, config.maxWords)
-    .map(({ text, value, bias, newsIds, category }) => ({
-      text, value, bias, newsIds, category
-    }));
-
-  // Remove possessive duplicates: if "foo" and "foo's" both exist, keep only "foo"
-  const baseWordSet = new Set(words.map(w => w.text));
-  words = words.filter(word => {
-    if (word.text.endsWith("'s")) {
-      const base = word.text.slice(0, -2);
-      return !baseWordSet.has(base) ? true : false;
-    }
-    return true;
+  // Collect words from each bias category with equal representation
+  const balancedWords: TagCloudWord[] = [];
+  const minFreq = config.minFrequency || 1;
+  
+  // First, filter by minimum frequency and sort by value for each bias
+  const sortedBiasWords = new Map<PoliticalBias, TagCloudWord[]>();
+  biasMaps.forEach((wordMap, bias) => {
+    const words = Array.from(wordMap.values())
+      .filter(word => word.value >= minFreq)
+      .sort((a, b) => b.value - a.value);
+    sortedBiasWords.set(bias, words);
   });
-
-  return words;
+  
+  // Find the minimum number of words available across all biases
+  const minWordsAvailable = Math.min(
+    ...Array.from(sortedBiasWords.values()).map(words => words.length)
+  );
+  
+  // Calculate how many words to take from each bias category
+  const wordsPerBias = Math.min(
+    Math.floor(config.maxWords / Object.keys(PoliticalBias).length),
+    minWordsAvailable,
+    MAX_WORDS_PER_BIAS
+  );
+  
+  // Take equal number of words from each bias category
+  sortedBiasWords.forEach((words) => {
+    balancedWords.push(...words.slice(0, wordsPerBias));
+  });
+  
+  return balancedWords;
 };
 
 /**

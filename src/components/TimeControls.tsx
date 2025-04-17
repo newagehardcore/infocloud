@@ -1,157 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { getTimeSnapshot, getAvailableSnapshotTimes } from '../services/timeSnapshotService';
+import React, { useState, useEffect, useRef } from 'react';
+import { getTimeSnapshot, getAllSnapshotTimestamps } from '../services/timeSnapshotService';
 import { NewsCategory, TimeSnapshot } from '../types';
 import './TimeControls.css';
 
 interface TimeControlsProps {
-  isTimeMachineMode: boolean;
-  onToggleMode: () => void;
-  currentTime: Date;
-  onTimeChange: (date: Date) => void;
-  onSnapshotChange?: (snapshot: TimeSnapshot | null) => void;
+  onSnapshotChange: (snapshot: TimeSnapshot | null) => void;
+  initialTime?: Date;
 }
 
-const TimeControls: React.FC<TimeControlsProps> = ({
-  isTimeMachineMode,
-  onToggleMode,
-  currentTime,
-  onTimeChange,
-  onSnapshotChange
-}) => {
-  const [availableSnapshots, setAvailableSnapshots] = useState<Date[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [initialized, setInitialized] = useState<boolean>(false);
+const TimeControls: React.FC<TimeControlsProps> = ({ onSnapshotChange, initialTime }) => {
+  const [currentTime, setCurrentTime] = useState<Date>(initialTime || new Date());
+  const [availableTimestamps, setAvailableTimestamps] = useState<string[]>([]);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize mock snapshots on first render
+  // Fetch available timestamps on mount
   useEffect(() => {
-    if (!initialized) {
-      const initialize = async () => {
-        setAvailableSnapshots(getAvailableSnapshotTimes());
-        setInitialized(true);
-      };
-      
-      initialize();
+    const timestamps = getAllSnapshotTimestamps();
+    setAvailableTimestamps(timestamps);
+    // If initial time is provided, maybe try to load that specific snapshot?
+    // Or just default to the latest?
+    if (timestamps.length > 0 && !initialTime) {
+       setCurrentTime(new Date(timestamps[0])); // Default to latest available timestamp
     }
-  }, [initialized]);
+  }, [initialTime]);
 
-  // Update available snapshots when time machine mode changes
+  // Effect to load snapshot when currentTime changes (COMMENTED OUT - NEEDS REFACTOR)
+  /*
   useEffect(() => {
-    if (isTimeMachineMode && initialized) {
-      setAvailableSnapshots(getAvailableSnapshotTimes());
-    }
-  }, [isTimeMachineMode, initialized]);
+    const loadSnapshot = async () => {
+      if (!onSnapshotChange) return;
 
-  // Load snapshot when time changes in time machine mode
-  useEffect(() => {
-    if (isTimeMachineMode && initialized) {
-      const loadSnapshot = async () => {
-        setLoading(true);
-        try {
-          // Get the snapshot for the selected time
-          const snapshot = await getTimeSnapshot(currentTime);
-          
-          if (onSnapshotChange) {
-            onSnapshotChange(snapshot);
-          }
-        } catch (error) {
-          console.error('Error loading snapshot:', error);
-        } finally {
-          setLoading(false);
+      if (!currentTime) {
+        onSnapshotChange(null);
+        return;
+      }
+
+      try {
+        // Get the snapshot for the selected time (Needs refactor: getTimeSnapshot needs exact string)
+        const snapshot = await getTimeSnapshot(currentTime.toISOString()); // Pass ISO string
+        
+        if (onSnapshotChange) {
+          onSnapshotChange(snapshot ?? null); // Convert undefined to null
         }
-      };
-      
-      loadSnapshot();
+      } catch (error) {
+        console.error('Error loading snapshot:', error);
+        onSnapshotChange(null);
+      }
+    };
+
+    loadSnapshot();
+  }, [currentTime, onSnapshotChange]);
+  */
+
+  // Handle slider change
+  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // This logic needs update if slider represents index in availableTimestamps array
+    const newTimestamp = event.target.value; 
+    // Assuming value is the timestamp string from availableTimestamps
+    if (availableTimestamps.includes(newTimestamp)) {
+       setCurrentTime(new Date(newTimestamp));
     }
-  }, [currentTime, isTimeMachineMode, initialized, onSnapshotChange]);
-
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = new Date(e.target.value);
-    onTimeChange(newTime);
   };
 
-  const handleTimelineClick = (date: Date) => {
-    onTimeChange(date);
+  // Handle play/pause
+  const togglePlay = () => {
+     // Playback logic needs complete refactor based on available timestamps
+    setIsPlaying(!isPlaying);
+    console.warn('Playback controls need refactoring.');
+    if (isPlaying && intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
   };
 
-  // Get current date in format YYYY-MM-DDThh:mm
-  const formatDateForInput = (date: Date) => {
-    return date.toISOString().slice(0, 16);
-  };
+  // Placeholder for slider rendering - needs update based on availableTimestamps
+  const renderSlider = () => {
+    if (availableTimestamps.length === 0) {
+      return <p>No time snapshots available.</p>;
+    }
+    // Example: map availableTimestamps to slider ticks/values
+    const minTime = availableTimestamps[availableTimestamps.length - 1];
+    const maxTime = availableTimestamps[0];
 
-  // Get today's date at 00:00 for min value
-  const getTodayStart = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today.toISOString().slice(0, 16);
-  };
-
-  // Get current time for max value
-  const getCurrentTime = () => {
-    return new Date().toISOString().slice(0, 16);
+    return (
+      <input
+        type="range"
+        min={0} // Use index?
+        max={availableTimestamps.length - 1} // Use index?
+        // value={currentTime.toISOString()} // This needs to map to the slider scale
+        onChange={handleSliderChange}
+        className="time-slider"
+        disabled={isPlaying}
+      />
+    );
   };
 
   return (
-    <div className={`time-controls ${isTimeMachineMode ? 'time-machine-active' : ''}`}>
-      <div className="time-display">
-        <div className="current-time">
-          {isTimeMachineMode ? 'HISTORICAL VIEW' : 'LIVE'}:
-          <span className="time-value">
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          {loading && <span className="loading-indicator"> (Loading...)</span>}
-        </div>
-      </div>
-      
-      <div className="time-machine-controls">
-        <button 
-          className={`time-machine-toggle ${isTimeMachineMode ? 'active' : ''}`}
-          onClick={onToggleMode}
-        >
-          {isTimeMachineMode ? 'Return to Live' : 'Time Machine'}
-        </button>
-        
-        {isTimeMachineMode && (
-          <div className="time-slider-container">
-            <input
-              type="datetime-local"
-              className="time-slider"
-              min={getTodayStart()}
-              max={getCurrentTime()}
-              value={formatDateForInput(currentTime)}
-              onChange={handleTimeChange}
-            />
-          </div>
-        )}
-      </div>
-      
-      {isTimeMachineMode && availableSnapshots.length > 0 && (
-        <div className="time-timeline">
-          <div className="timeline-label">Available Snapshots:</div>
-          <div className="timeline-points">
-            {availableSnapshots.map((date, index) => (
-              <button
-                key={index}
-                className={`timeline-point ${
-                  Math.abs(date.getTime() - currentTime.getTime()) < 60000 ? 'active' : ''
-                }`}
-                onClick={() => handleTimelineClick(date)}
-                title={date.toLocaleString()}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Future feature: Personalized alerts */}
-      <div className="future-features">
-        <span className="coming-soon">Coming Soon:</span>
-        <button className="feature-button" disabled>
-          Personalized Alerts
-        </button>
-        <button className="feature-button" disabled>
-          Geographic Overlay
-        </button>
-      </div>
+    <div className="time-controls">
+      <button onClick={togglePlay} disabled={availableTimestamps.length === 0}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+      <span className="current-time-display">
+        {currentTime.toLocaleString()}
+      </span>
+      {renderSlider()}
     </div>
   );
 };

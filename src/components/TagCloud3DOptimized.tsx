@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
-import { Word } from './Word';
 import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
-import * as THREE from 'three';
 import StarfieldTags from './StarfieldTags';
 
 // Main tag cloud component with performance optimizations
@@ -20,26 +18,23 @@ const TagCloud3D: React.FC<{
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: PoliticalBias): string => {
-    // Debug: Log the bias value to see what's actually being passed
-    console.log('Bias value received:', bias, typeof bias);
+    // Debug: Log the bias value to see what's being received
+    console.log('Bias value:', bias);
     
-    // Convert to string to ensure consistent comparison
-    const biasString = String(bias);
-    
-    switch (biasString) {
-      case 'mainstream-democrat': 
+    switch (bias) {
+      case PoliticalBias.AlternativeLeft:
+        return '#0000FF'; // Bright blue
+      case PoliticalBias.MainstreamDemocrat:
         return '#6495ED'; // Light blue
-      case 'alternative-left': 
-        return '#00008B'; // Dark blue
-      case 'centrist': 
+      case PoliticalBias.Centrist:
         return '#800080'; // Purple
-      case 'mainstream-republican': 
+      case PoliticalBias.MainstreamRepublican:
         return '#FFB6C1'; // Light red
-      case 'alternative-right': 
+      case PoliticalBias.AlternativeRight:
         return '#FF0000'; // Bright red
-      default: 
-        console.log(`Default case hit for bias: "${bias}" (type: ${typeof bias})`);
-        return '#808080'; // Gray for unclear
+      case PoliticalBias.Unclear:
+      default:
+        return '#808080'; // Grey
     }
   }, []);
   
@@ -120,8 +115,6 @@ const TagCloud3D: React.FC<{
           acc[word.bias] = (acc[word.bias] || 0) + 1;
           return acc;
         }, {} as Record<string, number>));
-    } else {
-      console.log('TagCloud3D received empty words array');
     }
   }, [words]);
   

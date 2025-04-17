@@ -118,25 +118,23 @@ const TagCloud3D: React.FC<{
   
   // Calculate font size based on word frequency
   const getFontSize = (value: number, wordsArray: TagCloudWord[]): number => {
-    const minSize = 0.01; // Much smaller minimum size
-    const maxSize = 0.25; // Smaller max size since we're scaling up dramatically in HelveticaText
+    const minSize = 0.05; // Increased minimum size
+    const maxSize = 0.35; // Increased maximum size
     const maxValue = Math.max(...wordsArray.map(w => w.value), 1);
-    
-    // Use a non-linear scale with a higher power for extreme differentiation
-    const normalizedValue = value / maxValue;
     
     // Get the rank of this word (1-based, where 1 is highest frequency)
     const rank = wordsArray.filter(w => w.value > value).length + 1;
     
-    // For top 3 stories, use special scaling
-    if (rank <= 3) {
-      // Scale from 0.15 to 0.25 for top 3
-      return 0.15 + ((3 - rank) * 0.05);
+    // For top 5 stories, use special scaling
+    if (rank <= 5) {
+      // Scale from 0.25 to 0.35 for top 5
+      return 0.25 + ((5 - rank) * 0.02);
     }
     
-    // For all other stories, use a very steep power curve
-    // Power of 16 creates an extremely long tail of tiny words
-    return minSize + (Math.pow(normalizedValue, 16) * (maxSize - minSize));
+    // For all other stories, use a less steep power curve
+    // Power of 8 creates a more gradual tail of small words
+    const normalizedValue = value / maxValue;
+    return minSize + (Math.pow(normalizedValue, 8) * (0.25 - minSize));
   };
   
   // Generate positions for words in a sphere-like shape

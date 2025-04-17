@@ -6,6 +6,7 @@ import './Header.css';
 interface HeaderProps {
   selectedCategory: NewsCategory;
   onSelectCategory: (category: NewsCategory) => void;
+  currentCategory: NewsCategory;
 }
 
 const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) => {
@@ -16,18 +17,23 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
       <div className="logo">
         <span className="logo-text">INFOCLOUD</span>
       </div>
-      <div className="category-buttons">
-        {categories.map(category => (
-          <button
-            key={category}
-            className={`category-button ${selectedCategory === category ? 'selected' : ''}`}
-            onClick={() => onSelectCategory(category)}
-          >
-            {category}
-          </button>
-        ))}
+      <nav className="category-nav">
+        <ul>
+          {categories.map(category => (
+            <li key={category}>
+              <button
+                className={`category-button ${selectedCategory === category ? 'active' : ''}`}
+                onClick={() => onSelectCategory(category)}
+              >
+                {category}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <div className="edit-menu">
+        <EditMenu onClose={() => {}} />
       </div>
-      <EditMenu onClose={() => {}} />
     </header>
   );
 };
