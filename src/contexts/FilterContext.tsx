@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { PoliticalBias } from '../types';
-import { DEFAULT_RSS_FEEDS } from '../services/newsService';
-import { BIAS_UPDATE_EVENT } from '../App';
-import { API_SOURCE_CHANGE_EVENT, RSS_FEED_TOGGLE_EVENT } from '../components/ApiDebugPanel';
+
+// Move the event name constant here and export it
+export const BIAS_UPDATE_EVENT = 'bias-update';
 
 interface ApiSource {
   name: string;
@@ -12,7 +12,11 @@ interface ApiSource {
 
 interface RssFeed {
   name: string;
-  url: string;
+  enabled: boolean;
+}
+
+interface BiasUpdateDetail {
+  bias: PoliticalBias;
   enabled: boolean;
 }
 
@@ -20,6 +24,7 @@ interface FilterContextType {
   // Bias filters
   enabledBiases: Set<PoliticalBias>;
   toggleBias: (bias: PoliticalBias) => void;
+  isEnabled: (bias: PoliticalBias) => boolean;
   
   // API sources
   apiSources: ApiSource[];
@@ -33,6 +38,7 @@ interface FilterContextType {
   // Testing
   testAllApis: () => void;
   isTesting: boolean;
+  setIsTesting: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -53,59 +59,60 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
   // Political bias state
   const [enabledBiases, setEnabledBiases] = useState<Set<PoliticalBias>>(() => {
     const savedBiases = localStorage.getItem('enabled_biases');
+    let initialBiases = new Set(Object.values(PoliticalBias));
     if (savedBiases) {
       try {
-        // Parse the saved biases
-        const parsedBiases = JSON.parse(savedBiases) as string[];
-        // Create a Set with valid PoliticalBias values
-        return new Set(parsedBiases.filter(b => 
-          Object.values(PoliticalBias).includes(b as PoliticalBias)
-        ) as PoliticalBias[]);
+        const parsed = JSON.parse(savedBiases) as string[];
+        const validBiases = parsed.filter(b => Object.values(PoliticalBias).includes(b as PoliticalBias));
+        if (validBiases.length > 0) {
+          initialBiases = new Set(validBiases as PoliticalBias[]);
+        }
       } catch (e) {
-        console.error('Error parsing saved biases:', e);
-        return new Set(Object.values(PoliticalBias));
+         console.error("Failed to parse biases from localStorage", e);
       }
-    } else {
-      return new Set(Object.values(PoliticalBias));
     }
+    return initialBiases;
   });
 
-  // API sources state
+  // API sources state (keep for potential future use)
   const [apiSources, setApiSources] = useState<ApiSource[]>([
     { name: 'NewsAPI', enabled: false, working: false },
     { name: 'GNews', enabled: false, working: false },
     { name: 'TheNewsAPI', enabled: false, working: false },
-    { name: 'RSS', enabled: true, working: false }
+    // { name: 'RSS', enabled: true, working: false } // Remove if not actively used
   ]);
 
-  // RSS feeds state
-  const [rssFeeds, setRssFeeds] = useState<RssFeed[]>([]);
-  const [isTesting, setIsTesting] = useState(false);
+  // RSS feeds state - This might need to be fetched from backend or managed differently
+  const [rssFeeds, setRssFeeds] = useState<RssFeed[]>([]); // Keep state, but initialization logic removed
+  const [isTesting, setIsTesting] = useState(false); // Keep if used
 
-  // Initialize from localStorage
+  // Effect to load initial state for API sources and RSS feeds from localStorage
   useEffect(() => {
-    // Load API states
-    const newApiSources = [...apiSources];
-    newApiSources.forEach((api, index) => {
-      const savedState = localStorage.getItem(`api_${api.name.replace(/\s+/g, '')}_enabled`);
-      if (savedState !== null) {
-        newApiSources[index] = { ...api, enabled: savedState === 'true' };
-      }
+    // Load API source states
+    const updatedApiSources = apiSources.map(api => {
+      const savedEnabled = localStorage.getItem(`api_${api.name.replace(/\s+/g, '')}_enabled`);
+      return savedEnabled !== null ? { ...api, enabled: savedEnabled === 'true' } : api;
     });
-    setApiSources(newApiSources);
+    setApiSources(updatedApiSources);
 
-    // Load RSS feed states from localStorage
+    // Load RSS feed states from localStorage (Old logic using DEFAULT_RSS_FEEDS removed)
+    // How RSS feed state (enabled/disabled) is managed needs reconsideration.
+    // For now, initialize rssFeeds as empty or fetch from backend if an endpoint exists.
+    setRssFeeds([]); // Initialize as empty for now
+    
+    /* Old Logic: 
     const feeds = DEFAULT_RSS_FEEDS.map(feed => {
       const feedId = `rssfeed_${feed.name.replace(/\s+/g, '_')}`;
       const savedEnabled = localStorage.getItem(feedId);
       return {
         name: feed.name,
-        url: feed.url,
-        enabled: savedEnabled === null ? true : savedEnabled === 'true'
+        enabled: savedEnabled !== null ? savedEnabled === 'true' : true, // Default to true
       };
     });
     setRssFeeds(feeds);
-  }, []);
+    */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Update working status for APIs periodically
   useEffect(() => {
@@ -142,12 +149,11 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     console.log(`Toggling bias: ${bias}, current status: ${enabledBiases.has(bias) ? 'enabled' : 'disabled'}`);
     
     const newEnabledBiases = new Set(enabledBiases);
-    if (newEnabledBiases.has(bias)) {
-      newEnabledBiases.delete(bias);
-      console.log(`Removed ${bias}, now enabled biases:`, Array.from(newEnabledBiases));
-    } else {
+    const isEnabled = !newEnabledBiases.has(bias);
+    if (isEnabled) {
       newEnabledBiases.add(bias);
-      console.log(`Added ${bias}, now enabled biases:`, Array.from(newEnabledBiases));
+    } else {
+      newEnabledBiases.delete(bias);
     }
     setEnabledBiases(newEnabledBiases);
     
@@ -155,10 +161,16 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     localStorage.setItem('enabled_biases', JSON.stringify(Array.from(newEnabledBiases)));
     console.log('Saved to localStorage:', JSON.stringify(Array.from(newEnabledBiases)));
     
-    // Dispatch event for real-time updates
-    console.log(`Dispatching ${BIAS_UPDATE_EVENT} event`);
-    window.dispatchEvent(new Event(BIAS_UPDATE_EVENT));
+    // Dispatch a more specific event with details about which bias changed
+    window.dispatchEvent(new CustomEvent<BiasUpdateDetail>(BIAS_UPDATE_EVENT, {
+      detail: {
+        bias,
+        enabled: isEnabled
+      }
+    }));
   };
+
+  const isEnabled = (bias: PoliticalBias) => enabledBiases.has(bias);
 
   // Toggle an API source
   const toggleApiSource = (apiName: string) => {
@@ -170,36 +182,37 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     // Update localStorage
     const apiToUpdate = updatedSources.find(api => api.name === apiName);
     if (apiToUpdate) {
-      localStorage.setItem(`api_${apiName.replace(/\s+/g, '')}_enabled`, apiToUpdate.enabled ? 'true' : 'false');
+      localStorage.setItem(`api_${apiToUpdate.name.replace(/\s+/g, '')}_enabled`, apiToUpdate.enabled ? 'true' : 'false');
     }
     
     // Dispatch custom event to trigger news refresh
-    const event = new CustomEvent(API_SOURCE_CHANGE_EVENT, { 
-      detail: { apiName, enabled: apiToUpdate?.enabled } 
-    });
-    window.dispatchEvent(event);
+    // const event = new CustomEvent(API_SOURCE_CHANGE_EVENT, { 
+    //   detail: { apiName, enabled: apiToUpdate?.enabled } 
+    // });
+    // window.dispatchEvent(event);
   };
 
-  // Toggle an RSS feed
+  // Toggle an RSS feed's enabled state
   const toggleRssFeed = (feedName: string) => {
-    const updatedFeeds = rssFeeds.map(feed => 
-      feed.name === feedName ? { ...feed, enabled: !feed.enabled } : feed
-    );
-    setRssFeeds(updatedFeeds);
+    // This logic needs adjustment as rssFeeds state might not be populated correctly
+    // const updatedFeeds = rssFeeds.map(feed =>
+    //   feed.name === feedName ? { ...feed, enabled: !feed.enabled } : feed
+    // );
+    // setRssFeeds(updatedFeeds);
     
-    // Update localStorage
-    const feedToUpdate = updatedFeeds.find(feed => feed.name === feedName);
-    if (feedToUpdate) {
-      const feedId = `rssfeed_${feedName.replace(/\s+/g, '_')}`;
-      localStorage.setItem(feedId, feedToUpdate.enabled ? 'true' : 'false');
-    }
+    // // Update localStorage
+    // const feedToUpdate = updatedFeeds.find(feed => feed.name === feedName);
+    // if (feedToUpdate) {
+    //   const feedId = `rssfeed_${feedToUpdate.name.replace(/\s+/g, '_')}`;
+    //   localStorage.setItem(feedId, feedToUpdate.enabled ? 'true' : 'false');
+    // }
     
-    // Dispatch events for real-time updates
-    window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
-    const rssFeedEvent = new CustomEvent(RSS_FEED_TOGGLE_EVENT, {
-      detail: { feedName, enabled: feedToUpdate?.enabled }
-    });
-    window.dispatchEvent(rssFeedEvent);
+    // // Dispatch custom event if needed for RSS toggles
+    // const event = new CustomEvent(RSS_FEED_TOGGLE_EVENT, { 
+    //   detail: { feedName, enabled: feedToUpdate?.enabled } 
+    // });
+    // window.dispatchEvent(event);
+    console.warn(`toggleRssFeed for "${feedName}" needs reimplementation based on new state management.`);
   };
 
   // Toggle all RSS feeds
@@ -214,8 +227,8 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     });
     
     // Dispatch events for real-time updates
-    window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
-    window.dispatchEvent(new Event(RSS_FEED_TOGGLE_EVENT));
+    // window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
+    // window.dispatchEvent(new Event(RSS_FEED_TOGGLE_EVENT));
   };
 
   // Test all APIs
@@ -238,7 +251,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     });
     
     // Dispatch event to trigger immediate refresh
-    window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
+    // window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
     
     // After 10 seconds, restore previous states
     setTimeout(() => {
@@ -257,20 +270,22 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
       setIsTesting(false);
       
       // Dispatch event to update UI
-      window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
+      // window.dispatchEvent(new Event(API_SOURCE_CHANGE_EVENT));
     }, 10000);
   };
 
   const value = {
     enabledBiases,
     toggleBias,
+    isEnabled,
     apiSources,
     toggleApiSource,
     rssFeeds,
     toggleRssFeed,
     toggleAllRssFeeds,
     testAllApis,
-    isTesting
+    isTesting,
+    setIsTesting
   };
 
   return (

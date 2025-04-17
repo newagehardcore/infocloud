@@ -58,23 +58,23 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
   // Get color based on political bias
   const getBiasColor = (bias: string): string => {
     switch (bias) {
-      case 'mainstream-democrat': return '#6495ED'; // Light blue
-      case 'alternative-left': return '#00008B'; // Dark blue
-      case 'centrist': return '#800080'; // Purple
-      case 'mainstream-republican': return '#FFB6C1'; // Light red
-      case 'alternative-right': return '#FF0000'; // Bright red
+      case 'Alternative Left': return '#0000FF'; // Bright blue
+      case 'Mainstream Democrat': return '#6495ED'; // Light blue
+      case 'Centrist': return '#800080'; // Purple
+      case 'Mainstream Republican': return '#FFB6C1'; // Light red
+      case 'Alternative Right': return '#FF0000'; // Bright red
       default: return '#808080'; // Gray for unclear
     }
   };
   
   // Define the desired order for bias groups
   const biasOrder = [
-    'alternative-left',
-    'mainstream-democrat',
-    'centrist',
-    'unclear',
-    'mainstream-republican',
-    'alternative-right',
+    'Alternative Left',
+    'Mainstream Democrat',
+    'Centrist',
+    'Unclear',
+    'Mainstream Republican',
+    'Alternative Right',
   ];
 
   // Group news items by source bias
@@ -100,6 +100,7 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
   // Get bias label for display
   const getBiasLabel = (bias: string): string => {
     switch (bias) {
+      case 'Liberal': return 'Liberal';
       case 'mainstream-democrat': return 'Mainstream Democrat';
       case 'alternative-left': return 'Alternative Left';
       case 'centrist': return 'Centrist';

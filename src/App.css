@@ -9,9 +9,10 @@
 .main-content {
   flex: 1;
   position: relative;
-  height: calc(100vh - 4.5rem); /* Account for header height */
+  height: calc(100vh - 64px); /* Adjusted to account for header height */
   padding: 0;
   margin: 0;
+  overflow: hidden;
 }
 
 .tag-cloud-wrapper {
@@ -24,19 +25,18 @@
   height: 100%;
 }
 
-.loading-overlay {
+.loading-indicator {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #888;
   font-size: 1.2rem;
-  color: white;
+  z-index: 10;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 1rem 2rem;
+  border-radius: 8px;
 }
 
 .error-message {
@@ -53,6 +53,7 @@
   border: 1px solid rgba(255, 0, 0, 0.3);
   border-radius: 8px;
   text-align: center;
+  z-index: 10;
 }
 
 .error-message button {
@@ -139,6 +140,10 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .main-content {
+    height: calc(100vh - 120px); /* Adjusted for mobile header height */
+  }
+  
   .mobile-words-container {
     padding: 0.5rem;
     gap: 5px;

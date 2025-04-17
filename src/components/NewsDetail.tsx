@@ -1,48 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { NewsItem } from '../types';
-import { fetchAllNewsItems } from '../services/newsService';
 import './NewsDetail.css';
 
 const NewsDetail: React.FC = () => {
-  const { newsId } = useParams<{ newsId: string }>();
-  const [newsItem, setNewsItem] = useState<NewsItem | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const [item, setItem] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadNewsDetail = async () => {
-      if (!newsId) {
-        setError('News ID is missing');
-        setLoading(false);
-        return;
-      }
+    // This useEffect needs to be refactored to fetch a single item from the backend API:
+    // e.g., axios.get(`/api/news/${id}`)
+    /* Commenting out old logic:
+    const fetchItem = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        const allNews = await fetchAllNewsItems();
-        const item = allNews.find((item: NewsItem) => item.id === newsId);
-        
-        if (item) {
-          setNewsItem(item);
+        const allItems = await fetchAllNewsItems(); // This function no longer exists
+        const foundItem = allItems.find(newsItem => newsItem.id === id);
+        if (foundItem) {
+          setItem(foundItem);
         } else {
           setError('News item not found.');
         }
-      } catch (error) {
-        console.error('Error loading news detail:', error);
-        setError('Failed to load news details.');
+      } catch (err) {
+        console.error('Error fetching news item:', err);
+        setError('Failed to load news item.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadNewsDetail();
-  }, [newsId]);
+    if (id) {
+      fetchItem();
+    }
+    */
+    // Placeholder logic:
+    console.warn('NewsDetail component needs refactoring to fetch data from API');
+    setLoading(false);
+    setError('NewsDetail component not yet implemented with backend API.');
+
+  }, [id]);
 
   if (loading) {
     return <div className="news-detail loading">Loading...</div>;
   }
 
-  if (error || !newsItem) {
+  if (error || !item) {
     return (
       <div className="news-detail error">
         <p>{error || 'News item not found'}</p>
@@ -71,36 +76,36 @@ const NewsDetail: React.FC = () => {
       <Link to="/" className="back-link">Back to Tag Cloud</Link>
       
       <article className="news-article">
-        <h1>{newsItem.title}</h1>
+        <h1>{item.title}</h1>
         
         <div className="news-meta">
           <span className="news-source">
-            Source: {newsItem.source.name}
+            Source: {item.source.name}
           </span>
-          <span className={getBiasClass(newsItem.source.bias)}>
-            {getBiasLabel(newsItem.source.bias)}
+          <span className={getBiasClass(item.source.bias)}>
+            {getBiasLabel(item.source.bias)}
           </span>
           <span className="news-date">
-            {new Date(newsItem.publishedAt).toLocaleString()}
+            {new Date(item.publishedAt).toLocaleString()}
           </span>
           <span className="news-category">
-            {newsItem.category}
+            {item.category}
           </span>
         </div>
         
-        <p className="news-description">{newsItem.description}</p>
+        <p className="news-description">{item.description}</p>
         
         <div className="news-keywords">
           <h3>Keywords:</h3>
           <div className="keyword-list">
-            {newsItem.keywords.map((keyword, index) => (
+            {item.keywords.map((keyword, index) => (
               <span key={index} className="keyword">{keyword}</span>
             ))}
           </div>
         </div>
         
         <a 
-          href={newsItem.url} 
+          href={item.url} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="read-more-link"

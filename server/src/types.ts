@@ -10,39 +10,38 @@ export interface NewsItem {
   publishedAt: string;
   category: NewsCategory;
   keywords: string[];
-  createdAt?: string;
 }
 
 export enum PoliticalBias {
-  AlternativeLeft = 'Alternative Left',
-  MainstreamDemocrat = 'Mainstream Democrat',
-  Centrist = 'Centrist',
-  Unclear = 'Unclear',
-  MainstreamRepublican = 'Mainstream Republican',
-  AlternativeRight = 'Alternative Right'
+  MainstreamDemocrat = 'mainstream-democrat',
+  AlternativeLeft = 'alternative-left',
+  Centrist = 'centrist',
+  MainstreamRepublican = 'mainstream-republican',
+  AlternativeRight = 'alternative-right',
+  Unclear = 'unclear'
 }
 
 export enum NewsCategory {
-  All = 'All',
-  News = 'News',
-  Politics = 'Politics',
-  Tech = 'Tech',
-  Science = 'Science',
-  Health = 'Health',
-  Culture = 'Culture',
-  Sports = 'Sports',
-  Entertainment = 'Entertainment',
-  Economy = 'Economy',
-  Environment = 'Environment',
-  Music = 'Music',
-  Law = 'Law',
-  Crime = 'Crime',
-  War = 'War',
-  Media = 'Media',
-  AI = 'AI',
-  Space = 'Space',
-  Fashion = 'Fashion',
-  Art = 'Art'
+  All = 'all',
+  News = 'news',
+  Politics = 'politics',
+  Tech = 'tech',
+  Science = 'science',
+  Health = 'health',
+  Culture = 'culture',
+  Sports = 'sports',
+  Entertainment = 'entertainment',
+  Economy = 'economy',
+  Environment = 'environment',
+  Music = 'music',
+  Law = 'law',
+  Crime = 'crime',
+  War = 'war',
+  Media = 'media',
+  AI = 'ai',
+  Space = 'space',
+  Fashion = 'fashion',
+  Art = 'art'
 }
 
 export interface TagCloudWord {
@@ -64,4 +63,4 @@ export interface RssFeedConfig {
   name: string;
   category: NewsCategory;
   bias: PoliticalBias;
-}
+} 

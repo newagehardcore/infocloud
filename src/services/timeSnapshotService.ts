@@ -1,5 +1,5 @@
 import { TimeSnapshot, NewsItem, TagCloudWord, NewsCategory } from '../types';
-import { fetchAllNewsItems } from './newsService';
+// import { fetchAllNewsItems } from './newsService'; // Removed import
 
 // In-memory storage for time snapshots
 const timeSnapshots: Map<string, TimeSnapshot> = new Map();
@@ -36,69 +36,51 @@ const processNewsToWords = async (news: NewsItem[]): Promise<TagCloudWord[]> => 
     .slice(0, 100); 
 };
 
-// Function to create a time snapshot
-export const createTimeSnapshot = async (category: NewsCategory = NewsCategory.All): Promise<TimeSnapshot> => {
+// Function to create a new time snapshot (requires newsItems and words as input now)
+export const createTimeSnapshot = (newsItems: NewsItem[], words: TagCloudWord[]): string => {
   const timestamp = new Date().toISOString();
-  const newsItems = await fetchAllNewsItems(category); 
-  // Use the local processNewsToWords function
-  const words = await processNewsToWords(newsItems); 
-  
   const snapshot: TimeSnapshot = {
     timestamp,
-    words,
-    newsItems
+    newsItems,
+    words
   };
-  
-  // Reverted to using local Map for storage
   timeSnapshots.set(timestamp, snapshot);
-  
-  // Limit the number of snapshots
-  const maxSnapshots = 48; 
-  if (timeSnapshots.size > maxSnapshots) {
-    const oldestKey = Array.from(timeSnapshots.keys()).sort()[0];
-    timeSnapshots.delete(oldestKey);
-  }
-  
-  return snapshot;
+  return timestamp;
 };
 
-// Function to get a time snapshot closest to the specified time (reverted logic)
-export const getTimeSnapshot = async (time: Date): Promise<TimeSnapshot | null> => {
-  console.log('Getting snapshot, total snapshots available:', timeSnapshots.size);
-  if (timeSnapshots.size === 0) {
-    console.log('No snapshots available');
-    return null;
-  }
-  
-  const targetTime = time.toISOString();
-  console.log('Target time:', targetTime);
-  
-  const timestamps = Array.from(timeSnapshots.keys()).sort();
-  console.log('Available timestamps:', timestamps);
-  
-  // Find the closest timestamp (binary search would be more efficient)
-  let closestTimestamp = timestamps[0];
-  let minDiff = Math.abs(new Date(targetTime).getTime() - new Date(closestTimestamp).getTime());
-  
-  for (const timestamp of timestamps) {
-    const diff = Math.abs(new Date(targetTime).getTime() - new Date(timestamp).getTime());
-    if (diff < minDiff) {
-      minDiff = diff;
-      closestTimestamp = timestamp;
-    }
-    // Optimization: if diff starts increasing, we passed the closest
-    else if (new Date(timestamp).getTime() > new Date(targetTime).getTime()) { 
-      break;
-    }
-  }
-  
-  const snapshot = timeSnapshots.get(closestTimestamp);
-  console.log('Found closest snapshot:', snapshot ? `${snapshot.timestamp} with ${snapshot.newsItems.length} news items` : 'none');
-  
-  return snapshot || null;
+// Function to get a specific time snapshot by timestamp
+export const getTimeSnapshot = (timestamp: string): TimeSnapshot | undefined => {
+  return timeSnapshots.get(timestamp);
 };
 
-// Function to get all available snapshot times
-export const getAvailableSnapshotTimes = (): Date[] => {
-  return Array.from(timeSnapshots.keys()).map(timestamp => new Date(timestamp)).sort((a, b) => b.getTime() - a.getTime());
+// Function to get all available snapshot timestamps
+export const getAllSnapshotTimestamps = (): string[] => {
+  return Array.from(timeSnapshots.keys()).sort((a, b) => b.localeCompare(a)); // Sort newest first
 };
+
+// Function to delete a time snapshot
+export const deleteTimeSnapshot = (timestamp: string): boolean => {
+  return timeSnapshots.delete(timestamp);
+};
+
+// Old function - commented out as fetchAllNewsItems is removed
+/*
+export const createTimeSnapshotFromCurrent = async (): Promise<string> => {
+  const timestamp = new Date().toISOString();
+  try {
+    const currentNewsItems = await fetchAllNewsItems(); 
+    // Assuming word processing happens elsewhere or is passed in
+    // const currentWords = processNewsToWords(currentNewsItems); 
+    const snapshot: TimeSnapshot = {
+      timestamp,
+      newsItems: currentNewsItems,
+      words: [] // Placeholder for words
+    };
+    timeSnapshots.set(timestamp, snapshot);
+    return timestamp;
+  } catch (error) {
+    console.error("Failed to create time snapshot from current data:", error);
+    throw error; // Re-throw error
+  }
+};
+*/
