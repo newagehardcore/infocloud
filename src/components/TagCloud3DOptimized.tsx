@@ -52,27 +52,60 @@ const TagCloud3D: React.FC<{
     return minSize + (Math.pow(normalizedValue, scalePower) * (maxSize - minSize));
   }, [words]);
   
-  // Generate random positions in a starfield configuration
-  const generateStarfieldPositions = useCallback((count: number): [number, number, number][] => {
-    const positions: [number, number, number][] = [];
-    const STARFIELD_SIZE = 40; // Size of the starfield cube
-    
-    for (let i = 0; i < count; i++) {
-      // Generate random positions in a cube
-      const x = (Math.random() - 0.5) * STARFIELD_SIZE;
-      const y = (Math.random() - 0.5) * STARFIELD_SIZE;
-      const z = (Math.random() - 0.5) * STARFIELD_SIZE;
-      
-      positions.push([x, y, z]);
+  // Deterministic position generator based on word text
+  const hashStringToSeed = useCallback((str: string): number => {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + c
     }
-    
-    return positions;
+    return Math.abs(hash);
   }, []);
 
-  // Update positions when words change
+  // Generate positions with frequency-based clustering
+  const generateDeterministicPositions = useCallback((words: TagCloudWord[]): [number, number, number][] => {
+    const CLOUD_SIZE = 30; // Smaller base size for tighter clustering
+    const DEPTH_FACTOR = 1.5; // Reduced depth range
+    
+    // Find max frequency for normalization
+    const maxValue = Math.max(...words.map(w => w.value));
+    
+    return words.map(word => {
+      const seed = hashStringToSeed(word.text);
+      
+      // Normalize word frequency to 0-1 range
+      const frequencyFactor = word.value / maxValue;
+      // Invert and dampen the frequency factor (high frequency = closer to center)
+      const distanceFactor = Math.pow(1 - frequencyFactor, 0.7);
+      
+      // Calculate base radius - high frequency words get pulled toward center
+      const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
+                        CLOUD_SIZE * 
+                        (0.2 + distanceFactor * 0.8); // Scale by frequency
+      
+      // Use golden ratio for better angular distribution
+      const goldenRatio = 1.618033988749895;
+      const i = seed % 500;
+      
+      // Calculate angles with some frequency influence
+      const theta = i * goldenRatio * Math.PI * 2;
+      const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
+      
+      // Add some noise to z-position
+      const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
+      
+      // Calculate position with frequency-based clustering
+      const x = baseRadius * Math.sin(phi) * Math.cos(theta);
+      const y = baseRadius * Math.cos(phi);
+      const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
+      
+      return [x, y, z] as [number, number, number];
+    });
+  }, [hashStringToSeed]);
+
+  // Update positions when words change, using deterministic positioning
   useEffect(() => {
-    setPositions(generateStarfieldPositions(words.length));
-  }, [words, generateStarfieldPositions]);
+    setPositions(generateDeterministicPositions(words));
+  }, [words, generateDeterministicPositions]);
   
   // Initialize performance monitor
   useEffect(() => {
@@ -120,7 +153,12 @@ const TagCloud3D: React.FC<{
   
   return (
     <Canvas 
-      camera={{ position: [0, 0, 20], fov: 75 }}
+      camera={{ 
+        position: [0, 0, 60],
+        fov: 45,
+        near: 0.1,
+        far: 1000
+      }}
       dpr={renderSettings.pixelRatio}
       performance={{ min: 0.5 }}
     >
@@ -143,8 +181,14 @@ const TagCloud3D: React.FC<{
         enablePan={true}
         enableRotate={true}
         autoRotate={false}
-        minDistance={1}
-        maxDistance={100}
+        minDistance={0.1}
+        maxDistance={200}
+        enableDamping={true}
+        dampingFactor={0.05}
+        rotateSpeed={0.5}
+        zoomSpeed={1.2}
+        minPolarAngle={0}
+        maxPolarAngle={Math.PI}
       />
     </Canvas>
   );

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TagCloudWord } from '../types';
 import * as THREE from 'three';
@@ -31,6 +31,30 @@ export const Word: React.FC<{
   const [hovered, setHovered] = useState(false);
   const { camera } = useThree();
   
+  // Store the initial position
+  const initialPosition = useMemo((): [number, number, number] => {
+    return position && Array.isArray(position) && position.length === 3
+      ? [position[0], position[1], position[2]]
+      : [0, 0, 0];
+  }, [position]);
+  
+  // Generate deterministic animation parameters based on word text
+  const animParams = useMemo(() => {
+    let hash = 5381;
+    for (let i = 0; i < word.text.length; i++) {
+      hash = ((hash << 5) + hash) + word.text.charCodeAt(i);
+    }
+    
+    // Create unique but stable frequencies for this word
+    const uniqueOffset = Math.sin(hash * 0.1) * 10;
+    return {
+      xFreq: 0.2 + Math.sin(hash * 0.05) * 0.1,
+      yFreq: 0.25 + Math.cos(hash * 0.05) * 0.1,
+      zFreq: 0.3 + Math.sin(hash * 0.05) * 0.1,
+      offset: uniqueOffset
+    };
+  }, [word.text]);
+  
   // Animation for new words
   useEffect(() => {
     if (ref.current && isNew) {
@@ -57,12 +81,23 @@ export const Word: React.FC<{
     ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, targetScale, delta * 5 * animationSpeed);
     ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, delta * 5 * animationSpeed);
     ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, targetScale, delta * 5 * animationSpeed);
+    
+    // Apply gentle floating movement
+    const time = state.clock.getElapsedTime();
+    const floatAmount = 0.15; // Reduced float amount for subtler movement
+    
+    // Use the stored initial position for the floating animation
+    ref.current.position.set(
+      initialPosition[0] + Math.sin(time * animParams.xFreq + animParams.offset) * floatAmount,
+      initialPosition[1] + Math.cos(time * animParams.yFreq + animParams.offset) * floatAmount,
+      initialPosition[2] + Math.sin(time * animParams.zFreq + animParams.offset) * floatAmount
+    );
   });
   
   return (
     <group
       ref={ref}
-      position={position}
+      position={initialPosition}
     >
       <Text
         fontSize={fontSize}
