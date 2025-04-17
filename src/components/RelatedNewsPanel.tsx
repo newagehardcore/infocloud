@@ -139,8 +139,8 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
                   </h3>
                   {expandedBiases[bias] && (
                     <ul className="news-list">
-                      {items.map(item => (
-                        <li key={item.id} className="news-item">
+                      {items.map((item, index) => (
+                        <li key={`${item.id}-${index}`} className="news-item">
                           <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
                             <h4 className="news-title">{item.title}</h4>
                             <div className="news-meta">

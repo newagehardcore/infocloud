@@ -1,141 +1,245 @@
-// Updated RSS feeds with fixed URLs and removed broken ones
+// Updated RSS feeds grouped by category and with standardized bias values
 const DEFAULT_RSS_FEEDS = [
-  // Conservative Sources
-  {
-    url: 'https://www.dailywire.com/feeds/rss.xml',
-    name: 'The Daily Wire',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.AlternativeRight
-  },
-  {
-    url: 'https://www.newsmax.com/rss/Politics/1/',
-    name: 'Newsmax',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.MainstreamRepublican
-  },
-  {
-    url: 'https://www.washingtontimes.com/rss/headlines/news/',
-    name: 'Washington Times',
-    category: NewsCategory.News,
-    bias: PoliticalBias.MainstreamRepublican
-  },
-  {
-    url: 'https://www.oann.com/feed/',
-    name: 'One America News Network',
-    category: NewsCategory.News,
-    bias: PoliticalBias.AlternativeRight
-  },
-  {
-    url: 'https://townhall.com/rss/political-cartoons/',
-    name: 'Townhall',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.MainstreamRepublican
-  },
-  {
-    url: 'https://www.redstate.com/feed/',
-    name: 'RedState',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.MainstreamRepublican
-  },
-  {
-    url: 'https://www.theblaze.com/feeds/feed.rss',
-    name: 'The Blaze',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.AlternativeRight
-  },
-  {
-    url: 'https://freebeacon.com/feed/',
-    name: 'Washington Free Beacon',
-    category: NewsCategory.Politics,
-    bias: PoliticalBias.MainstreamRepublican
-  },
+  // === Politics ===
+  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire', category: NewsCategory.Politics, bias: 'Right' },
+  { url: 'https://www.newsmax.com/rss/Politics/1/', name: 'Newsmax', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://townhall.com/rss/political-cartoons/', name: 'Townhall', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://www.redstate.com/feed/', name: 'RedState', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://www.theblaze.com/feeds/feed.rss', name: 'The Blaze', category: NewsCategory.Politics, bias: 'Right' },
+  { url: 'https://freebeacon.com/feed/', name: 'Washington Free Beacon', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet', category: NewsCategory.Politics, bias: 'Left' },
+  { url: 'https://www.commondreams.org/rss.xml', name: 'Common Dreams', category: NewsCategory.Politics, bias: 'Left' },
+  { url: 'https://thebulwark.com/feed/', name: 'The Bulwark', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://www.washingtonexaminer.com/tag/news.rss', name: 'Washington Examiner', category: NewsCategory.Politics, bias: 'Conservative' },
+  { url: 'https://thehill.com/rss/syndicator/19109', name: 'The Hill', category: NewsCategory.Politics, bias: 'Center' },
+  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones', category: NewsCategory.Politics, bias: 'Left' },
+  { url: 'https://www.vox.com/rss/index.xml', name: 'Vox', category: NewsCategory.Politics, bias: 'Liberal' },
+  { url: 'https://www.politico.com/rss/politicopicks.xml', name: 'Politico', category: NewsCategory.Politics, bias: 'Center' },
+  { url: 'https://www.breitbart.com/feed/', name: 'Breitbart', category: NewsCategory.Politics, bias: 'Right' },
+  { url: 'https://talkingpointsmemo.com/feed', name: 'Talking Points Memo', category: NewsCategory.Politics, bias: 'Liberal' },
+
+  // === News ===
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/', name: 'Washington Times', category: NewsCategory.News, bias: 'Conservative' },
+  { url: 'https://www.oann.com/feed/', name: 'One America News Network', category: NewsCategory.News, bias: 'Right' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', name: 'New York Times', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://feeds.washingtonpost.com/rss/world', name: 'Washington Post', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://www.theguardian.com/us/rss', name: 'The Guardian US', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://www.reuters.com/rssfeed/topNews', name: 'Reuters Top News', category: NewsCategory.News, bias: 'Center' },
+  { url: 'https://www.npr.org/rss/rss.php?id=1001', name: 'NPR News', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://www.cbsnews.com/latest/rss/main', name: 'CBS News', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://abcnews.go.com/abcnews/topstories', name: 'ABC News', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://rss.cnn.com/rss/cnn_topstories.rss', name: 'CNN', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://moxie.foxnews.com/google-publisher/latest.xml', name: 'Fox News', category: NewsCategory.News, bias: 'Conservative' },
+  { url: 'https://feeds.nbcnews.com/nbcnews/public/news', name: 'NBC News', category: NewsCategory.News, bias: 'Liberal' },
+  { url: 'https://www.usatoday.com/rss/', name: 'USA Today', category: NewsCategory.News, bias: 'Center' },
+
+  // === Science ===
+  { url: 'https://www.space.com/feeds/all', name: 'Space.com', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://phys.org/rss-feed/', name: 'Phys.org', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.scientificamerican.com/rss/all/', name: 'Scientific American', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.universetoday.com/feed/', name: 'Universe Today', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.planetary.org/planetary-radio/mat-kaplan-farewell', name: 'Planetary Society', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.livescience.com/feeds/all', name: 'Live Science', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://newscientist.com/feed/home/', name: 'New Scientist', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.quantamagazine.org/feed/', name: 'Quanta Magazine', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://www.nature.com/nature.rss', name: 'Nature', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://science.sciencemag.org/rss/express.xml', name: 'Science Magazine', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://feeds.feedburner.com/popsci-main', name: 'Popular Science', category: NewsCategory.Science, bias: 'Center' },
+  { url: 'https://discover.lanl.gov/news/rss/rss.xml', name: 'Los Alamos National Laboratory', category: NewsCategory.Science, bias: 'Center' },
+
+  // === Tech ===
+  { url: 'https://www.engadget.com/rss.xml', name: 'Engadget', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://feeds.feedburner.com/Mashable', name: 'Mashable', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://www.schneier.com/feed/atom/', name: 'Schneier on Security', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://gizmodo.com/rss', name: 'Gizmodo', category: NewsCategory.Tech, bias: 'Liberal' },
+  { url: 'https://towardsdatascience.com/feed', name: 'Towards Data Science', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://www.wired.com/feed/rss', name: 'Wired', category: NewsCategory.Tech, bias: 'Liberal' },
+  { url: 'https://www.theverge.com/rss/index.xml', name: 'The Verge', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://techcrunch.com/feed/', name: 'TechCrunch', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://feeds.arstechnica.com/arstechnica/index', name: 'Ars Technica', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://www.zdnet.com/news/rss.xml', name: 'ZDNet', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://readwrite.com/feed/', name: 'ReadWrite', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://www.cnet.com/rss/all/', name: 'CNET', category: NewsCategory.Tech, bias: 'Center' },
+  { url: 'https://venturebeat.com/feed/', name: 'VentureBeat', category: NewsCategory.Tech, bias: 'Center' },
+
+  // === Law ===
+  { url: 'https://abovethelaw.com/feed/', name: 'Above the Law', category: NewsCategory.Law, bias: 'Liberal' },
+  { url: 'https://www.scotusblog.com/feed/', name: 'SCOTUSblog', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://www.lawfareblog.com/feed', alternateUrl: 'https://www.lawfareblog.com/rss.xml', name: 'Lawfare', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://reason.com/volokh/feed/', name: 'The Volokh Conspiracy', category: NewsCategory.Law, bias: 'Libertarian' },
+  { url: 'https://www.law.com/feed/', name: 'Law.com', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://verdict.justia.com/feed', name: 'Justia Verdict', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://lawandcrime.com/feed/', name: 'Law & Crime', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://www.reuters.com/rss/legal', name: 'Reuters Legal', category: NewsCategory.Law, bias: 'Center' },
+  { url: 'https://feeds.findlaw.com/NewsTopHeadlines', name: 'FindLaw News', category: NewsCategory.Law, bias: 'Center' },
+
+  // === Environment ===
+  { url: 'https://insideclimatenews.org/feed/', name: 'InsideClimate News', category: NewsCategory.Environment, bias: 'Liberal' },
+  { url: 'https://news.mongabay.com/feed/', name: 'Mongabay', category: NewsCategory.Environment, bias: 'Center' },
+  { url: 'https://www.carbonbrief.org/feed', name: 'Carbon Brief', category: NewsCategory.Environment, bias: 'Center' },
+  { url: 'https://grist.org/feed/', name: 'Grist', category: NewsCategory.Environment, bias: 'Liberal' },
+  { url: 'https://e360.yale.edu/feed.xml', name: 'Yale Environment 360', category: NewsCategory.Environment, bias: 'Liberal' },
+  { url: 'https://www.treehugger.com/feeds/latest/', name: 'Treehugger', category: NewsCategory.Environment, bias: 'Liberal' },
+  { url: 'https://www.eenews.net/rss/feed.xml', name: 'E&E News', category: NewsCategory.Environment, bias: 'Center' },
+  { url: 'https://www.nationalgeographic.com/environment/rss/all', name: 'National Geographic Environment', category: NewsCategory.Environment, bias: 'Center' },
+  { url: 'https://feeds.feedburner.com/EnvironmentalLeader', name: 'Environmental Leader', category: NewsCategory.Environment, bias: 'Center' },
+
+  // === World ===
+  { url: 'https://www.spiegel.de/international/index.rss', name: 'Der Spiegel International', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.rappler.com/rss', name: 'Rappler', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.economist.com/the-world-this-week/rss.xml', alternateUrl: 'https://www.economist.com/weeklyedition/rss.xml', name: 'The Economist', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.cbc.ca/rss/world', alternateUrl: 'https://www.cbc.ca/webfeed/rss/rss-world', name: 'CBC News - World', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera', category: NewsCategory.World, bias: 'Center-Left' },
+  { url: 'https://www3.nhk.or.jp/nhkworld/en/news/all/index.rss', name: 'NHK World Japan', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', name: 'BBC World', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.france24.com/en/rss', name: 'France 24', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.dw.com/en/top-stories/rss-feed-2/rss.xml', name: 'Deutsche Welle', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.thelocal.de/feeds/rss.php', name: 'The Local - Europe', category: NewsCategory.World, bias: 'Center' },
+  { url: 'https://www.statnews.com/feed', name: 'STAT', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://www.nih.gov/rss', name: 'NIH News & Events', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://jamanetwork.com/rss/site_3/mostReadArticles.xml', name: 'JAMA Network', category: NewsCategory.Health, bias: 'Center' },
+
+  // === Arts ===
+  { url: 'https://www.theartnewspaper.com/rss', name: 'The Art Newspaper', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.thisiscolossal.com/feed/', name: 'Colossal', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.artsy.net/rss/news', name: 'Artsy', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://hyperallergic.com/feed/', name: 'Hyperallergic', category: NewsCategory.Arts, bias: 'Liberal' },
+  { url: 'https://www.artnews.com/feed/', name: 'ARTnews', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://news.artnet.com/feed', name: 'Artnet News', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.vulture.com/tag/art/rss/', name: 'Vulture - Art', category: NewsCategory.Arts, bias: 'Liberal' },
+  { url: 'https://www.apollo-magazine.com/feed/', name: 'Apollo Magazine', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.artsjournal.com/feed', name: 'ArtsJournal', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://frieze.com/feed', name: 'Frieze', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.juxtapoz.com/feed/', name: 'Juxtapoz', category: NewsCategory.Arts, bias: 'Liberal' },
+  { url: 'https://www.artforum.com/feed/', name: 'Artforum', category: NewsCategory.Arts, bias: 'Liberal' },
+  { url: 'https://www.creativeboom.com/feed/', name: 'Creative Boom', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.designboom.com/feed/', name: 'designboom', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://www.openculture.com/feed', name: 'Open Culture', category: NewsCategory.Arts, bias: 'Liberal' },
+  { url: 'https://www.artistsnetwork.com/feed/', name: 'Artists Network', category: NewsCategory.Arts, bias: 'Center' },
+  { url: 'https://mymodernmet.com/feed/', name: 'My Modern Met', category: NewsCategory.Arts, bias: 'Center' },
+
+  // === Health ===
+  { url: 'https://www.thelancet.com/rssfeed/lancet_current.xml', name: 'The Lancet', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://www.healthline.com/rss/health-news', name: 'Healthline', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://www.medicalnewstoday.com/newsfeeds/rss/medical_news_today.xml', name: 'Medical News Today', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://www.webmd.com/rss/news_feeds/1/rss.xml', name: 'WebMD', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss', name: 'New England Journal of Medicine', category: NewsCategory.Health, bias: 'Center' },
+  { url: 'https://feeds.feedburner.com/khn/stories?format=xml', name: 'Kaiser Health News', category: NewsCategory.Health, bias: 'Center' },
+
+  // === Finance ===
+  { url: 'https://seekingalpha.com/market_currents.xml', name: 'Seeking Alpha - Market News', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.nakedcapitalism.com/feed', name: 'Naked Capitalism', category: NewsCategory.Finance, bias: 'Left' },
+  { url: 'https://www.marketwatch.com/rss/topstories', name: 'MarketWatch', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_articles', name: 'Investopedia', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', name: 'CNBC', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.ft.com/rss/home/us', name: 'Financial Times', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.bloomberg.com/feed/podcast/decrypted', name: 'Bloomberg', category: NewsCategory.Finance, bias: 'Center' },
+  { url: 'https://www.wsj.com/xml/rss/3_7031.xml', name: 'Wall Street Journal', category: NewsCategory.Finance, bias: 'Conservative' },
+  { url: 'https://www.barrons.com/feed/rss?id=latest', name: 'Barrons', category: NewsCategory.Finance, bias: 'Conservative' },
+  { url: 'https://www.fool.com/a/feeds/foolwatch?format=rss2&id=foolwatch', name: 'Motley Fool', category: NewsCategory.Finance, bias: 'Center' },
+
+  // === Music ===
+  { url: 'https://www.stereogum.com/feed/',                      name: 'Stereogum',              category: NewsCategory.Music, bias: 'Liberal' },
+  { url: 'https://pitchfork.com/feed/feed-news/rss',            name: 'Pitchfork',              category: NewsCategory.Music, bias: 'Liberal' },
+  { url: 'https://www.rollingstone.com/music/feed/',            name: 'Rolling Stone – Music',  category: NewsCategory.Music, bias: 'Liberal' },
+  { url: 'https://www.billboard.com/feed/',                     name: 'Billboard',              category: NewsCategory.Music, bias: 'Center' },
+  { url: 'https://www.nme.com/feed',                             name: 'NME',                    category: NewsCategory.Music, bias: 'Center' },
+  { url: 'https://www.consequence.net/feed/',                   name: 'Consequence of Sound',   category: NewsCategory.Music, bias: 'Liberal' },
+  { url: 'https://www.spin.com/feed/',                           name: 'Spin',                   category: NewsCategory.Music, bias: 'Liberal' },
+  { url: 'https://www.npr.org/rss/rss.php?id=1039',              name: 'NPR Music',              category: NewsCategory.Music, bias: 'Center' },
+  { url: 'https://www.brooklynvegan.com/feed/',                 name: 'BrooklynVegan',          category: NewsCategory.Music, bias: 'Center' },
   
-  // Science & Technology
-  { url: 'https://www.space.com/feeds/all', name: 'Space.com', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://phys.org/rss-feed/', name: 'Phys.org', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.scientificamerican.com/rss/all/', name: 'Scientific American', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.universetoday.com/feed/', name: 'Universe Today', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.planetary.org/planetary-radio/mat-kaplan-farewell', name: 'Planetary Society', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.livescience.com/feeds/all', name: 'Live Science', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://newscientist.com/feed/home/', name: 'New Scientist', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.engadget.com/rss.xml', name: 'Engadget', category: NewsCategory.Tech, bias: PoliticalBias.Centrist },
-  { url: 'https://feeds.feedburner.com/Mashable', name: 'Mashable', category: NewsCategory.Tech, bias: PoliticalBias.Centrist },
+  // === Sports ===
+  { url: 'https://deadspin.com/rss', name: 'Deadspin', category: NewsCategory.Sports, bias: 'Liberal' },
+  { url: 'https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU', name: 'Fox Sports', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://www.espn.com/espn/rss/news', name: 'ESPN', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://sports.yahoo.com/rss/', name: 'Yahoo Sports', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://www.cbssports.com/rss/headlines/', name: 'CBS Sports', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://www.sbnation.com/rss/current', name: 'SB Nation', category: NewsCategory.Sports, bias: 'Liberal' },
+  { url: 'https://theathletic.com/news/rss/', name: 'The Athletic', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://bleacherreport.com/articles/feed', name: 'Bleacher Report', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://www.si.com/rss/si_topstories.rss', name: 'Sports Illustrated', category: NewsCategory.Sports, bias: 'Center' },
+  { url: 'https://www.sportingnews.com/us/rss', name: 'Sporting News', category: NewsCategory.Sports, bias: 'Center' },
+
+  // === Fashion ===
+  { url: 'https://www.highsnobiety.com/feed/', name: 'Highsnobiety', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://www.vogue.com/feed/rss', name: 'Vogue', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://www.elle.com/rss/all.xml/', name: 'Elle', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://www.harpersbazaar.com/rss/all.xml/', name: 'Harper\'s Bazaar', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://www.gq.com/feed/rss', name: 'GQ', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://fashionista.com/.rss/excerpt/', name: 'Fashionista', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://hypebeast.com/feed', name: 'Hypebeast', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://wwd.com/feed/', name: 'Women\'s Wear Daily', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://www.manrepeller.com/feed', name: 'Man Repeller', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://www.businessoffashion.com/feed', name: 'Business of Fashion', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://www.dazeddigital.com/rss', name: 'Dazed', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://www.papermag.com/rss', name: 'Paper Magazine', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://i-d.vice.com/en_us/rss', name: 'i-D', category: NewsCategory.Fashion, bias: 'Liberal' },
+  { url: 'https://footwearnews.com/feed/', name: 'Footwear News', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://stylecaster.com/fashion/feed/', name: 'StyleCaster Fashion', category: NewsCategory.Fashion, bias: 'Center' },
+  { url: 'https://www.tmz.com/rss/news-feed/', name: 'TMZ', category: NewsCategory.Entertainment, bias: 'Center' },
+  { url: 'https://www.ign.com/rss/articles', name: 'IGN Articles', category: NewsCategory.Entertainment, bias: 'Center' },
+  { url: 'https://www.etonline.com/news/rss', name: 'Entertainment Tonight', category: NewsCategory.Entertainment, bias: 'Center' },
+  { url: 'https://www.eonline.com/news.rss', name: 'E! News', category: NewsCategory.Entertainment, bias: 'Center' },
   
-  // Law & Politics
-  { url: 'https://abovethelaw.com/feed/', name: 'Above the Law', category: NewsCategory.Law, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://insideclimatenews.org/feed/', name: 'InsideClimate News', category: NewsCategory.Environment, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://www.crimeonline.com/feed/', name: 'Crime Online', category: NewsCategory.Crime, bias: PoliticalBias.Centrist },
-  { url: 'https://www.understandingwar.org/rss.xml', name: 'Institute for the Study of War', category: NewsCategory.Military, bias: PoliticalBias.Centrist },
-  { url: 'https://www.poynter.org/feed/', name: 'Poynter', category: NewsCategory.Media, bias: PoliticalBias.Centrist },
-  { url: 'https://www.longwarjournal.org/feed', name: 'Long War Journal', category: NewsCategory.Military, bias: PoliticalBias.Centrist },
-  { url: 'https://mediaite.com/feed/', name: 'Mediaite', category: NewsCategory.Media, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://fair.org/feed/', name: 'FAIR', category: NewsCategory.Media, bias: PoliticalBias.AlternativeLeft },
+  // === Entertainment ===
+  { url: 'https://variety.com/feed/', name: 'Variety', category: NewsCategory.Entertainment, bias: 'Liberal' },
+  { url: 'https://deadline.com/feed/', name: 'Deadline Hollywood', category: NewsCategory.Entertainment, bias: 'Center' },
+  { url: 'https://www.hollywoodreporter.com/feed/', name: 'Hollywood Reporter', category: NewsCategory.Entertainment, bias: 'Liberal' },
+  { url: 'https://ew.com/feed/', name: 'Entertainment Weekly', category: NewsCategory.Entertainment, bias: 'Liberal' },
+  { url: 'https://www.avclub.com/rss', name: 'AV Club', category: NewsCategory.Entertainment, bias: 'Liberal' },
+  { url: 'https://people.com/feed/', name: 'People', category: NewsCategory.Entertainment, bias: 'Center' },
+  { url: 'https://www.tmz.com/rss/news-feed/', name: 'TMZ', category: NewsCategory.Entertainment, bias: 'Center' },
   
-  // International News
-  { url: 'https://www.spiegel.de/international/index.rss', name: 'Der Spiegel International', category: NewsCategory.World, bias: PoliticalBias.Centrist },
-  { url: 'https://www.theartnewspaper.com/rss', name: 'The Art Newspaper', category: NewsCategory.Arts, bias: PoliticalBias.Centrist },
-  { url: 'https://www.thelancet.com/rssfeed/lancet_current.xml', name: 'The Lancet', category: NewsCategory.Health, bias: PoliticalBias.Centrist },
+  // === Business ===
+  { url: 'https://www.forbes.com/real-time/feed2/', name: 'Forbes', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://www.businessinsider.com/rss', name: 'Business Insider', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://fortune.com/feed/', name: 'Fortune', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://hbr.org/rss/index.xml', name: 'Harvard Business Review', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://www.inc.com/rss/', name: 'Inc.', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://www.fastcompany.com/latest/rss', name: 'Fast Company', category: NewsCategory.Business, bias: 'Liberal' },
+  { url: 'https://www.entrepreneur.com/latest.rss', name: 'Entrepreneur', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://www.bizjournals.com/bizjournals/feed/feed.json', name: 'Bizjournals', category: NewsCategory.Business, bias: 'Center' },
+  { url: 'https://qz.com/feed', name: 'Quartz', category: NewsCategory.Business, bias: 'Center-Left' },
+        
+  // === Economics ===
+  { url: 'https://www.project-syndicate.org/rss', name: 'Project Syndicate', category: NewsCategory.Economics, bias: 'Center' },
+  { url: 'https://feeds.feedburner.com/EconomistsView', name: 'Economist\'s View', category: NewsCategory.Economics, bias: 'Center-Left' },
+  { url: 'https://marginalrevolution.com/feed', name: 'Marginal Revolution', category: NewsCategory.Economics, bias: 'Libertarian' },
+  { url: 'https://www.econlib.org/feed/', name: 'EconLog', category: NewsCategory.Economics, bias: 'Libertarian' },
+  { url: 'https://www.brookings.edu/topics/u-s-economy/feed/', name: 'Brookings - Economics', category: NewsCategory.Economics, bias: 'Center-Left' },
+  { url: 'https://cepr.net/feed/', name: 'Center for Economic and Policy Research', category: NewsCategory.Economics, bias: 'Left' },
+  { url: 'https://freakonomics.com/feed/', name: 'Freakonomics', category: NewsCategory.Economics, bias: 'Center' },
+  { url: 'https://www.imf.org/en/news/rss-feed', name: 'IMF News', category: NewsCategory.Economics, bias: 'Center' },
+  { url: 'https://www.nber.org/rss/new.xml', name: 'NBER Working Papers', category: NewsCategory.Economics, bias: 'Center' },
+      
+  // === Space ===
+  { url: 'https://spacenews.com/feed/', name: 'SpaceNews', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://www.nasaspaceflight.com/feed/', name: 'NASA Spaceflight', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://www.teslarati.com/feed/', name: 'Teslarati', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://arstechnica.com/tag/spacex/feed/', name: 'Ars Technica - Space', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://skyandtelescope.org/feed/', name: 'Sky & Telescope', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://astronomynow.com/feed/', name: 'Astronomy Now', category: NewsCategory.Space, bias: 'Center' },    
+  { url: 'https://blogs.nasa.gov/stationreport/feed/', name: 'NASA ISS Blog', category: NewsCategory.Space, bias: 'Center' },
+  { url: 'https://www.spaceflightinsider.com/feed/', name: 'Spaceflight Insider', category: NewsCategory.Space, bias: 'Center' },
   
-  // Finance & Markets
-  { url: 'https://seekingalpha.com/market_currents.xml', name: 'Seeking Alpha - Market News', category: NewsCategory.Finance, bias: PoliticalBias.Centrist },
-  { url: 'https://www.nakedcapitalism.com/feed', name: 'Naked Capitalism', category: NewsCategory.Finance, bias: PoliticalBias.AlternativeLeft },
-  { url: 'https://news.mongabay.com/feed/', name: 'Mongabay', category: NewsCategory.Environment, bias: PoliticalBias.Centrist },
+  // === AI ===
+  { url: 'https://venturebeat.com/category/ai/feed/', name: 'VentureBeat AI', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed', name: 'MIT Technology Review - AI', category: NewsCategory.AI, bias: 'Center-Left' },
+  { url: 'https://www.artificialintelligence-news.com/feed/', name: 'AI News', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://towardsdatascience.com/feed/tag/artificial-intelligence', name: 'Towards Data Science - AI', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://machinelearningmastery.com/feed/', name: 'Machine Learning Mastery', category: NewsCategory.AI, bias: 'Center' },  
+  { url: 'https://www.deeplearning.ai/blog/feed/', name: 'deeplearning.ai', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://openai.com/blog/rss/', name: 'OpenAI Blog', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://blogs.nvidia.com/blog/category/deep-learning/feed/', name: 'NVIDIA AI Blog', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://ai.googleblog.com/feeds/posts/default', name: 'Google AI Blog', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://www.fast.ai/atom.xml', name: 'fast.ai', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://research.fb.com/feed/', name: 'Meta AI Research', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://huggingface.co/blog/feed.xml', name: 'Hugging Face Blog', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://www.reddit.com/r/artificial/.rss', name: 'Reddit r/artificial', category: NewsCategory.AI, bias: 'Center' },
+  { url: 'https://www.analyticsvidhya.com/feed/', name: 'Analytics Vidhya', category: NewsCategory.AI, bias: 'Center' },
   
-  // Arts & Culture
-  { url: 'https://www.thisiscolossal.com/feed/', name: 'Colossal', category: NewsCategory.Arts, bias: PoliticalBias.Centrist },
-  { url: 'https://cjr.org/feed', name: 'Columbia Journalism Review', category: NewsCategory.Media, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://www.artsy.net/rss/news', name: 'Artsy', category: NewsCategory.Arts, bias: PoliticalBias.Centrist },
-  { url: 'https://www.niemanlab.org/feed/', name: 'Nieman Lab', category: NewsCategory.Media, bias: PoliticalBias.Centrist },
-  { url: 'https://www.stereogum.com/feed/', name: 'Stereogum', category: NewsCategory.Music, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://hyperallergic.com/feed/', name: 'Hyperallergic', category: NewsCategory.Arts, bias: PoliticalBias.MainstreamDemocrat },
   
-  // Additional News Sources
-  { url: 'https://www.schneier.com/feed/atom/', name: 'Schneier on Security', category: NewsCategory.Tech, bias: PoliticalBias.Centrist },
-  { url: 'https://pitchfork.com/feed/feed-news/rss', name: 'Pitchfork', category: NewsCategory.Music, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
-  { url: 'https://www.commondreams.org/rss.xml', name: 'Common Dreams', category: NewsCategory.Politics, bias: PoliticalBias.AlternativeLeft },
-  { url: 'https://www.aim.org/feed/', name: 'Accuracy in Media (AIM)', category: NewsCategory.Media, bias: PoliticalBias.MainstreamRepublican },
-  { url: 'https://gizmodo.com/rss', name: 'Gizmodo', category: NewsCategory.Tech, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://thebulwark.com/feed/', name: 'The Bulwark', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRepublican },
-  { url: 'https://deadspin.com/rss', name: 'Deadspin', category: NewsCategory.Sports, bias: PoliticalBias.MainstreamDemocrat },
-  { url: 'https://www.highsnobiety.com/feed/', name: 'Highsnobiety', category: NewsCategory.Fashion, bias: PoliticalBias.Centrist },
-  { url: 'https://www.rappler.com/rss', name: 'Rappler', category: NewsCategory.World, bias: PoliticalBias.Centrist },
-  { url: 'https://www.carbonbrief.org/feed', name: 'Carbon Brief', category: NewsCategory.Environment, bias: PoliticalBias.Centrist },
-  { url: 'https://www.scotusblog.com/feed/', name: 'SCOTUSblog', category: NewsCategory.Law, bias: PoliticalBias.Centrist },
-  { url: 'https://towardsdatascience.com/feed', name: 'Towards Data Science', category: NewsCategory.Tech, bias: PoliticalBias.Centrist },
-  { url: 'https://www.marketwatch.com/rss/topstories', name: 'MarketWatch', category: NewsCategory.Finance, bias: PoliticalBias.Centrist },
-  { url: 'https://www.washingtonexaminer.com/tag/news.rss', name: 'Washington Examiner', category: NewsCategory.Politics, bias: PoliticalBias.MainstreamRepublican },
-  { url: 'https://thehill.com/rss/syndicator/19109', name: 'The Hill', category: NewsCategory.Politics, bias: PoliticalBias.Centrist },
-  { url: 'https://www.quantamagazine.org/feed/', name: 'Quanta Magazine', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
-  { url: 'https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_articles', name: 'Investopedia', category: NewsCategory.Finance, bias: PoliticalBias.Centrist },
-  { 
-    url: 'https://www.economist.com/the-world-this-week/rss.xml',
-    alternateUrl: 'https://www.economist.com/weeklyedition/rss.xml',
-    name: 'The Economist',
-    category: NewsCategory.World,
-    bias: PoliticalBias.Centrist
-  },
-  {
-    url: 'https://www.cbc.ca/rss/world',
-    alternateUrl: 'https://www.cbc.ca/webfeed/rss/rss-world',
-    name: 'CBC News - World',
-    category: NewsCategory.World,
-    bias: PoliticalBias.Centrist
-  },
-  {
-    url: 'https://feeds.propublica.org/propublica/main',
-    alternateUrl: 'https://www.propublica.org/feed/main',
-    name: 'ProPublica',
-    category: NewsCategory.Investigative,
-    bias: PoliticalBias.MainstreamDemocrat
-  },
-  {
-    url: 'https://www.lawfareblog.com/feed',
-    alternateUrl: 'https://www.lawfareblog.com/rss.xml',
-    name: 'Lawfare',
-    category: NewsCategory.Law,
-    bias: PoliticalBias.Centrist
-  }
 ];
 
 // Configure parser with better timeout and headers
@@ -165,12 +269,12 @@ const MAX_ITEMS_PER_BIAS = 100; // Maximum items per political bias category
 
 // Track items per bias category
 let biasItemCounts = {
-  [PoliticalBias.MainstreamDemocrat]: 0,
-  [PoliticalBias.AlternativeLeft]: 0,
-  [PoliticalBias.Centrist]: 0,
-  [PoliticalBias.MainstreamRepublican]: 0,
-  [PoliticalBias.AlternativeRight]: 0,
-  [PoliticalBias.Unclear]: 0
+  'Liberal': 0,
+  'Left': 0,
+  'Center': 0,
+  'Conservative': 0,
+  'Right': 0,
+  'Unknown': 0 // Added Unknown, although no feeds currently use it
 };
 
 const SOURCE_RATE_LIMITS = {
@@ -302,12 +406,12 @@ const processFeedItems = (feed, feedConfig) => {
 // Reset bias counts at the start of each fetch cycle
 const resetBiasCounts = () => {
   biasItemCounts = {
-    [PoliticalBias.MainstreamDemocrat]: 0,
-    [PoliticalBias.AlternativeLeft]: 0,
-    [PoliticalBias.Centrist]: 0,
-    [PoliticalBias.MainstreamRepublican]: 0,
-    [PoliticalBias.AlternativeRight]: 0,
-    [PoliticalBias.Unclear]: 0
+    'Liberal': 0,
+    'Left': 0,
+    'Center': 0,
+    'Conservative': 0,
+    'Right': 0,
+    'Unknown': 0
   };
 };
 
