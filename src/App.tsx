@@ -214,14 +214,39 @@ const App: React.FC = () => {
       setRelatedNews([]);
     } else {
       setSelectedWord(wordText);
-      // Find related news items from the *currently displayed* items
-      const related = newsItems.filter(item =>
-        (item.title.toLowerCase().includes(wordText.toLowerCase()) ||
-         item.description.toLowerCase().includes(wordText.toLowerCase()) ||
-         item.keywords?.some(kw => kw.toLowerCase() === wordText.toLowerCase())) &&
-         item.url // Ensure item has a URL
+      
+      // First, get all news items that are directly linked to this word
+      const linkedNews = new Set(word.newsIds);
+      
+      // Find all related news items from unfiltered items first
+      const allRelated = unfilteredNewsItems.filter(item =>
+        // Include if it's directly linked through newsIds
+        linkedNews.has(item.id) ||
+        // Or if the word appears in title, description, or keywords
+        (item.title?.toLowerCase().includes(wordText.toLowerCase()) ||
+         item.description?.toLowerCase().includes(wordText.toLowerCase()) ||
+         item.keywords?.some(kw => kw.toLowerCase() === wordText.toLowerCase()))
       );
-      setRelatedNews(related);
+
+      // Now apply bias filtering
+      const biasFiltered = allRelated.filter(item => enabledBiases.has(item.source.bias));
+      
+      // Ensure we include at least one article that contributed this word
+      // even if it's from a filtered bias or older than 24 hours
+      const originalArticles = unfilteredNewsItems.filter(item => linkedNews.has(item.id));
+      
+      // Combine and deduplicate
+      const combined = Array.from(new Set([...originalArticles, ...biasFiltered]));
+      
+      // Sort by date, newest first
+      const sorted = combined.sort((a, b) => 
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+      
+      console.log(`Found ${sorted.length} related news items for word "${wordText}" ` +
+                  `(${originalArticles.length} original, ${biasFiltered.length} bias-filtered)`);
+      
+      setRelatedNews(sorted);
     }
   };
 

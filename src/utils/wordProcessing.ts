@@ -386,7 +386,7 @@ export const processNewsToWords = async (
   // Process words into their respective bias categories
   for (const item of news) {
     // Skip items with undefined bias or keywords
-    if (!item.source?.bias || !item.keywords) continue;
+    if (!item.source?.bias || !item.keywords || !item.url) continue;
     
     // Default to Unknown bias if the bias is not in our map
     const bias = biasMaps.has(item.source.bias) ? item.source.bias : PoliticalBias.Unknown;
@@ -400,83 +400,89 @@ export const processNewsToWords = async (
       const normalizedWord = keyword.toLowerCase().trim();
       
       if (!shouldKeepWord(normalizedWord, config)) continue;
+
+      // Check if this is a known entity and normalize it
+      const canonicalForm = normalizeEntity(normalizedWord);
+      const finalWord = canonicalForm || normalizedWord;
       
       // Add to the appropriate bias map
       const biasMap = biasMaps.get(bias)!;
       
-      if (biasMap.has(normalizedWord)) {
+      if (biasMap.has(finalWord)) {
         // Update existing word
-        const existingWord = biasMap.get(normalizedWord)!;
+        const existingWord = biasMap.get(finalWord)!;
         existingWord.value += 1;
-        existingWord.newsIds.push(item.id);
+        if (!existingWord.newsIds.includes(item.id)) {
+          existingWord.newsIds.push(item.id);
+        }
+        // If this was a variant form, add it to the variants list
+        if (canonicalForm && normalizedWord !== canonicalForm) {
+          existingWord.variants = existingWord.variants || new Set();
+          existingWord.variants.add(normalizedWord);
+        }
       } else {
         // Create new word entry
-        biasMap.set(normalizedWord, {
-          text: normalizedWord,
+        const variants = new Set<string>();
+        if (canonicalForm && normalizedWord !== canonicalForm) {
+          variants.add(normalizedWord);
+        }
+        biasMap.set(finalWord, {
+          text: finalWord,
           value: 1,
           bias: bias,
           newsIds: [item.id],
-          category: item.category
+          category: item.category,
+          variants: variants.size > 0 ? variants : undefined
         });
       }
     }
   }
 
-  // Collect all words, even with imbalanced distribution
+  // Collect all words, ensuring each has at least one valid news item
   const balancedWords: TagCloudWord[] = [];
   
   // First, filter by minimum frequency and sort by value for each bias
   const sortedBiasWords = new Map<PoliticalBias, TagCloudWord[]>();
-  biasMaps.forEach((wordMap, bias) => {
+  
+  // Process each bias category
+  biasMaps.forEach((wordMap: Map<string, TagCloudWord>, bias: PoliticalBias) => {
+    // Convert to array and filter words
     const words = Array.from(wordMap.values())
-      .filter(word => word.value >= config.minFrequency)
-      .sort((a, b) => b.value - a.value);
+      .filter((word: TagCloudWord) => 
+        word.value >= config.minFrequency && // Meets minimum frequency
+        word.newsIds.length > 0 && // Has at least one news item
+        news.some(item => word.newsIds.includes(item.id) && item.url) // Has at least one valid news item with URL
+      )
+      .sort((a: TagCloudWord, b: TagCloudWord) => b.value - a.value);
+    
     sortedBiasWords.set(bias, words);
   });
 
-  // Track the total number of words collected
-  let totalWords = 0;
-  const maxWordsPerBias = Math.floor(config.maxWords / Object.keys(PoliticalBias).length);
-  
-  // Take words from each bias category up to the limit
-  Object.values(PoliticalBias).forEach(bias => {
-    const words = sortedBiasWords.get(bias) || [];
-    if (words.length > 0) {
-      // Take up to maxWordsPerBias from each category that has words
-      const wordsToTake = Math.min(words.length, maxWordsPerBias);
-      balancedWords.push(...words.slice(0, wordsToTake));
-      totalWords += wordsToTake;
-    }
-  });
-  
-  // If we still have room and some categories have more words, add those
-  if (totalWords < config.maxWords) {
-    let remainingSpace = config.maxWords - totalWords;
+  // Then balance words across biases while maintaining minimum frequency requirement
+  let wordsAdded = 0;
+  const maxWordsPerBias = Math.min(
+    MAX_WORDS_PER_BIAS,
+    Math.ceil(config.maxWords / Object.keys(PoliticalBias).length)
+  );
+
+  while (wordsAdded < config.maxWords) {
+    let addedThisRound = 0;
     
-    // Sort bias categories by number of remaining words (largest first)
-    const biasesWithRemainingWords = Object.values(PoliticalBias)
-      .filter(bias => {
-        const words = sortedBiasWords.get(bias) || [];
-        return words.length > maxWordsPerBias;
-      })
-      .sort((a, b) => {
-        const aWords = sortedBiasWords.get(a) || [];
-        const bWords = sortedBiasWords.get(b) || [];
-        return bWords.length - aWords.length;
-      });
-    
-    // Distribute remaining space proportionally among biases with remaining words
-    for (const bias of biasesWithRemainingWords) {
-      if (remainingSpace <= 0) break;
-      
-      const words = sortedBiasWords.get(bias) || [];
-      const additionalWords = Math.min(words.length - maxWordsPerBias, remainingSpace);
-      
-      if (additionalWords > 0) {
-        balancedWords.push(...words.slice(maxWordsPerBias, maxWordsPerBias + additionalWords));
-        remainingSpace -= additionalWords;
+    for (const bias of Object.values(PoliticalBias)) {
+      const biasWords = sortedBiasWords.get(bias) || [];
+      if (biasWords.length > 0) {
+        const word = biasWords.shift();
+        if (word) {
+          balancedWords.push(word);
+          addedThisRound++;
+          wordsAdded++;
+          
+          if (wordsAdded >= config.maxWords) break;
+        }
       }
     }
+    
+    if (addedThisRound === 0) break; // No more words to add
   }
 
   return balancedWords;

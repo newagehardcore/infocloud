@@ -13,60 +13,32 @@
   left: 0;
 }
 
-/* Status indicator overlay */
-.status-indicator {
-  position: fixed;
-  top: 0.5rem;
-  right: 3.5rem;
-  z-index: 100;
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
-  font-size: 0.8rem;
-  color: #888;
+/* Loading state */
+.loading {
   display: flex;
+  justify-content: center;
   align-items: center;
-  height: 28px;
-  box-sizing: border-box;
-}
-
-.live-indicator {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 0.5rem;
-  color: #ccc;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
   height: 100%;
+  background: #111;
+  color: #888;
+  font-size: 1rem;
 }
 
-.live-indicator::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #00ff00;
-  border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: middle;
-  animation: pulse 1.5s infinite;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+/* Font styling for 3D text */
+.drei-html {
+  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.05em !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-transform: lowercase !important;
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Ensure Helvetica is applied to Three.js text */
+.tag-cloud-3d canvas text,
+.tag-cloud-3d .drei-html {
+  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 800 !important;
 }
 
 .historical-indicator {
@@ -151,32 +123,4 @@
 
 .close-panel-button:hover {
   background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Loading state */
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background: #111;
-  color: #888;
-  font-size: 1rem;
-}
-
-/* Font styling for 3D text */
-.drei-html {
-  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.05em !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
-  text-transform: lowercase !important;
-}
-
-/* Ensure Helvetica is applied to Three.js text */
-.tag-cloud-3d canvas text,
-.tag-cloud-3d .drei-html {
-  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-  font-weight: 800 !important;
 }

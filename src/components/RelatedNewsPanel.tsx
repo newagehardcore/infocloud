@@ -55,26 +55,14 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
     }));
   };
   
-  // Get color based on political bias
-  const getBiasColor = (bias: string): string => {
-    switch (bias) {
-      case 'Alternative Left': return '#0000FF'; // Bright blue
-      case 'Mainstream Democrat': return '#6495ED'; // Light blue
-      case 'Centrist': return '#800080'; // Purple
-      case 'Mainstream Republican': return '#FFB6C1'; // Light red
-      case 'Alternative Right': return '#FF0000'; // Bright red
-      default: return '#808080'; // Gray for unclear
-    }
-  };
-  
   // Define the desired order for bias groups
   const biasOrder = [
-    'Alternative Left',
-    'Mainstream Democrat',
+    'Left',
+    'Liberal',
     'Centrist',
-    'Unclear',
-    'Mainstream Republican',
-    'Alternative Right',
+    'Unknown',
+    'Conservative',
+    'Right'
   ];
 
   // Group news items by source bias
@@ -100,16 +88,29 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
   // Get bias label for display
   const getBiasLabel = (bias: string): string => {
     switch (bias) {
+      case 'Left': return 'Left';
       case 'Liberal': return 'Liberal';
-      case 'mainstream-democrat': return 'Mainstream Democrat';
-      case 'alternative-left': return 'Alternative Left';
-      case 'centrist': return 'Centrist';
-      case 'mainstream-republican': return 'Mainstream Republican';
-      case 'alternative-right': return 'Alternative Right';
-      default: return 'Unclear';
+      case 'Centrist': return 'Centrist';
+      case 'Conservative': return 'Conservative';
+      case 'Right': return 'Right';
+      case 'Unknown':
+      default: return 'Unknown';
     }
   };
-  
+
+  // Get color based on political bias
+  const getBiasColor = (bias: string): string => {
+    switch (bias) {
+      case 'Left': return '#0000FF'; // Bright blue
+      case 'Liberal': return '#6495ED'; // Light blue
+      case 'Centrist': return '#800080'; // Purple
+      case 'Conservative': return '#FFB6C1'; // Light red
+      case 'Right': return '#FF0000'; // Bright red
+      case 'Unknown':
+      default: return '#808080'; // Gray for unclear
+    }
+  };
+
   return (
     <>
       <div className={`backdrop-overlay ${isVisible ? 'visible' : ''}`} onClick={handleClose}></div>
@@ -122,43 +123,51 @@ const RelatedNewsPanel: React.FC<RelatedNewsPanelProps> = ({
         </div>
         
         <div className="panel-content">
-          {orderedBiasGroups.length > 0 ? (
-            <div className="bias-groups">
-              {orderedBiasGroups.map(([bias, items]) => (
-                <div key={bias} className="bias-group">
-                  <h3 
-                    className="bias-heading" 
-                    style={{ color: getBiasColor(bias) }}
-                    onClick={() => toggleBiasExpand(bias)}
-                  >
-                    {getBiasLabel(bias)} 
-                    <span className="source-count">({items.length} sources)</span>
-                    <span className="accordion-icon">
-                      {expandedBiases[bias] ? '▾' : '▸'}
-                    </span>
-                  </h3>
-                  {expandedBiases[bias] && (
-                    <ul className="news-list">
-                      {items.map((item, index) => (
-                        <li key={`${item.id}-${index}`} className="news-item">
-                          <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
-                            <h4 className="news-title">{item.title}</h4>
-                            <div className="news-meta">
-                              <span className="source-name">{item.source.name}</span>
-                              <span className="publish-date">
-                                {new Date(item.publishedAt).toLocaleString()}
-                              </span>
-                            </div>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+          {newsItems.length === 0 ? (
+            <div className="no-results">
+              <p>No related news found for "{selectedKeyword}"</p>
+              <p className="error-note">This is unexpected - please report this issue as every word should have at least one related news item.</p>
             </div>
           ) : (
-            <p className="no-results">No related news found.</p>
+            <>
+              <div className="news-summary">
+                Found {newsItems.length} articles containing "{selectedKeyword}"
+              </div>
+              <div className="bias-groups">
+                {orderedBiasGroups.map(([bias, items]) => (
+                  <div key={bias} className="bias-group">
+                    <h3 
+                      className="bias-heading" 
+                      style={{ color: getBiasColor(bias) }}
+                      onClick={() => toggleBiasExpand(bias)}
+                    >
+                      {getBiasLabel(bias)} 
+                      <span className="source-count">({items.length} sources)</span>
+                      <span className="accordion-icon">
+                        {expandedBiases[bias] ? '▾' : '▸'}
+                      </span>
+                    </h3>
+                    {expandedBiases[bias] && (
+                      <ul className="news-list">
+                        {items.map((item, index) => (
+                          <li key={`${item.id}-${index}`} className="news-item">
+                            <a href={item.url} className="news-link" target="_blank" rel="noopener noreferrer">
+                              <h4 className="news-title">{item.title}</h4>
+                              <div className="news-meta">
+                                <span className="source-name">{item.source.name}</span>
+                                <span className="publish-date">
+                                  {new Date(item.publishedAt).toLocaleString()}
+                                </span>
+                              </div>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
         
