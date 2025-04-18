@@ -22,17 +22,17 @@ const TagCloud3D: React.FC<{
     console.log('Bias value:', bias);
     
     switch (bias) {
-      case PoliticalBias.AlternativeLeft:
+      case PoliticalBias.Left:
         return '#0000FF'; // Bright blue
-      case PoliticalBias.MainstreamDemocrat:
+      case PoliticalBias.Liberal:
         return '#6495ED'; // Light blue
       case PoliticalBias.Centrist:
         return '#800080'; // Purple
-      case PoliticalBias.MainstreamRepublican:
+      case PoliticalBias.Conservative:
         return '#FFB6C1'; // Light red
-      case PoliticalBias.AlternativeRight:
+      case PoliticalBias.Right:
         return '#FF0000'; // Bright red
-      case PoliticalBias.Unclear:
+      case PoliticalBias.Unknown:
       default:
         return '#808080'; // Grey
     }

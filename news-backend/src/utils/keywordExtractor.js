@@ -166,18 +166,26 @@ const extractKeywords = async (newsItem) => {
     const MAX_KEYWORDS = 15; // Keep the limit reasonable
     const finalKeywords = uniqueKeywords.slice(0, MAX_KEYWORDS);
 
-    // console.log(`Keywords for "${newsItem.title.substring(0,30)}...": ${finalKeywords.join(', ')}`);
+    // Add debug logging for keyword extraction
+    console.log(`[KeywordExtractor] Found ${finalKeywords.length} keywords for article from ${newsItem.source?.name || 'unknown source'} (bias: ${newsItem.source?.bias || 'unknown'})`);
+    if (finalKeywords.length === 0) {
+      console.log(`[KeywordExtractor] No keywords found for: "${newsItem.title.substring(0, 50)}..."`);
+    }
+    
     return finalKeywords;
 
   } catch (error) {
     console.error(`Error extracting keywords for "${newsItem.title}":`, error);
     // Basic fallback: split title, filter stop words
-    return newsItem.title
+    const fallbackKeywords = newsItem.title
       .toLowerCase()
       .split(/\s+/)
       .map(word => word.replace(/^[.,!?;:]+|[.,!?;:]+$/g, ''))
       .filter(word => word.length > 3 && !stopWords.has(word) && !mediaSourceNames.has(word) && !word.includes('cartoon'))
       .slice(0, 10);
+    
+    console.log(`[KeywordExtractor] Used fallback method, found ${fallbackKeywords.length} keywords from title`);
+    return fallbackKeywords;
   }
 };
 

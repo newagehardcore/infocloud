@@ -62,7 +62,7 @@ interface BiasUpdateDetail {
 
 const App: React.FC = () => {
   const { enabledBiases } = useFilters();
-  const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.All);
+  const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.News);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
   const [allTagCloudWords, setAllTagCloudWords] = useState<TagCloudWord[]>([]);
@@ -75,12 +75,12 @@ const App: React.FC = () => {
   const loadingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [words, setWords] = useState<WordData[]>([]);
   const [wordsByBias, setWordsByBias] = useState<Record<PoliticalBias, WordData[]>>({
-    [PoliticalBias.AlternativeLeft]: [],
-    [PoliticalBias.MainstreamDemocrat]: [],
+    [PoliticalBias.Left]: [],
+    [PoliticalBias.Liberal]: [],
     [PoliticalBias.Centrist]: [],
-    [PoliticalBias.Unclear]: [],
-    [PoliticalBias.MainstreamRepublican]: [],
-    [PoliticalBias.AlternativeRight]: []
+    [PoliticalBias.Unknown]: [],
+    [PoliticalBias.Conservative]: [],
+    [PoliticalBias.Right]: []
   });
 
   // Preload fonts on app initialization
@@ -125,8 +125,7 @@ const App: React.FC = () => {
       // --- API Call Setup ---
       const params: Record<string, any> = {
           limit: 1000, // Fetch a large number, frontend will filter by time/bias
-          // Add category filter if not 'All'
-          ...(selectedCategory !== NewsCategory.All && { category: selectedCategory }),
+          category: selectedCategory, // Always include category filter since we no longer have 'All'
           // Add other potential query params here if needed (e.g., search term 'q')
       };
 
