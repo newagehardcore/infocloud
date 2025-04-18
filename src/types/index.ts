@@ -14,35 +14,30 @@ export interface NewsItem {
 }
 
 export enum PoliticalBias {
-  AlternativeLeft = 'Alternative Left',
-  MainstreamDemocrat = 'Mainstream Democrat',
+  Left = 'Left',
+  Liberal = 'Liberal',
   Centrist = 'Centrist',
-  Unclear = 'Unclear',
-  MainstreamRepublican = 'Mainstream Republican',
-  AlternativeRight = 'Alternative Right'
+  Unknown = 'Unknown',
+  Conservative = 'Conservative',
+  Right = 'Right'
 }
 
 export enum NewsCategory {
-  All = 'All',
   News = 'News',
   Politics = 'Politics',
   Tech = 'Tech',
   Science = 'Science',
   Health = 'Health',
-  Culture = 'Culture',
   Sports = 'Sports',
   Entertainment = 'Entertainment',
-  Economy = 'Economy',
+  Economics = 'Economics',
   Environment = 'Environment',
   Music = 'Music',
   Law = 'Law',
-  Crime = 'Crime',
-  War = 'War',
-  Media = 'Media',
   AI = 'AI',
   Space = 'Space',
   Fashion = 'Fashion',
-  Art = 'Art'
+  Arts = 'Arts'
 }
 
 export interface TagCloudWord {

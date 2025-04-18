@@ -15,24 +15,30 @@
 
 /* Status indicator overlay */
 .status-indicator {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 10;
+  position: fixed;
+  top: 0.5rem;
+  right: 3.5rem;
+  z-index: 100;
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   border-radius: 4px;
   font-size: 0.8rem;
   color: #888;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  box-sizing: border-box;
 }
 
 .live-indicator {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.5rem;
   color: #ccc;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  height: 100%;
 }
 
 .live-indicator::before {

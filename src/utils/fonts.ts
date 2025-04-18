@@ -8,7 +8,7 @@
 export const getTagFont = (): string | undefined => {
   // Return path to a standard font file (e.g., TTF, OTF, WOFF)
   // Make sure this file exists in /public/fonts/
-  return '/fonts/Helvetica.ttf'; // Use a standard format
+  return '/fonts/helvetica.ttf'; // Use a standard format
 };
 
 /**

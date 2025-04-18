@@ -1,0 +1,565 @@
+
+> infocloud@1.0.0 dev
+> concurrently "npm start" "npm run backend"
+
+[0] 
+[0] > infocloud@1.0.0 start
+[0] > react-app-rewired start
+[0] 
+[1] 
+[1] > infocloud@1.0.0 backend
+[1] > cd news-backend && npm start
+[1] 
+[1] 
+[1] > news-backend@1.0.0 start
+[1] > node src/app.js
+[1] 
+[1] Server started on port 5001
+[1] MongoDB Connected...
+[1] Scheduling feed fetching cron job (every 30 minutes).
+[1] Running initial feed fetch on startup...
+[1] 
+[1] --------------------
+[1] Cron Job: Starting feed fetch task...
+[1] [RSS Service] Starting fetch for 203 feeds.
+[1] [RSS Service] Fetching: The Daily Wire (https://www.dailywire.com/feeds/rss.xml)
+[1] [RSS Service] Fetching: Newsmax (https://www.newsmax.com/rss/Politics/1/)
+[1] [RSS Service] Fetching: Townhall (https://townhall.com/rss/political-cartoons/)
+[1] [RSS Service] Fetching: RedState (https://www.redstate.com/feed/)
+[1] [RSS Service] Fetching: The Blaze (https://www.theblaze.com/feeds/feed.rss)
+[1] [RSS Service] Fetching: Washington Free Beacon (https://freebeacon.com/feed/)
+[1] [RSS Service] Fetching: AlterNet (https://www.alternet.org/feeds/feed.rss)
+[1] [RSS Service] Fetching: Common Dreams (https://www.commondreams.org/rss.xml)
+[1] [RSS Service] Fetching: The Bulwark (https://thebulwark.com/feed/)
+[1] [RSS Service] Fetching: Washington Examiner (https://www.washingtonexaminer.com/tag/news.rss)
+[1] [RSS Service] Fetching: The Hill (https://thehill.com/rss/syndicator/19109)
+[1] [RSS Service] Fetching: Mother Jones (https://www.motherjones.com/feed/)
+[1] [RSS Service] Fetching: Vox (https://www.vox.com/rss/index.xml)
+[1] [RSS Service] Fetching: Politico (https://www.politico.com/rss/politicopicks.xml)
+[1] [RSS Service] Fetching: Breitbart (https://www.breitbart.com/feed/)
+[1] [RSS Service] Fetching: Talking Points Memo (https://talkingpointsmemo.com/feed)
+[1] [RSS Service] Fetching: Washington Times (https://www.washingtontimes.com/rss/headlines/news/)
+[1] [RSS Service] Fetching: One America News Network (https://www.oann.com/feed/)
+[1] [RSS Service] Fetching: New York Times (https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml)
+[1] [RSS Service] Fetching: Washington Post (https://feeds.washingtonpost.com/rss/world)
+[1] [RSS Service] Fetching: The Guardian US (https://www.theguardian.com/us/rss)
+[1] [RSS Service] Fetching: Reuters Top News (https://www.reuters.com/rssfeed/topNews)
+[1] [RSS Service] Fetching: NPR News (https://www.npr.org/rss/rss.php?id=1001)
+[1] [RSS Service] Fetching: CBS News (https://www.cbsnews.com/latest/rss/main)
+[1] [RSS Service] Fetching: ABC News (https://abcnews.go.com/abcnews/topstories)
+[1] [RSS Service] Fetching: CNN (https://rss.cnn.com/rss/cnn_topstories.rss)
+[1] [RSS Service] Fetching: Fox News (https://moxie.foxnews.com/google-publisher/latest.xml)
+[1] [RSS Service] Fetching: NBC News (https://feeds.nbcnews.com/nbcnews/public/news)
+[1] [RSS Service] Fetching: USA Today (https://www.usatoday.com/rss/)
+[1] [RSS Service] Fetching: Space.com (https://www.space.com/feeds/all)
+[1] [RSS Service] Fetching: Phys.org (https://phys.org/rss-feed/)
+[1] [RSS Service] Fetching: Scientific American (https://www.scientificamerican.com/rss/all/)
+[1] [RSS Service] Fetching: Universe Today (https://www.universetoday.com/feed/)
+[1] [RSS Service] Fetching: Planetary Society (https://www.planetary.org/planetary-radio/mat-kaplan-farewell)
+[1] [RSS Service] Fetching: Live Science (https://www.livescience.com/feeds/all)
+[1] [RSS Service] Fetching: New Scientist (https://newscientist.com/feed/home/)
+[1] [RSS Service] Fetching: Quanta Magazine (https://www.quantamagazine.org/feed/)
+[1] [RSS Service] Fetching: Nature (https://www.nature.com/nature.rss)
+[1] [RSS Service] Fetching: Science Magazine (https://science.sciencemag.org/rss/express.xml)
+[1] [RSS Service] Fetching: Popular Science (https://feeds.feedburner.com/popsci-main)
+[1] [RSS Service] Fetching: Los Alamos National Laboratory (https://discover.lanl.gov/news/rss/rss.xml)
+[1] [RSS Service] Fetching: Engadget (https://www.engadget.com/rss.xml)
+[1] [RSS Service] Fetching: Mashable (https://feeds.feedburner.com/Mashable)
+[1] [RSS Service] Fetching: Schneier on Security (https://www.schneier.com/feed/atom/)
+[1] [RSS Service] Fetching: Gizmodo (https://gizmodo.com/rss)
+[1] [RSS Service] Fetching: Towards Data Science (https://towardsdatascience.com/feed)
+[1] [RSS Service] Fetching: Wired (https://www.wired.com/feed/rss)
+[1] [RSS Service] Fetching: The Verge (https://www.theverge.com/rss/index.xml)
+[1] [RSS Service] Fetching: TechCrunch (https://techcrunch.com/feed/)
+[1] [RSS Service] Fetching: Ars Technica (https://feeds.arstechnica.com/arstechnica/index)
+[1] [RSS Service] Fetching: ZDNet (https://www.zdnet.com/news/rss.xml)
+[1] [RSS Service] Fetching: ReadWrite (https://readwrite.com/feed/)
+[1] [RSS Service] Fetching: CNET (https://www.cnet.com/rss/all/)
+[1] [RSS Service] Fetching: VentureBeat (https://venturebeat.com/feed/)
+[1] [RSS Service] Fetching: Above the Law (https://abovethelaw.com/feed/)
+[1] [RSS Service] Fetching: SCOTUSblog (https://www.scotusblog.com/feed/)
+[1] [RSS Service] Fetching: Lawfare (https://www.lawfareblog.com/feed)
+[1] [RSS Service] Fetching: The Volokh Conspiracy (https://reason.com/volokh/feed/)
+[1] [RSS Service] Fetching: Law.com (https://www.law.com/feed/)
+[1] [RSS Service] Fetching: Justia Verdict (https://verdict.justia.com/feed)
+[1] [RSS Service] Fetching: Law & Crime (https://lawandcrime.com/feed/)
+[1] [RSS Service] Fetching: Reuters Legal (https://www.reuters.com/rss/legal)
+[1] [RSS Service] Fetching: FindLaw News (https://feeds.findlaw.com/NewsTopHeadlines)
+[1] [RSS Service] Fetching: InsideClimate News (https://insideclimatenews.org/feed/)
+[1] [RSS Service] Fetching: Mongabay (https://news.mongabay.com/feed/)
+[1] [RSS Service] Fetching: Carbon Brief (https://www.carbonbrief.org/feed)
+[1] [RSS Service] Fetching: Grist (https://grist.org/feed/)
+[1] [RSS Service] Fetching: Yale Environment 360 (https://e360.yale.edu/feed.xml)
+[1] [RSS Service] Fetching: Treehugger (https://www.treehugger.com/feeds/latest/)
+[1] [RSS Service] Fetching: E&E News (https://www.eenews.net/rss/feed.xml)
+[1] [RSS Service] Fetching: National Geographic Environment (https://www.nationalgeographic.com/environment/rss/all)
+[1] [RSS Service] Fetching: Environmental Leader (https://feeds.feedburner.com/EnvironmentalLeader)
+[1] [RSS Service] Fetching: Der Spiegel International (https://www.spiegel.de/international/index.rss)
+[1] [RSS Service] Fetching: Rappler (https://www.rappler.com/rss)
+[1] [RSS Service] Fetching: The Economist (https://www.economist.com/the-world-this-week/rss.xml)
+[1] [RSS Service] Fetching: CBC News - World (https://www.cbc.ca/rss/world)
+[1] [RSS Service] Fetching: Al Jazeera (https://www.aljazeera.com/xml/rss/all.xml)
+[1] [RSS Service] Fetching: NHK World Japan (https://www3.nhk.or.jp/nhkworld/en/news/all/index.rss)
+[1] [RSS Service] Fetching: BBC World (https://feeds.bbci.co.uk/news/world/rss.xml)
+[1] [RSS Service] Fetching: France 24 (https://www.france24.com/en/rss)
+[1] [RSS Service] Fetching: Deutsche Welle (https://www.dw.com/en/top-stories/rss-feed-2/rss.xml)
+[1] [RSS Service] Fetching: The Local - Europe (https://www.thelocal.de/feeds/rss.php)
+[1] [RSS Service] Fetching: STAT (https://www.statnews.com/feed)
+[1] [RSS Service] Fetching: NIH News & Events (https://www.nih.gov/rss)
+[1] [RSS Service] Fetching: JAMA Network (https://jamanetwork.com/rss/site_3/mostReadArticles.xml)
+[1] [RSS Service] Fetching: The Art Newspaper (https://www.theartnewspaper.com/rss)
+[1] [RSS Service] Fetching: Colossal (https://www.thisiscolossal.com/feed/)
+[1] [RSS Service] Fetching: Artsy (https://www.artsy.net/rss/news)
+[1] [RSS Service] Fetching: Hyperallergic (https://hyperallergic.com/feed/)
+[1] [RSS Service] Fetching: ARTnews (https://www.artnews.com/feed/)
+[1] [RSS Service] Fetching: Artnet News (https://news.artnet.com/feed)
+[1] [RSS Service] Fetching: Vulture - Art (https://www.vulture.com/tag/art/rss/)
+[1] [RSS Service] Fetching: Apollo Magazine (https://www.apollo-magazine.com/feed/)
+[1] [RSS Service] Fetching: ArtsJournal (https://www.artsjournal.com/feed)
+[1] [RSS Service] Fetching: Frieze (https://frieze.com/feed)
+[1] [RSS Service] Fetching: Juxtapoz (https://www.juxtapoz.com/feed/)
+[1] [RSS Service] Fetching: Artforum (https://www.artforum.com/feed/)
+[1] [RSS Service] Fetching: Creative Boom (https://www.creativeboom.com/feed/)
+[1] [RSS Service] Fetching: designboom (https://www.designboom.com/feed/)
+[1] [RSS Service] Fetching: Open Culture (https://www.openculture.com/feed)
+[1] [RSS Service] Fetching: Artists Network (https://www.artistsnetwork.com/feed/)
+[1] [RSS Service] Fetching: My Modern Met (https://mymodernmet.com/feed/)
+[1] [RSS Service] Fetching: The Lancet (https://www.thelancet.com/rssfeed/lancet_current.xml)
+[1] [RSS Service] Fetching: Healthline (https://www.healthline.com/rss/health-news)
+[1] [RSS Service] Fetching: Medical News Today (https://www.medicalnewstoday.com/newsfeeds/rss/medical_news_today.xml)
+[1] [RSS Service] Fetching: WebMD (https://www.webmd.com/rss/news_feeds/1/rss.xml)
+[1] [RSS Service] Fetching: New England Journal of Medicine (https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss)
+[1] [RSS Service] Fetching: Kaiser Health News (https://feeds.feedburner.com/khn/stories?format=xml)
+[1] [RSS Service] Fetching: Seeking Alpha - Market News (https://seekingalpha.com/market_currents.xml)
+[1] [RSS Service] Fetching: Naked Capitalism (https://www.nakedcapitalism.com/feed)
+[1] [RSS Service] Fetching: MarketWatch (https://www.marketwatch.com/rss/topstories)
+[1] [RSS Service] Fetching: Investopedia (https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_articles)
+[1] [RSS Service] Fetching: CNBC (https://www.cnbc.com/id/100003114/device/rss/rss.html)
+[1] [RSS Service] Fetching: Financial Times (https://www.ft.com/rss/home/us)
+[1] [RSS Service] Fetching: Bloomberg (https://www.bloomberg.com/feed/podcast/decrypted)
+[1] [RSS Service] Fetching: Wall Street Journal (https://www.wsj.com/xml/rss/3_7031.xml)
+[1] [RSS Service] Fetching: Barrons (https://www.barrons.com/feed/rss?id=latest)
+[1] [RSS Service] Fetching: Motley Fool (https://www.fool.com/a/feeds/foolwatch?format=rss2&id=foolwatch)
+[1] [RSS Service] Fetching: Stereogum (https://www.stereogum.com/feed/)
+[1] [RSS Service] Fetching: Pitchfork (https://pitchfork.com/feed/feed-news/rss)
+[1] [RSS Service] Fetching: Rolling Stone – Music (https://www.rollingstone.com/music/feed/)
+[1] [RSS Service] Fetching: Billboard (https://www.billboard.com/feed/)
+[1] [RSS Service] Fetching: NME (https://www.nme.com/feed)
+[1] [RSS Service] Fetching: Consequence of Sound (https://www.consequence.net/feed/)
+[1] [RSS Service] Fetching: Spin (https://www.spin.com/feed/)
+[1] [RSS Service] Fetching: NPR Music (https://www.npr.org/rss/rss.php?id=1039)
+[1] [RSS Service] Fetching: BrooklynVegan (https://www.brooklynvegan.com/feed/)
+[1] [RSS Service] Fetching: Deadspin (https://deadspin.com/rss)
+[1] [RSS Service] Fetching: Fox Sports (https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU)
+[1] [RSS Service] Fetching: ESPN (https://www.espn.com/espn/rss/news)
+[1] [RSS Service] Fetching: Yahoo Sports (https://sports.yahoo.com/rss/)
+[1] [RSS Service] Fetching: CBS Sports (https://www.cbssports.com/rss/headlines/)
+[1] [RSS Service] Fetching: SB Nation (https://www.sbnation.com/rss/current)
+[1] [RSS Service] Fetching: The Athletic (https://theathletic.com/news/rss/)
+[1] [RSS Service] Fetching: Bleacher Report (https://bleacherreport.com/articles/feed)
+[1] [RSS Service] Fetching: Sports Illustrated (https://www.si.com/rss/si_topstories.rss)
+[1] [RSS Service] Fetching: Sporting News (https://www.sportingnews.com/us/rss)
+[1] [RSS Service] Fetching: Highsnobiety (https://www.highsnobiety.com/feed/)
+[1] [RSS Service] Fetching: Vogue (https://www.vogue.com/feed/rss)
+[1] [RSS Service] Fetching: Elle (https://www.elle.com/rss/all.xml/)
+[1] [RSS Service] Fetching: Harper's Bazaar (https://www.harpersbazaar.com/rss/all.xml/)
+[1] [RSS Service] Fetching: GQ (https://www.gq.com/feed/rss)
+[1] [RSS Service] Fetching: Fashionista (https://fashionista.com/.rss/excerpt/)
+[1] [RSS Service] Fetching: Hypebeast (https://hypebeast.com/feed)
+[1] [RSS Service] Fetching: Women's Wear Daily (https://wwd.com/feed/)
+[1] [RSS Service] Fetching: Man Repeller (https://www.manrepeller.com/feed)
+[1] [RSS Service] Fetching: Business of Fashion (https://www.businessoffashion.com/feed)
+[1] [RSS Service] Fetching: Dazed (https://www.dazeddigital.com/rss)
+[1] [RSS Service] Fetching: Paper Magazine (https://www.papermag.com/rss)
+[1] [RSS Service] Fetching: i-D (https://i-d.vice.com/en_us/rss)
+[1] [RSS Service] Fetching: Footwear News (https://footwearnews.com/feed/)
+[1] [RSS Service] Fetching: StyleCaster Fashion (https://stylecaster.com/fashion/feed/)
+[1] [RSS Service] Fetching: TMZ (https://www.tmz.com/rss/news-feed/)
+[1] [RSS Service] Fetching: IGN Articles (https://www.ign.com/rss/articles)
+[1] [RSS Service] Fetching: Entertainment Tonight (https://www.etonline.com/news/rss)
+[1] [RSS Service] Fetching: E! News (https://www.eonline.com/news.rss)
+[1] [RSS Service] Fetching: Variety (https://variety.com/feed/)
+[1] [RSS Service] Fetching: Deadline Hollywood (https://deadline.com/feed/)
+[1] [RSS Service] Fetching: Hollywood Reporter (https://www.hollywoodreporter.com/feed/)
+[1] [RSS Service] Fetching: Entertainment Weekly (https://ew.com/feed/)
+[1] [RSS Service] Fetching: AV Club (https://www.avclub.com/rss)
+[1] [RSS Service] Fetching: People (https://people.com/feed/)
+[1] [RSS Service] Fetching: TMZ (https://www.tmz.com/rss/news-feed/)
+[1] [RSS Service] Fetching: Forbes (https://www.forbes.com/real-time/feed2/)
+[1] [RSS Service] Fetching: Business Insider (https://www.businessinsider.com/rss)
+[1] [RSS Service] Fetching: Fortune (https://fortune.com/feed/)
+[1] [RSS Service] Fetching: Harvard Business Review (https://hbr.org/rss/index.xml)
+[1] [RSS Service] Fetching: Inc. (https://www.inc.com/rss/)
+[1] [RSS Service] Fetching: Fast Company (https://www.fastcompany.com/latest/rss)
+[1] [RSS Service] Fetching: Entrepreneur (https://www.entrepreneur.com/latest.rss)
+[1] [RSS Service] Fetching: Bizjournals (https://www.bizjournals.com/bizjournals/feed/feed.json)
+[1] [RSS Service] Fetching: Quartz (https://qz.com/feed)
+[1] [RSS Service] Fetching: Project Syndicate (https://www.project-syndicate.org/rss)
+[1] [RSS Service] Fetching: Economist's View (https://feeds.feedburner.com/EconomistsView)
+[1] [RSS Service] Fetching: Marginal Revolution (https://marginalrevolution.com/feed)
+[1] [RSS Service] Fetching: EconLog (https://www.econlib.org/feed/)
+[1] [RSS Service] Fetching: Brookings - Economics (https://www.brookings.edu/topics/u-s-economy/feed/)
+[1] [RSS Service] Fetching: Center for Economic and Policy Research (https://cepr.net/feed/)
+[1] [RSS Service] Fetching: Freakonomics (https://freakonomics.com/feed/)
+[1] [RSS Service] Fetching: IMF News (https://www.imf.org/en/news/rss-feed)
+[1] [RSS Service] Fetching: NBER Working Papers (https://www.nber.org/rss/new.xml)
+[1] [RSS Service] Fetching: SpaceNews (https://spacenews.com/feed/)
+[1] [RSS Service] Fetching: NASA Spaceflight (https://www.nasaspaceflight.com/feed/)
+[1] [RSS Service] Fetching: Teslarati (https://www.teslarati.com/feed/)
+[1] [RSS Service] Fetching: Ars Technica - Space (https://arstechnica.com/tag/spacex/feed/)
+[1] [RSS Service] Fetching: Sky & Telescope (https://skyandtelescope.org/feed/)
+[1] [RSS Service] Fetching: Astronomy Now (https://astronomynow.com/feed/)
+[1] [RSS Service] Fetching: NASA ISS Blog (https://blogs.nasa.gov/stationreport/feed/)
+[1] [RSS Service] Fetching: Spaceflight Insider (https://www.spaceflightinsider.com/feed/)
+[1] [RSS Service] Fetching: VentureBeat AI (https://venturebeat.com/category/ai/feed/)
+[1] [RSS Service] Fetching: MIT Technology Review - AI (https://www.technologyreview.com/topic/artificial-intelligence/feed)
+[1] [RSS Service] Fetching: AI News (https://www.artificialintelligence-news.com/feed/)
+[1] [RSS Service] Fetching: Towards Data Science - AI (https://towardsdatascience.com/feed/tag/artificial-intelligence)
+[1] [RSS Service] Fetching: Machine Learning Mastery (https://machinelearningmastery.com/feed/)
+[1] [RSS Service] Fetching: deeplearning.ai (https://www.deeplearning.ai/blog/feed/)
+[1] [RSS Service] Fetching: OpenAI Blog (https://openai.com/blog/rss/)
+[1] [RSS Service] Fetching: NVIDIA AI Blog (https://blogs.nvidia.com/blog/category/deep-learning/feed/)
+[1] [RSS Service] Fetching: Google AI Blog (https://ai.googleblog.com/feeds/posts/default)
+[1] [RSS Service] Fetching: fast.ai (https://www.fast.ai/atom.xml)
+[1] [RSS Service] Fetching: Meta AI Research (https://research.fb.com/feed/)
+[1] [RSS Service] Fetching: Hugging Face Blog (https://huggingface.co/blog/feed.xml)
+[1] [RSS Service] Fetching: Reddit r/artificial (https://www.reddit.com/r/artificial/.rss)
+[1] [RSS Service] Fetching: Analytics Vidhya (https://www.analyticsvidhya.com/feed/)
+[1] [RSS Service] Error processing Los Alamos National Laboratory (https://discover.lanl.gov/news/rss/rss.xml): getaddrinfo ENOTFOUND discover.lanl.gov
+[1] [RSS Service] Error processing i-D (https://i-d.vice.com/en_us/rss): getaddrinfo ENOTFOUND i-d.vice.com
+[0] Something is already running on port 3000.
+[0] npm start exited with code 0
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Schneier on Security
+[1] [RSS Service] Error processing Scientific American (https://www.scientificamerican.com/rss/all/): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 75 items from Nature
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from The Blaze
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from ABC News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Mother Jones
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Wired
+[1] [RSS Service] Error processing Reuters Top News (https://www.reuters.com/rssfeed/topNews): Status code 401
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Phys.org
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from Fox News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from The Verge
+[1] [RSS Service] Error processing CNN (https://rss.cnn.com/rss/cnn_topstories.rss): Client network socket disconnected before secure TLS connection was established
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 22 items from New York Times
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Vox
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from CBS News
+[1] [RSS Service] Error processing Man Repeller (https://www.manrepeller.com/feed): Hostname/IP does not match certificate's altnames: Host: www.manrepeller.com. is not in the cert's altnames: DNS:*.wpengine.com, DNS:wpengine.com
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Ars Technica
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from AlterNet
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 23 items from VentureBeat
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from ARTnews
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 12 items from Artforum
+[1] [RSS Service] Error processing Apollo Magazine (https://www.apollo-magazine.com/feed/): Status code 500
+[1] [RSS Service] Error processing National Geographic Environment (https://www.nationalgeographic.com/environment/rss/all): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Talking Points Memo
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 6 items from One America News Network
+[1] [RSS Service] Error processing CBC News - World (https://www.cbc.ca/rss/world): Status code 404
+[1] [RSS Service] Error processing Planetary Society (https://www.planetary.org/planetary-radio/mat-kaplan-farewell): Status code 404
+[1] [RSS Service] Error processing Politico (https://www.politico.com/rss/politicopicks.xml): Status code 403
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 7 items from Seeking Alpha - Market News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from ZDNet
+[1] [RSS Service] Error processing Vulture - Art (https://www.vulture.com/tag/art/rss/): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Creative Boom
+[1] [RSS Service] Error processing ReadWrite (https://readwrite.com/feed/): Status code 403
+[1] [RSS Service] Error processing Medical News Today (https://www.medicalnewstoday.com/newsfeeds/rss/medical_news_today.xml): Status code 403
+[1] [RSS Service] Error processing Reuters Legal (https://www.reuters.com/rss/legal): Status code 401
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 36 items from BBC World
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 300 items from The Economist
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 40 items from Law & Crime
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from Al Jazeera
+[1] [RSS Service] Error processing NHK World Japan (https://www3.nhk.or.jp/nhkworld/en/news/all/index.rss): Status code 403
+[1] [RSS Service] Error processing Environmental Leader (https://feeds.feedburner.com/EnvironmentalLeader): Attribute without value
+[1] Line: 65
+[1] Column: 21
+[1] Char: d
+[1] [RSS Service] Error processing E&E News (https://www.eenews.net/rss/feed.xml): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 40 items from Stereogum
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Rolling Stone – Music
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Billboard
+[1] [RSS Service] Error processing Barrons (https://www.barrons.com/feed/rss?id=latest): Status code 403
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 37 items from New England Journal of Medicine
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Above the Law
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 16 items from Artists Network
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 100 items from Yale Environment 360
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Colossal
+[1] [RSS Service] Error processing Bloomberg (https://www.bloomberg.com/feed/podcast/decrypted): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 28 items from The Lancet
+[1] [RSS Service] Error processing Financial Times (https://www.ft.com/rss/home/us): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from designboom
+[1] [RSS Service] Error processing JAMA Network (https://jamanetwork.com/rss/site_3/mostReadArticles.xml): Status code 406
+[1] [RSS Service] Error processing FindLaw News (https://feeds.findlaw.com/NewsTopHeadlines): Status code 403
+[1] [RSS Service] Error processing Deutsche Welle (https://www.dw.com/en/top-stories/rss-feed-2/rss.xml): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 24 items from France 24
+[1] [RSS Service] Error processing The Art Newspaper (https://www.theartnewspaper.com/rss): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from InsideClimate News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from CNBC
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Justia Verdict
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 15 items from BrooklynVegan
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from TechCrunch
+[1] [RSS Service] Error processing Motley Fool (https://www.fool.com/a/feeds/foolwatch?format=rss2&id=foolwatch): Status code 401
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 36 items from CBS Sports
+[1] [RSS Service] Error processing NIH News & Events (https://www.nih.gov/rss): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 15 items from Open Culture
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from NME
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from ArtsJournal
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 40 items from ESPN
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Pitchfork
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Harper's Bazaar
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 8 items from SB Nation
+[1] [RSS Service] Error processing Sports Illustrated (https://www.si.com/rss/si_topstories.rss): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Women's Wear Daily
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Space.com
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Washington Times
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 40 items from Universe Today
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from CNET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 116 items from The Guardian US
+[1] [RSS Service] Error processing Townhall (https://townhall.com/rss/political-cartoons/): Status code 404
+[1] [RSS Service] Error processing USA Today (https://www.usatoday.com/rss/): Status code 404
+[1] [RSS Service] Error processing Popular Science (https://feeds.feedburner.com/popsci-main): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from The Daily Wire
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 5 items from Quanta Magazine
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Healthline
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Grist
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Hyperallergic
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Yahoo Sports
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Artnet News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Washington Free Beacon
+[1] [RSS Service] Error processing Footwear News (https://footwearnews.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing IGN Articles (https://www.ign.com/rss/articles): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from NBC News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Live Science
+[1] [RSS Service] Error processing Dazed (https://www.dazeddigital.com/rss): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 19 items from Hypebeast
+[1] [RSS Service] Error processing Hollywood Reporter (https://www.hollywoodreporter.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing AV Club (https://www.avclub.com/rss): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 4 items from Entertainment Tonight
+[1] [RSS Service] Error processing E! News (https://www.eonline.com/news.rss): read ECONNRESET
+[1] [RSS Service] Error processing Marginal Revolution (https://marginalrevolution.com/feed): read ECONNRESET
+[1] [RSS Service] Error processing TMZ (https://www.tmz.com/rss/news-feed/): Status code 404
+[1] [RSS Service] Error processing Economist's View (https://feeds.feedburner.com/EconomistsView): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from Forbes
+[1] [RSS Service] Error processing Center for Economic and Policy Research (https://cepr.net/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Brookings - Economics (https://www.brookings.edu/topics/u-s-economy/feed/): read ECONNRESET
+[1] [RSS Service] Error processing TMZ (https://www.tmz.com/rss/news-feed/): Status code 404
+[1] [RSS Service] Error processing Bizjournals (https://www.bizjournals.com/bizjournals/feed/feed.json): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 24 items from SpaceNews
+[1] [RSS Service] Error processing NASA ISS Blog (https://blogs.nasa.gov/stationreport/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Sky & Telescope (https://skyandtelescope.org/feed/): read ECONNRESET
+[1] [RSS Service] Error processing NASA Spaceflight (https://www.nasaspaceflight.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Astronomy Now (https://astronomynow.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing IMF News (https://www.imf.org/en/news/rss-feed): read ECONNRESET
+[1] [RSS Service] Error processing VentureBeat AI (https://venturebeat.com/category/ai/feed/): read ECONNRESET
+[1] [RSS Service] Error processing MIT Technology Review - AI (https://www.technologyreview.com/topic/artificial-intelligence/feed): read ECONNRESET
+[1] [RSS Service] Error processing OpenAI Blog (https://openai.com/blog/rss/): read ECONNRESET
+[1] [RSS Service] Error processing Machine Learning Mastery (https://machinelearningmastery.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Google AI Blog (https://ai.googleblog.com/feeds/posts/default): read ECONNRESET
+[1] [RSS Service] Error processing Towards Data Science - AI (https://towardsdatascience.com/feed/tag/artificial-intelligence): read ECONNRESET
+[1] [RSS Service] Error processing fast.ai (https://www.fast.ai/atom.xml): read ECONNRESET
+[1] [RSS Service] Error processing deeplearning.ai (https://www.deeplearning.ai/blog/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Analytics Vidhya (https://www.analyticsvidhya.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing NVIDIA AI Blog (https://blogs.nvidia.com/blog/category/deep-learning/feed/): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 12 items from Deadline Hollywood
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Variety
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Fashionista
+[1] [RSS Service] Error processing Paper Magazine (https://www.papermag.com/rss): Status code 403
+[1] [RSS Service] Error processing StyleCaster Fashion (https://stylecaster.com/fashion/feed/): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Vogue
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from GQ
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Elle
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Sporting News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 32 items from Mongabay
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Naked Capitalism
+[1] [RSS Service] Error processing WebMD (https://www.webmd.com/rss/news_feeds/1/rss.xml): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Artsy
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Spin
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from My Modern Met
+[1] [RSS Service] Error processing Bleacher Report (https://bleacherreport.com/articles/feed): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Washington Post
+[1] [RSS Service] Error processing Spaceflight Insider (https://www.spaceflightinsider.com/feed/): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 50 items from Engadget
+[1] [RSS Service] Error processing EconLog (https://www.econlib.org/feed/): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Der Spiegel International
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 0 items from Hugging Face Blog
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 15 items from Entrepreneur
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 35 items from Inc.
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Fast Company
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 25 items from Reddit r/artificial
+[1] [RSS Service] Error processing Kaiser Health News (https://feeds.feedburner.com/khn/stories?format=xml): read ECONNRESET
+[1] [RSS Service] Error processing Consequence of Sound (https://www.consequence.net/feed/): read ECONNRESET
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 100 items from Mashable
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 48 items from The Volokh Conspiracy
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Ars Technica - Space
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Freakonomics
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Teslarati
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Project Syndicate
+[1] [RSS Service] Error processing The Local - Europe (https://www.thelocal.de/feeds/rss.php): read ECONNRESET
+[1] [RSS Service] Error processing Breitbart (https://www.breitbart.com/feed/): read ECONNRESET
+[1] [RSS Service] Error processing Treehugger (https://www.treehugger.com/feeds/latest/): Status code 404
+[1] [DB] Upserted 0 new items from Schneier on Security. Matched: 10
+[1] [DB] Upserted 0 new items from Nature. Matched: 75
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from AI News
+[1] [DB] Upserted 0 new items from Mother Jones. Matched: 10
+[1] [DB] Upserted 0 new items from The Blaze. Matched: 30
+[1] [DB] Upserted 0 new items from Wired. Matched: 50
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Towards Data Science
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from STAT
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Juxtapoz
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 23 items from Highsnobiety
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 37 items from Business of Fashion
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from RedState
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 48 items from Quartz
+[1] [RSS Service] Error processing Wall Street Journal (https://www.wsj.com/xml/rss/3_7031.xml): Status code 401
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Gizmodo
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from NPR Music
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Carbon Brief
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from NPR News
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 30 items from Common Dreams
+[1] [DB] Upserted 0 new items from Vox. Matched: 10
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Rappler
+[1] [DB] Upserted 0 new items from ABC News. Matched: 25
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 29 items from Fox Sports
+[1] [DB] Upserted 0 new items from New York Times. Matched: 22
+[1] [DB] Upserted 0 new items from Phys.org. Matched: 30
+[1] [DB] Upserted 0 new items from CBS News. Matched: 30
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from SCOTUSblog
+[1] [RSS Service] Error processing The Athletic (https://theathletic.com/news/rss/): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Business Insider
+[1] [DB] Upserted 0 new items from AlterNet. Matched: 30
+[1] [DB] Upserted 0 new items from VentureBeat. Matched: 23
+[1] [DB] Upserted 0 new items from ARTnews. Matched: 10
+[1] [DB] Upserted 0 new items from Artforum. Matched: 12
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 33 items from NBER Working Papers
+[1] [DB] Upserted 0 new items from Ars Technica. Matched: 20
+[1] [DB] Upserted 0 new items from Seeking Alpha - Market News. Matched: 7
+[1] [DB] Upserted 0 new items from ZDNet. Matched: 20
+[1] [DB] Upserted 0 new items from Creative Boom. Matched: 30
+[1] [DB] Upserted 0 new items from BBC World. Matched: 36
+[1] [RSS Service] Error processing Entertainment Weekly (https://ew.com/feed/): Status code 404
+[1] [RSS Service] Error processing People (https://people.com/feed/): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 100 items from New Scientist
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 196 items from Deadspin
+[1] [RSS Service] Error processing Frieze (https://frieze.com/feed): Status code 404
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 13 items from Science Magazine
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Fortune
+[1] [RSS Service] Error processing Harvard Business Review (https://hbr.org/rss/index.xml): Status code 404
+[1] [DB] Upserted 0 new items from The Verge. Matched: 10
+[1] [DB] Upserted 0 new items from Fox News. Matched: 25
+[1] [DB] Upserted 0 new items from Law & Crime. Matched: 40
+[1] [DB] Upserted 0 new items from Al Jazeera. Matched: 25
+[1] [DB] Upserted 0 new items from Stereogum. Matched: 40
+[1] [DB] Upserted 0 new items from Rolling Stone – Music. Matched: 10
+[1] [DB] Upserted 0 new items from The Economist. Matched: 300
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from MarketWatch
+[1] [DB] Upserted 0 new items from Colossal. Matched: 10
+[1] [DB] Upserted 0 new items from InsideClimate News. Matched: 10
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from The Bulwark
+[1] [DB] Upserted 0 new items from One America News Network. Matched: 6
+[1] [DB] Upserted 0 new items from Talking Points Memo. Matched: 10
+[1] [DB] Upserted 0 new items from designboom. Matched: 10
+[1] [DB] Upserted 0 new items from Billboard. Matched: 10
+[1] [DB] Upserted 0 new items from Artists Network. Matched: 16
+[1] [DB] Upserted 0 new items from Above the Law. Matched: 30
+[1] [DB] Upserted 0 new items from France 24. Matched: 24
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Washington Examiner
+[1] [RSS Service] Error processing Law.com (https://www.law.com/feed/): Status code 404
+[1] [DB] Upserted 0 new items from New England Journal of Medicine. Matched: 37
+[1] [DB] Upserted 0 new items from CNBC. Matched: 30
+[1] [DB] Upserted 0 new items from TechCrunch. Matched: 20
+[1] [DB] Upserted 0 new items from Justia Verdict. Matched: 10
+[1] [DB] Upserted 0 new items from Open Culture. Matched: 15
+[1] [DB] Upserted 0 new items from NME. Matched: 10
+[1] [DB] Upserted 0 new items from ArtsJournal. Matched: 25
+[1] [DB] Upserted 0 new items from ESPN. Matched: 40
+[1] [DB] Upserted 0 new items from Pitchfork. Matched: 30
+[1] [DB] Upserted 0 new items from Harper's Bazaar. Matched: 50
+[1] [DB] Upserted 0 new items from SB Nation. Matched: 8
+[1] [DB] Upserted 0 new items from Women's Wear Daily. Matched: 10
+[1] [DB] Upserted 0 new items from The Lancet. Matched: 28
+[1] [DB] Upserted 0 new items from Yale Environment 360. Matched: 100
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 15 items from The Hill
+[1] [DB] Upserted 0 new items from Artnet News. Matched: 10
+[1] [DB] Upserted 0 new items from Grist. Matched: 20
+[1] [DB] Upserted 0 new items from Quanta Magazine. Matched: 5
+[1] [DB] Upserted 0 new items from Entertainment Tonight. Matched: 4
+[1] [DB] Upserted 0 new items from Deadline Hollywood. Matched: 12
+[1] [DB] Upserted 0 new items from Washington Times. Matched: 20
+[1] [DB] Upserted 0 new items from Variety. Matched: 10
+[1] [DB] Upserted 0 new items from Washington Free Beacon. Matched: 20
+[1] [DB] Upserted 0 new items from The Daily Wire. Matched: 50
+[1] [DB] Upserted 0 new items from Universe Today. Matched: 40
+[1] [DB] Upserted 0 new items from BrooklynVegan. Matched: 15
+[1] [DB] Upserted 0 new items from Hyperallergic. Matched: 50
+[1] [DB] Upserted 0 new items from NBC News. Matched: 25
+[1] [DB] Upserted 0 new items from Hypebeast. Matched: 19
+[1] [DB] Upserted 0 new items from GQ. Matched: 30
+[1] [DB] Upserted 0 new items from Space.com. Matched: 50
+[1] [DB] Upserted 0 new items from Forbes. Matched: 25
+[1] [DB] Upserted 0 new items from Live Science. Matched: 50
+[1] [DB] Upserted 0 new items from Vogue. Matched: 30
+[1] [DB] Upserted 0 new items from CNET. Matched: 25
+[1] [DB] Upserted 0 new items from CBS Sports. Matched: 36
+[1] [DB] Upserted 0 new items from SpaceNews. Matched: 24
+[1] [DB] Upserted 0 new items from Fashionista. Matched: 50
+[1] [DB] Upserted 50 new items from Healthline. Matched: 0
+[1] [DB] Upserted 0 new items from Yahoo Sports. Matched: 50
+[1] [DB] Upserted 0 new items from Spin. Matched: 10
+[1] [DB] Upserted 0 new items from Juxtapoz. Matched: 10
+[1] [DB] Upserted 0 new items from NPR Music. Matched: 10
+[1] [DB] Upserted 0 new items from Carbon Brief. Matched: 10
+[1] [DB] Upserted 0 new items from Der Spiegel International. Matched: 20
+[1] [DB] Upserted 0 new items from Naked Capitalism. Matched: 10
+[1] [DB] Upserted 0 new items from AI News. Matched: 10
+[1] [DB] Upserted 0 new items from Fast Company. Matched: 20
+[1] [DB] Upserted 0 new items from My Modern Met. Matched: 10
+[1] [DB] Upserted 0 new items from NPR News. Matched: 10
+[1] [DB] Upserted 0 new items from Teslarati. Matched: 10
+[1] [DB] Upserted 0 new items from STAT. Matched: 20
+[1] [DB] Upserted 0 new items from The Guardian US. Matched: 116
+[1] [DB] Upserted 0 new items from Washington Post. Matched: 20
+[1] [DB] Upserted 0 new items from Entrepreneur. Matched: 15
+[1] [DB] Upserted 0 new items from Science Magazine. Matched: 13
+[1] [DB] Upserted 0 new items from Ars Technica - Space. Matched: 20
+[1] [DB] Upserted 0 new items from Gizmodo. Matched: 20
+[1] [DB] Upserted 0 new items from Fortune. Matched: 10
+[1] [DB] Upserted 0 new items from Towards Data Science. Matched: 10
+[1] [DB] Upserted 0 new items from Washington Examiner. Matched: 10
+[1] [DB] Upserted 0 new items from Sporting News. Matched: 20
+[1] [DB] Upserted 0 new items from Mongabay. Matched: 32
+[1] [DB] Upserted 0 new items from The Bulwark. Matched: 20
+[1] [DB] Upserted 0 new items from Common Dreams. Matched: 30
+[1] [DB] Upserted 0 new items from RedState. Matched: 20
+[1] [DB] Upserted 0 new items from SCOTUSblog. Matched: 20
+[1] [DB] Upserted 0 new items from MarketWatch. Matched: 10
+[1] [DB] Upserted 0 new items from Highsnobiety. Matched: 23
+[1] [DB] Upserted 0 new items from Reddit r/artificial. Matched: 25
+[1] [DB] Upserted 0 new items from Project Syndicate. Matched: 20
+[1] [DB] Upserted 0 new items from Business Insider. Matched: 20
+[1] [DB] Upserted 0 new items from Inc.. Matched: 35
+[1] [DB] Upserted 0 new items from Rappler. Matched: 10
+[1] [DB] Upserted 0 new items from The Hill. Matched: 15
+[1] [DB] Upserted 0 new items from Artsy. Matched: 50
+[1] [DB] Upserted 0 new items from Freakonomics. Matched: 20
+[1] [DB] Upserted 0 new items from Fox Sports. Matched: 29
+[1] [DB] Upserted 0 new items from Engadget. Matched: 50
+[1] [DB] Upserted 0 new items from Business of Fashion. Matched: 37
+[1] [DB] Upserted 0 new items from The Volokh Conspiracy. Matched: 48
+[1] [DB] Upserted 0 new items from New Scientist. Matched: 100
+[1] [DB] Upserted 33 new items from NBER Working Papers. Matched: 0
+[1] [DB] Upserted 0 new items from Elle. Matched: 50
+[1] [DB] Upserted 0 new items from Quartz. Matched: 48
+[1] [DB] Upserted 0 new items from Mashable. Matched: 100
+[1] [DB] Upserted 0 new items from Deadspin. Matched: 196
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 20 items from Investopedia
+[1] [DB] Upserted 0 new items from Investopedia. Matched: 20
+[1] [RSS Service] Fetched, mapped, and extracted keywords for 10 items from Meta AI Research
+[1] [DB] Upserted 0 new items from Meta AI Research. Matched: 10
+[1] [RSS Service] Error processing Newsmax (https://www.newsmax.com/rss/Politics/1/): Request timed out after 60000ms
+[1] [RSS Service] Error processing Lawfare (https://www.lawfareblog.com/feed): Request timed out after 60000ms
+[1] [RSS Service] Finished fetching. Total items processed (potential duplicates): 3664. Check DB logs for upsert counts.
+[1] 
+[1] Cron Job: Finished feed fetch task in 60.04 seconds.
+[1] --------------------
+[1] 
+[1] sh: line 1: 34646 Terminated: 15          npm start
+[1] npm run backend exited with code 143
