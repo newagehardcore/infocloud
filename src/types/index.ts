@@ -46,6 +46,7 @@ export interface TagCloudWord {
   bias: PoliticalBias;
   newsIds: string[]; // IDs of news items containing this word
   category: NewsCategory;
+  variants?: Set<string>; // Optional set of variant forms of this word
 }
 
 export interface TimeSnapshot {

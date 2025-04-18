@@ -69,7 +69,12 @@ const TagCloud3D: React.FC<{
     // Find max frequency for normalization
     const maxValue = Math.max(...words.map(w => w.value));
     
+    // Create a map of canonical forms to their positions
+    const canonicalPositions = new Map<string, [number, number, number]>();
+    
     return words.map(word => {
+      // If this word has variants or is a variant, use the canonical form for position base
+      const isVariant = word.variants && word.variants.size > 0;
       const seed = hashStringToSeed(word.text);
       
       // Normalize word frequency to 0-1 range
@@ -77,28 +82,59 @@ const TagCloud3D: React.FC<{
       // Invert and dampen the frequency factor (high frequency = closer to center)
       const distanceFactor = Math.pow(1 - frequencyFactor, 0.7);
       
-      // Calculate base radius - high frequency words get pulled toward center
-      const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
+      // If this is a canonical form with variants, store its position
+      if (isVariant) {
+        if (!canonicalPositions.has(word.text)) {
+          // Calculate base position for the canonical form
+          const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
+                          CLOUD_SIZE * 
+                          (0.2 + distanceFactor * 0.8); // Scale by frequency
+          
+          const goldenRatio = 1.618033988749895;
+          const i = seed % 500;
+          
+          const theta = i * goldenRatio * Math.PI * 2;
+          const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
+          
+          const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
+          
+          const x = baseRadius * Math.sin(phi) * Math.cos(theta);
+          const y = baseRadius * Math.cos(phi);
+          const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
+          
+          canonicalPositions.set(word.text, [x, y, z]);
+        }
+        
+        // Get the canonical position and add a small offset
+        const [baseX, baseY, baseZ] = canonicalPositions.get(word.text)!;
+        const variantOffset = 2; // Small offset for variants
+        const variantAngle = (seed % 360) * Math.PI / 180;
+        
+        return [
+          baseX + Math.cos(variantAngle) * variantOffset,
+          baseY + Math.sin(variantAngle) * variantOffset,
+          baseZ + (seed % 3 - 1) * variantOffset
+        ] as [number, number, number];
+      } else {
+        // For non-variant words, use the original positioning logic
+        const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
                         CLOUD_SIZE * 
                         (0.2 + distanceFactor * 0.8); // Scale by frequency
-      
-      // Use golden ratio for better angular distribution
-      const goldenRatio = 1.618033988749895;
-      const i = seed % 500;
-      
-      // Calculate angles with some frequency influence
-      const theta = i * goldenRatio * Math.PI * 2;
-      const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
-      
-      // Add some noise to z-position
-      const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
-      
-      // Calculate position with frequency-based clustering
-      const x = baseRadius * Math.sin(phi) * Math.cos(theta);
-      const y = baseRadius * Math.cos(phi);
-      const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
-      
-      return [x, y, z] as [number, number, number];
+        
+        const goldenRatio = 1.618033988749895;
+        const i = seed % 500;
+        
+        const theta = i * goldenRatio * Math.PI * 2;
+        const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
+        
+        const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
+        
+        const x = baseRadius * Math.sin(phi) * Math.cos(theta);
+        const y = baseRadius * Math.cos(phi);
+        const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
+        
+        return [x, y, z] as [number, number, number];
+      }
     });
   }, [hashStringToSeed]);
 
@@ -246,10 +282,6 @@ const TagCloud3DContainer: React.FC<{
   
   return (
     <div className="tag-cloud-3d" style={{ background: '#111', minHeight: 400, width: '100%' }}>
-      <div className="status-indicator">
-        <span className="live-indicator">Live Updates</span>
-      </div>
-      
       {isLoading ? (
         <div className="loading-indicator">Loading visualization...</div>
       ) : words.length === 0 ? (
