@@ -9,10 +9,10 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -34,7 +34,7 @@
 }
 
 .edit-menu-toggle .icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -365,4 +365,12 @@
     width: 90%;
     max-width: 300px;
   }
+}
+
+.edit-menu-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
 } 

@@ -13,6 +13,8 @@ import { FilterProvider, useFilters, BIAS_UPDATE_EVENT } from './contexts/Filter
 import LoadingBar from './components/LoadingBar';
 import './App.css';
 import './components/TagFonts.css';
+import TimeControls from './components/TimeControls';
+import EditMenu from './components/EditMenu';
 
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
@@ -61,17 +63,20 @@ interface BiasUpdateDetail {
   enabled: boolean;
 }
 
+interface NewsWindow {
+  wordData: TagCloudWord;
+  newsItems: NewsItem[];
+  position: { top: number; left: number };
+}
+
 const App: React.FC = () => {
-  const { enabledBiases } = useFilters();
+  const { enabledBiases, toggleBias } = useFilters();
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.News);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
   const [allTagCloudWords, setAllTagCloudWords] = useState<TagCloudWord[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [activeNewsWindow, setActiveNewsWindow] = useState<{ 
-    wordData: TagCloudWord; 
-    newsItems: NewsItem[]; 
-  } | null>(null);
+  const [openNewsWindows, setOpenNewsWindows] = useState<NewsWindow[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -86,7 +91,6 @@ const App: React.FC = () => {
     [PoliticalBias.Conservative]: [],
     [PoliticalBias.Right]: []
   });
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   // Add state for 24-hour filter
   const [use24HourFilter, setUse24HourFilter] = useState(() => {
@@ -215,7 +219,7 @@ const App: React.FC = () => {
     console.log("Category changed to:", category);
     setSelectedCategory(category);
     setSelectedWord(null);
-    setActiveNewsWindow(null);
+    setOpenNewsWindows([]);
   };
 
   const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
@@ -223,53 +227,41 @@ const App: React.FC = () => {
       console.warn('handleWordSelect called with invalid word:', word);
       return;
     }
-    console.log(`Word selected: "${word.text}"`);
-    if (activeNewsWindow?.wordData.text === word.text) {
-      handleCloseNewsWindow();
+    // Prevent duplicate windows for the same word
+    if (openNewsWindows.some(w => w.wordData.text === word.text)) {
       return;
     }
-
     setLoading(true);
     setError(null);
-    setActiveNewsWindow(null);
-    setSelectedWord(word.text);
-    setPosition(clickPosition);
-
     try {
-      console.log(`Fetching related news for keyword: "${word.text}"`);
       const response = await axios.get<NewsItem[]>(`${API_BASE_URL}/api/news/related`, {
-        params: {
-          keyword: word.text
-        },
+        params: { keyword: word.text },
         timeout: 15000
       });
-
       if (response.data && response.data.length > 0) {
-        console.log(`Found ${response.data.length} related news items for "${word.text}"`);
-        setActiveNewsWindow({ wordData: word, newsItems: response.data });
+        setOpenNewsWindows(prev => [
+          ...prev,
+          { wordData: word, newsItems: response.data, position: clickPosition }
+        ]);
       } else {
-        console.log(`No related news found for "${word.text}"`);
         setError(`No related news found for "${word.text}".`);
-        setActiveNewsWindow(null);
-        setSelectedWord(null);
-        setPosition(null);
       }
     } catch (err: any) {
-      console.error('Error fetching related news:', err);
       setError(err.response?.data?.message || err.message || 'Failed to fetch related news');
-      setActiveNewsWindow(null);
-      setSelectedWord(null);
-      setPosition(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCloseNewsWindow = () => {
-    console.log('Closing related news window');
-    setSelectedWord(null);
-    setActiveNewsWindow(null);
-    setPosition(null);
+  const handleCloseNewsWindow = (wordText: string) => {
+    setOpenNewsWindows(prev => prev.filter(w => w.wordData.text !== wordText));
+  };
+
+  // Update a window's position by word text
+  const handleMoveNewsWindow = (wordText: string, newPosition: { top: number; left: number }) => {
+    setOpenNewsWindows(prev => prev.map(w =>
+      w.wordData.text === wordText ? { ...w, position: newPosition } : w
+    ));
   };
 
   // Simplified tag cloud for mobile devices
@@ -315,6 +307,8 @@ const App: React.FC = () => {
     }
   }, [allTagCloudWords, loading]);
 
+  const categories = Object.values(NewsCategory);
+
   return (
     <Router>
       <div className="app">
@@ -324,6 +318,27 @@ const App: React.FC = () => {
           currentCategory={selectedCategory} 
           selectedCategory={selectedCategory} 
         />
+        {/* Top right controls: clock and edit menu */}
+        <div className="top-right-controls">
+          <EditMenu onClose={() => {}} />
+        </div>
+        {/* Right-side vertical category list */}
+        <ul className="category-list-vertical-right">
+          {categories.map(category => (
+            <li key={category}>
+              <button
+                className={`category-button ${selectedCategory === category ? 'active' : ''}`}
+                onClick={() => handleCategoryChange(category)}
+                style={{
+                  margin: '2px 0',
+                  width: '100%',
+                }}
+              >
+                {category}
+              </button>
+            </li>
+          ))}
+        </ul>
         <main className={`main-content ${selectedWord ? 'detail-visible' : ''}`}>
           <ResponsiveContainer
             mobileComponent={<MobileTagCloud />}
@@ -343,14 +358,16 @@ const App: React.FC = () => {
               </>
             }
           />
-          {activeNewsWindow && (
+          {openNewsWindows.map(win => (
             <FloatingNewsWindow
-              data={activeNewsWindow}
-              position={position}
-              clickedWordBias={activeNewsWindow.wordData.bias}
-              onClose={handleCloseNewsWindow}
+              key={win.wordData.text}
+              data={win}
+              position={win.position}
+              clickedWordBias={win.wordData.bias}
+              onClose={() => handleCloseNewsWindow(win.wordData.text)}
+              onMove={pos => handleMoveNewsWindow(win.wordData.text, pos)}
             />
-          )}
+          ))}
         </main>
       </div>
     </Router>

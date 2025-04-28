@@ -1,7 +1,6 @@
 import React from 'react';
 import { NewsCategory, PoliticalBias } from '../types';
 import { useFilters } from '../contexts/FilterContext';
-import EditMenu from './EditMenu';
 import './Header.css';
 
 interface HeaderProps {
@@ -18,9 +17,9 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
     PoliticalBias.Left,
     PoliticalBias.Liberal,
     PoliticalBias.Centrist,
-    PoliticalBias.Unknown,
     PoliticalBias.Conservative,
     PoliticalBias.Right,
+    PoliticalBias.Unknown,
   ];
 
   const getBiasColor = (bias: PoliticalBias): string => {
@@ -45,10 +44,7 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
     <header className="header">
       <div className="logo">
         <span className="logo-text">INFOCLOUD</span>
-      </div>
-      <nav className="category-nav">
-        <ul>
-          {/* Bias Filters */}
+        <ul className="bias-list-vertical">
           {biasOrder.map(bias => (
             <li key={bias}>
               <button
@@ -57,27 +53,15 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
                 style={{
                   color: enabledBiases.has(bias) ? '#000' : getBiasColor(bias),
                   backgroundColor: enabledBiases.has(bias) ? getBiasColor(bias) : 'rgba(0, 0, 0, 0.7)',
+                  margin: '2px 0',
+                  width: '100%',
                 }}
               >
                 {bias}
               </button>
             </li>
           ))}
-          {/* Categories */}
-          {categories.map(category => (
-            <li key={category}>
-              <button
-                className={`category-button ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => onSelectCategory(category)}
-              >
-                {category}
-              </button>
-            </li>
-          ))}
         </ul>
-      </nav>
-      <div className="edit-menu">
-        <EditMenu onClose={() => {}} />
       </div>
     </header>
   );
