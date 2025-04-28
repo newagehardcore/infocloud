@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import axios from 'axios';
+import * as THREE from 'three'; // Import THREE for RefObject type
 import Header from './components/Header';
 import TagCloud3DOptimized from './components/TagCloud3DOptimized';
-import RelatedNewsPanel from './components/RelatedNewsPanel';
+import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new component
 import ResponsiveContainer from './components/ResponsiveContainer';
 import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias } from './types';
 import { processNewsToWords, DEFAULT_WORD_PROCESSING_CONFIG } from './utils/wordProcessing';
@@ -67,7 +68,10 @@ const App: React.FC = () => {
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
   const [allTagCloudWords, setAllTagCloudWords] = useState<TagCloudWord[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [relatedNews, setRelatedNews] = useState<NewsItem[]>([]);
+  const [activeNewsWindow, setActiveNewsWindow] = useState<{ 
+    wordData: TagCloudWord; 
+    newsItems: NewsItem[]; 
+  } | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -82,6 +86,7 @@ const App: React.FC = () => {
     [PoliticalBias.Conservative]: [],
     [PoliticalBias.Right]: []
   });
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   // Preload fonts on app initialization
   useEffect(() => {
@@ -204,55 +209,61 @@ const App: React.FC = () => {
     console.log("Category changed to:", category);
     setSelectedCategory(category);
     setSelectedWord(null);
-    setRelatedNews([]);
+    setActiveNewsWindow(null);
   };
 
-  const handleWordSelect = (word: TagCloudWord) => {
-    const wordText = word.text;
-    if (selectedWord === wordText) {
-      setSelectedWord(null);
-      setRelatedNews([]);
-    } else {
-      setSelectedWord(wordText);
-      
-      // First, get all news items that are directly linked to this word
-      const linkedNews = new Set(word.newsIds);
-      
-      // Find all related news items from unfiltered items first
-      const allRelated = unfilteredNewsItems.filter(item =>
-        // Include if it's directly linked through newsIds
-        linkedNews.has(item.id) ||
-        // Or if the word appears in title, description, or keywords
-        (item.title?.toLowerCase().includes(wordText.toLowerCase()) ||
-         item.description?.toLowerCase().includes(wordText.toLowerCase()) ||
-         item.keywords?.some(kw => kw.toLowerCase() === wordText.toLowerCase()))
-      );
+  const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
+    if (!word || !word.text) {
+      console.warn('handleWordSelect called with invalid word:', word);
+      return;
+    }
+    console.log(`Word selected: "${word.text}"`);
+    if (activeNewsWindow?.wordData.text === word.text) {
+      handleCloseNewsWindow();
+      return;
+    }
 
-      // Now apply bias filtering
-      const biasFiltered = allRelated.filter(item => enabledBiases.has(item.source.bias));
-      
-      // Ensure we include at least one article that contributed this word
-      // even if it's from a filtered bias or older than 24 hours
-      const originalArticles = unfilteredNewsItems.filter(item => linkedNews.has(item.id));
-      
-      // Combine and deduplicate
-      const combined = Array.from(new Set([...originalArticles, ...biasFiltered]));
-      
-      // Sort by date, newest first
-      const sorted = combined.sort((a, b) => 
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
-      
-      console.log(`Found ${sorted.length} related news items for word "${wordText}" ` +
-                  `(${originalArticles.length} original, ${biasFiltered.length} bias-filtered)`);
-      
-      setRelatedNews(sorted);
+    setLoading(true);
+    setError(null);
+    setActiveNewsWindow(null);
+    setSelectedWord(word.text);
+    setPosition(clickPosition);
+
+    try {
+      console.log(`Fetching related news for keyword: "${word.text}"`);
+      const response = await axios.get<NewsItem[]>(`${API_BASE_URL}/api/news/related`, {
+        params: {
+          keyword: word.text
+        },
+        timeout: 15000
+      });
+
+      if (response.data && response.data.length > 0) {
+        console.log(`Found ${response.data.length} related news items for "${word.text}"`);
+        setActiveNewsWindow({ wordData: word, newsItems: response.data });
+      } else {
+        console.log(`No related news found for "${word.text}"`);
+        setError(`No related news found for "${word.text}".`);
+        setActiveNewsWindow(null);
+        setSelectedWord(null);
+        setPosition(null);
+      }
+    } catch (err: any) {
+      console.error('Error fetching related news:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch related news');
+      setActiveNewsWindow(null);
+      setSelectedWord(null);
+      setPosition(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCloseRelatedNews = () => {
+  const handleCloseNewsWindow = () => {
+    console.log('Closing related news window');
     setSelectedWord(null);
-    setRelatedNews([]);
+    setActiveNewsWindow(null);
+    setPosition(null);
   };
 
   // Simplified tag cloud for mobile devices
@@ -326,11 +337,12 @@ const App: React.FC = () => {
               </>
             }
           />
-          {selectedWord && relatedNews.length > 0 && (
-            <RelatedNewsPanel
-              newsItems={relatedNews}
-              selectedKeyword={selectedWord}
-              onClose={handleCloseRelatedNews}
+          {activeNewsWindow && (
+            <FloatingNewsWindow
+              data={activeNewsWindow}
+              position={position}
+              clickedWordBias={activeNewsWindow.wordData.bias}
+              onClose={handleCloseNewsWindow}
             />
           )}
         </main>

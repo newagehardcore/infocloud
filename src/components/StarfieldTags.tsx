@@ -8,7 +8,7 @@ import * as THREE from 'three';
 const StarfieldTags: React.FC<{
   words: TagCloudWord[];
   positions: [number, number, number][];
-  onWordClick: (word: TagCloudWord) => void;
+  onWordClick: (word: TagCloudWord, position: { top: number; left: number }) => void;
   selectedWord: string | null;
   newWords: Set<string>;
   getFontSize: (value: number) => number;
@@ -36,7 +36,7 @@ const StarfieldTags: React.FC<{
           position={validPositions[i]}
           fontSize={getFontSize(word.value)}
           color={getBiasColor(word.bias)}
-          onClick={() => onWordClick(word)}
+          onClick={onWordClick}
           isSelected={selectedWord === word.text}
           isNew={newWords.has(word.text)}
           animationSpeed={renderSettings.animationSpeed}
