@@ -1,7 +1,7 @@
 /* Edit Menu Container */
 .edit-menu {
   position: relative;
-  z-index: 1000;
+  display: inline-block;
 }
 
 /* Toggle Button */
@@ -10,30 +10,46 @@
   border: none;
   cursor: pointer;
   padding: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  transition: background-color 0.2s;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.edit-menu-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.edit-menu-toggle.time-filter {
+  opacity: 0.7;
+}
+
+.edit-menu-toggle.time-filter.active {
+  opacity: 1;
+  background-color: rgba(100, 149, 237, 0.3);
 }
 
 .edit-menu-toggle .icon {
   font-size: 1.2rem;
+  line-height: 1;
 }
 
 /* Content Panel */
 .edit-menu-content {
-  display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + 10px);
   right: 0;
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  min-width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  padding: 16px;
-  color: #fff;
-  margin-top: 8px;
+  padding: 1rem;
+  min-width: 250px;
+  display: none;
+  z-index: 1000;
 }
 
 .edit-menu.open .edit-menu-content {
@@ -43,65 +59,64 @@
 /* Close Button */
 .close-button {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   background: none;
   border: none;
-  color: #999;
-  font-size: 1.2rem;
+  color: #fff;
   cursor: pointer;
+  font-size: 1.2rem;
   padding: 4px;
-  line-height: 1;
+  opacity: 0.7;
 }
 
 .close-button:hover {
-  color: #fff;
+  opacity: 1;
 }
 
 /* Section Headers */
 .edit-menu h3 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
   color: #fff;
-  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 0 0 1rem;
 }
 
 .menu-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
+}
+
+.menu-section:last-child {
+  margin-bottom: 0;
 }
 
 .menu-section h4 {
-  margin: 0 0 12px 0;
+  color: #aaa;
   font-size: 0.9rem;
-  color: #ccc;
-  font-weight: 500;
+  margin: 0 0 0.5rem;
+  font-weight: normal;
 }
 
 /* Checkbox Groups */
 .checkbox-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .checkbox-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .checkbox-item input[type="checkbox"] {
   margin: 0;
-  width: 16px;
-  height: 16px;
-  accent-color: #666;
 }
 
 .checkbox-item label {
-  color: #fff;
   font-size: 0.9rem;
+  color: #fff;
   cursor: pointer;
-  user-select: none;
 }
 
 /* RSS Feeds Section */
@@ -338,4 +353,16 @@
   background-color: #666;
   color: #999;
   cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .edit-menu-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 300px;
+  }
 } 

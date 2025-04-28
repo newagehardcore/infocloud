@@ -88,71 +88,79 @@ const App: React.FC = () => {
   });
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
+  // Add state for 24-hour filter
+  const [use24HourFilter, setUse24HourFilter] = useState(() => {
+    const saved = localStorage.getItem('show_24hour_filter');
+    return saved ? saved === 'true' : false;
+  });
+
   // Preload fonts on app initialization
   useEffect(() => {
     preloadFonts();
   }, []);
 
-  // Listen for bias update events and update state + localStorage
+  // Effect to handle time filter changes
+  useEffect(() => {
+    const handleTimeFilterChange = (event: CustomEvent) => {
+      const { enabled } = event.detail;
+      setUse24HourFilter(enabled);
+      
+      // Re-filter current items based on new time filter setting
+      const biasFiltered = filterNewsByBias(unfilteredNewsItems, enabledBiases);
+      const timeFiltered = enabled ? filterLast24Hours(biasFiltered) : biasFiltered;
+      setNewsItems(timeFiltered);
+    };
+
+    window.addEventListener('time_filter_change', handleTimeFilterChange as EventListener);
+    return () => {
+      window.removeEventListener('time_filter_change', handleTimeFilterChange as EventListener);
+    };
+  }, [unfilteredNewsItems, enabledBiases]);
+
+  // Update the bias update effect to respect time filter
   useEffect(() => {
     const handleBiasUpdate = () => {
       const savedBiases = localStorage.getItem('enabled_biases');
       const currentEnabledBiases = savedBiases ?
         new Set(JSON.parse(savedBiases) as PoliticalBias[]) :
-        new Set(Object.values(PoliticalBias)); // Default to all if parse fails or empty
+        new Set(Object.values(PoliticalBias));
 
-      console.log('Bias update event detected. Current enabled biases:', Array.from(currentEnabledBiases));
-      localStorage.setItem('enabled_biases', JSON.stringify(Array.from(currentEnabledBiases)));
-
-      // Re-filter the *current* unfiltered items based on the new bias set
-      console.log(`Re-filtering ${unfilteredNewsItems.length} unfiltered items based on enabled biases`);
       const biasFilteredNews = filterNewsByBias(unfilteredNewsItems, currentEnabledBiases);
-      // Apply 24-hour filter AFTER bias filtering
-      setNewsItems(filterLast24Hours(biasFilteredNews));
+      // Apply time filter if enabled
+      const timeFiltered = use24HourFilter ? filterLast24Hours(biasFilteredNews) : biasFilteredNews;
+      setNewsItems(timeFiltered);
     };
 
     window.addEventListener(BIAS_UPDATE_EVENT, handleBiasUpdate);
     return () => {
       window.removeEventListener(BIAS_UPDATE_EVENT, handleBiasUpdate);
     };
-  }, [unfilteredNewsItems]); // Dependency on unfilteredNewsItems ensures re-filtering when new base data arrives
+  }, [unfilteredNewsItems, use24HourFilter]);
 
-  // Refactored main effect for loading news data
+  // Update the main news loading effect to respect time filter
   useEffect(() => {
     const loadNews = async () => {
       console.log(`Starting loadNews for category: ${selectedCategory}`);
       setLoading(true);
       setError(null);
-      setNewsItems([]); // Clear previous items
-      setUnfilteredNewsItems([]); // Clear unfiltered items
-      setAllTagCloudWords([]); // Clear words
+      setNewsItems([]);
+      setUnfilteredNewsItems([]);
+      setAllTagCloudWords([]);
 
-      // --- API Call Setup ---
       const params: Record<string, any> = {
-          limit: 1000, // Fetch a large number, frontend will filter by time/bias
-          category: selectedCategory, // Always include category filter since we no longer have 'All'
-          // Add other potential query params here if needed (e.g., search term 'q')
+        limit: 1000,
+        category: selectedCategory,
       };
 
       try {
-        console.log(`Fetching from: ${API_BASE_URL}/api/news`, { params });
         const response = await axios.get(`${API_BASE_URL}/api/news`, { params });
 
         if (response.data && response.data.data) {
-          console.log(`Received ${response.data.data.length} items from backend.`);
-          // Store all received items (before time/bias filtering)
           setUnfilteredNewsItems(response.data.data);
-
-          // Apply initial bias filtering based on current state
           const biasFiltered = filterNewsByBias(response.data.data, enabledBiases);
-
-          // Apply 24-hour filter
-          const timeFiltered = filterLast24Hours(biasFiltered);
+          const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
           setNewsItems(timeFiltered);
-          console.log(`Displaying ${timeFiltered.length} items after bias and time filtering.`);
-
         } else {
-          console.warn('No data received from backend or unexpected format.');
           setNewsItems([]);
           setUnfilteredNewsItems([]);
         }
@@ -167,9 +175,7 @@ const App: React.FC = () => {
     };
 
     loadNews();
-
-    // No interval refresh for now, focus on initial load + category change
-  }, [selectedCategory, enabledBiases]); // Re-fetch when category changes, re-filter when biases change (handled by bias update listener)
+  }, [selectedCategory, enabledBiases, use24HourFilter]);
 
   // Effect for processing words - now depends on unfilteredNewsItems
   useEffect(() => {
