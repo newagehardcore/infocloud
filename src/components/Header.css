@@ -40,6 +40,10 @@
   flex-wrap: wrap;
 }
 
+.category-nav ul li {
+  display: flex;
+}
+
 .category-button {
   padding: 0.25rem 0.5rem;
   border: 1px solid rgba(128, 128, 128, 0.3);
@@ -64,6 +68,23 @@
   background-color: rgba(255, 255, 255, 0.9);
   color: #000;
   border-color: rgba(128, 128, 128, 0.3);
+}
+
+/* Add a separator between bias filters and categories */
+.category-nav ul li:nth-child(6) {
+  margin-right: 1rem;
+  position: relative;
+}
+
+.category-nav ul li:nth-child(6)::after {
+  content: '';
+  position: absolute;
+  right: -0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .edit-menu {
@@ -91,5 +112,14 @@
 
   .edit-menu {
     margin: 0.5rem 0 0 0;
+  }
+
+  /* Adjust separator for mobile */
+  .category-nav ul li:nth-child(6) {
+    margin-right: 0.5rem;
+  }
+
+  .category-nav ul li:nth-child(6)::after {
+    right: -0.25rem;
   }
 }

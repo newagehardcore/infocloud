@@ -11,6 +11,10 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
   const { enabledBiases, toggleBias, rssFeeds, toggleRssFeed } = useFilters();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [show24HourFilter, setShow24HourFilter] = useState(() => {
+    const saved = localStorage.getItem('show_24hour_filter');
+    return saved ? saved === 'true' : false;
+  });
 
   // Handle clicking outside to close menu
   useEffect(() => {
@@ -40,21 +44,30 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     toggleBias(bias);
   };
 
+  const handle24HourToggle = () => {
+    const newValue = !show24HourFilter;
+    setShow24HourFilter(newValue);
+    localStorage.setItem('show_24hour_filter', newValue.toString());
+    // Dispatch custom event for App.tsx to handle
+    window.dispatchEvent(new CustomEvent('time_filter_change', { detail: { enabled: newValue } }));
+  };
+
   const getBiasColor = (bias: PoliticalBias): string => {
     switch (bias) {
       case PoliticalBias.Left:
-        return '#0000FF'; // Bright blue
+        return '#FF69B4'; // Hot Pink
       case PoliticalBias.Liberal:
-        return '#6495ED'; // Light blue
+        return '#6495ED'; // Cornflower Blue
       case PoliticalBias.Centrist:
-        return '#800080'; // Purple
-      case PoliticalBias.Conservative:
-        return '#FFB6C1'; // Light red
-      case PoliticalBias.Right:
-        return '#FF0000'; // Bright red
+        return '#98FB98'; // Pale Green
       case PoliticalBias.Unknown:
+        return '#DDD'; // Light Gray
+      case PoliticalBias.Conservative:
+        return '#DDA0DD'; // Plum
+      case PoliticalBias.Right:
+        return '#FF6B6B'; // Light Red
       default:
-        return '#808080'; // Grey
+        return '#FFF';
     }
   };
 
@@ -68,19 +81,28 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
   ];
 
   const biasLabels: { [key in PoliticalBias]: string } = {
-    [PoliticalBias.Left]: 'Left',
-    [PoliticalBias.Liberal]: 'Liberal',
+    [PoliticalBias.Left]: 'Alternative Left',
+    [PoliticalBias.Liberal]: 'Mainstream Democrat',
     [PoliticalBias.Centrist]: 'Centrist',
-    [PoliticalBias.Unknown]: 'Unknown',
-    [PoliticalBias.Conservative]: 'Conservative',
-    [PoliticalBias.Right]: 'Right',
+    [PoliticalBias.Unknown]: 'Unclear',
+    [PoliticalBias.Conservative]: 'Mainstream Republican',
+    [PoliticalBias.Right]: 'Alternative Right',
   };
 
   return (
     <div className={`edit-menu ${isOpen ? 'open' : ''}`} ref={menuRef}>
-      <button className="edit-menu-toggle" onClick={handleToggle} aria-label="Toggle filters menu">
-        <span className="icon">⚙️</span>
-      </button>
+      <div className="edit-menu-buttons">
+        <button className="edit-menu-toggle" onClick={handleToggle} aria-label="Toggle filters menu">
+          <span className="icon">⚙️</span>
+        </button>
+        <button 
+          className={`edit-menu-toggle time-filter ${show24HourFilter ? 'active' : ''}`} 
+          onClick={handle24HourToggle} 
+          aria-label="Toggle 24-hour filter"
+        >
+          <span className="icon">🕐</span>
+        </button>
+      </div>
       <div className="edit-menu-content">
         <button className="close-button" onClick={handleClose} aria-label="Close filters menu">✕</button>
         <h3>Filters & Settings</h3>
@@ -105,6 +127,24 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
                 </label>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Time Filter */}
+        <div className="menu-section time-filter">
+          <h4>Time Filter</h4>
+          <div className="checkbox-group">
+            <div className="checkbox-item">
+              <input
+                type="checkbox"
+                id="24-hour-filter"
+                checked={show24HourFilter}
+                onChange={handle24HourToggle}
+              />
+              <label htmlFor="24-hour-filter">
+                Last 24 Hours Only
+              </label>
+            </div>
           </div>
         </div>
 
