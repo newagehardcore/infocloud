@@ -210,16 +210,17 @@ const TagCloud3D: React.FC<{
         renderSettings={renderSettings}
       />
       
-      <OrbitControls 
+      <OrbitControls
         enableZoom={true}
         enablePan={true}
         enableRotate={true}
-        autoRotate={false}
+        autoRotate={true}
+        autoRotateSpeed={0.05}
         minDistance={0.1}
         maxDistance={200}
         enableDamping={true}
-        dampingFactor={0.05}
-        rotateSpeed={0.5}
+        dampingFactor={0.005}
+        rotateSpeed={5.05}
         zoomSpeed={1.2}
         minPolarAngle={0}
         maxPolarAngle={Math.PI}
