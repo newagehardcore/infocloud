@@ -4,14 +4,14 @@
   position: fixed;
   width: 360px; /* Slightly wider */
   max-height: 60vh; /* Limit height */
-  background-color: rgba(25, 28, 36, 0.95); /* Dark, slightly transparent background */
-  color: #e0e0e0; /* Light text color */
+  background-color: #18191c;
+  color: #e0e0e0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   z-index: 1001; /* Ensure window is above other content */
   display: flex;
   flex-direction: column;
   overflow: hidden; /* Clip content if needed, but no corners now */
-  border: 1px solid rgba(255, 255, 255, 0.2); /* Thin light border */
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -20,8 +20,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background-color: rgba(40, 44, 52, 0.8); /* Slightly darker header */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Thin light border */
+  background-color: #232326;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .floating-news-header h3 {
@@ -31,13 +31,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #ffffff;
+  color: #fff;
 }
 
 .floating-news-close-btn {
   background: none;
   border: none;
-  color: #adb5bd; /* Lighter grey for close button */
+  color: #adb5bd;
   font-size: 1.8rem;
   line-height: 1;
   padding: 0 4px;
@@ -46,7 +46,7 @@
 }
 
 .floating-news-close-btn:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
 .floating-news-content {
@@ -90,49 +90,49 @@
 .bias-heading {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  justify-content: flex-start;
+  padding: 4px 8px 4px 10px; /* Tighter padding */
+  gap: 4px;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.93rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  user-select: none; /* Prevent text selection on click */
+  transition: background-color 0.2s, color 0.2s;
+  user-select: none;
+  background: none;
 }
 
 .bias-heading:hover {
-  background-color: rgba(255, 255, 255, 0.9); /* Light background on hover */
-  color: #191c24 !important; /* Dark text on hover - !important needed to override inline style */
+  background-color: rgba(255,255,255,0.08);
 }
 
 /* Style accordion icon on hover */
 .bias-heading:hover .accordion-icon,
 .bias-heading:hover .source-count {
-  color: #191c24; /* Match dark text color */
+  color: #fff; /* Match dark text color */
 }
 
 .accordion-icon {
   display: inline-block;
-  margin-right: 8px;
-  transition: transform 0.2s ease, color 0.2s ease; /* Added color transition */
-  font-size: 0.7rem;
-  width: 12px; /* Fixed width for alignment */
-  text-align: center;
-  /* Color is inherited or set by .bias-heading:hover */
+  margin: 0 6px 0 0;
+  font-size: 1.1rem;
+  width: 18px;
+  text-align: left;
+  transition: transform 0.2s, color 0.2s;
+  flex-shrink: 0;
+  color: #adb5bd;
 }
 
 .accordion-icon.expanded {
-  transform: rotate(90deg);
-  color: #adb5bd; /* Default light grey count */
-  margin-left: auto; /* Push count to the right */
-  padding-left: 10px;
-  transition: color 0.2s ease; /* Added color transition */
+  transform: none;
+  color: #fff;
 }
 
 .source-count {
   font-size: 0.8rem;
   color: #adb5bd;
-  margin-left: auto; /* Push count to the right */
-  padding-left: 10px;
+  margin-left: 8px;
+  padding-left: 0;
 }
 
 .news-list {
@@ -154,15 +154,16 @@
 
 .news-link {
   display: block;
-  padding: 10px 16px 10px 36px; /* Indent news items */
+  padding: 6px 10px 6px 12px; /* Even less left padding */
   text-decoration: none;
-  color: #ced4da; /* Slightly brighter text for items */
-  transition: background-color 0.2s ease, color 0.2s ease;
+  color: #e0e0e0;
+  background: none;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .news-link:hover {
-  background-color: rgba(255, 255, 255, 0.9); /* Light background */
-  color: #191c24; /* Dark text */
+  background-color: rgba(255,255,255,0.08);
+  color: #fff;
 }
 
 /* Ensure meta text also inverts color on hover */
@@ -170,33 +171,27 @@
 .news-link:hover .news-meta,
 .news-link:hover .source-name,
 .news-link:hover .publish-date {
-   color: #343a40; /* Slightly lighter dark color for meta */
+  color: #fff;
 }
 
 .news-title {
-  font-size: 0.85rem;
+  font-size: 0.87rem;
   font-weight: 500;
-  margin: 0 0 4px 0;
+  margin: 0 0 1px 0;
   line-height: 1.3;
   white-space: nowrap;
+  color: #e0e0e0;
 }
 
 .news-meta {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #868e96; /* Dimmer color for meta */
+  color: #adb5bd;
 }
 
-.source-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 70%;
-}
-
-.publish-date {
-  white-space: nowrap;
+.source-name, .publish-date {
+  color: #adb5bd;
 }
 
 /* Style for the 'no news' message */

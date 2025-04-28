@@ -51,15 +51,61 @@ interface FloatingNewsWindowProps {
     newsItems: NewsItem[];
   };
   position: { top: number; left: number } | null;
-  clickedWordBias: PoliticalBias | null; // Add bias of the clicked word
+  clickedWordBias: PoliticalBias | null;
   onClose: () => void;
+  onMove?: (pos: { top: number; left: number }) => void;
 }
 
-const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position, clickedWordBias, onClose }) => {
+const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position, clickedWordBias, onClose, onMove }) => {
   const { wordData, newsItems } = data;
   const [isVisible, setIsVisible] = useState(false);
   const [expandedBiases, setExpandedBiases] = useState<{ [key: string]: boolean }>({});
   const windowRef = useRef<HTMLDivElement>(null);
+
+  // --- Drag state ---
+  const [dragPos, setDragPos] = useState<{ top: number; left: number } | null>(null);
+  const dragStartPos = useRef<{ mouseX: number; mouseY: number; offsetX: number; offsetY: number } | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const latestDrag = useRef<{ top: number; left: number } | null>(null);
+
+  // --- Drag handlers ---
+  const handleHeaderMouseDown = (e: React.MouseEvent) => {
+    if (!windowRef.current) return;
+    e.preventDefault();
+    const rect = windowRef.current.getBoundingClientRect();
+    dragStartPos.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+    };
+    document.addEventListener('mousemove', handleMouseMoveDom);
+    document.addEventListener('mouseup', handleMouseUpDom);
+  };
+
+  const handleMouseMoveDom = (e: MouseEvent) => {
+    if (!dragStartPos.current || !windowRef.current) return;
+    const newLeft = e.clientX - dragStartPos.current.offsetX;
+    const newTop = e.clientY - dragStartPos.current.offsetY;
+    windowRef.current.style.left = `${newLeft}px`;
+    windowRef.current.style.top = `${newTop}px`;
+    windowRef.current.style.right = 'auto';
+    windowRef.current.style.bottom = 'auto';
+  };
+
+  const handleMouseUpDom = (e: MouseEvent) => {
+    if (!dragStartPos.current || !windowRef.current) return;
+    // Persist the final position in React state and notify parent
+    const newLeft = e.clientX - dragStartPos.current.offsetX;
+    const newTop = e.clientY - dragStartPos.current.offsetY;
+    setDragPos({ top: newTop, left: newLeft });
+    if (onMove) {
+      onMove({ top: newTop, left: newLeft });
+    }
+    dragStartPos.current = null;
+    document.removeEventListener('mousemove', handleMouseMoveDom);
+    document.removeEventListener('mouseup', handleMouseUpDom);
+  };
 
   // Initialize expanded state for accordions based on clicked word's bias
   useEffect(() => {
@@ -70,42 +116,6 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
     });
     setExpandedBiases(initialExpandedState);
   }, [newsItems, clickedWordBias]); // Add clickedWordBias dependency
-
-  // Handle clicks outside the window to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Only close if the click is truly outside the window
-      if (windowRef.current && !windowRef.current.contains(event.target as Node)) {
-         // Check if the click target is part of the tag cloud or another interactive element
-         // This logic might need refinement based on your specific DOM structure
-         const targetElement = event.target as HTMLElement;
-         // Example check: Prevent closing if clicking on an element *inside* the tag cloud container
-         // You might need a more specific selector for your tag cloud implementation
-         if (!targetElement.closest('.tag-cloud-container')) { // ADJUST SELECTOR AS NEEDED
-            onClose();
-         }
-      }
-    };
-
-    // Add listener on mount if visible
-    if (isVisible) {
-      // Use setTimeout to ensure the listener isn't added until the initial click event bubble phase is over
-      const timerId = setTimeout(() => {
-         document.addEventListener('mousedown', handleClickOutside);
-      }, 0);
-      return () => {
-         clearTimeout(timerId);
-         document.removeEventListener('mousedown', handleClickOutside);
-       };
-    }
-    // If you want the window to close when clicking *anything* outside, revert to simpler logic:
-    // if (isVisible) {
-    //   document.addEventListener('mousedown', handleClickOutside);
-    // }
-    // return () => {
-    //   document.removeEventListener('mousedown', handleClickOutside);
-    // };
-  }, [isVisible, onClose]); // Dependencies remain the same
 
   useEffect(() => {
     setIsVisible(!!position);
@@ -156,6 +166,14 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
   const offsetX = -180; // Half of width (360px)
   const offsetY = 30;   // Offset below the click point
 
+  // Use drag position if dragging, else use initial position
+  const windowStyle = dragPos
+    ? { top: dragPos.top, left: dragPos.left, position: 'fixed' as const }
+    : {
+        top: `calc(${position.top}px + ${offsetY}px)`,
+        left: `calc(${position.left}px + ${offsetX}px)`
+      };
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -163,18 +181,14 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
           <motion.div
             ref={windowRef}
             className="floating-news-window"
-            style={{
-              // Use CSS variables or direct calc() if needed for more dynamic positioning based on word
-              top: `calc(${position.top}px + ${offsetY}px)`,
-              left: `calc(${position.left}px + ${offsetX}px)`,
-            }}
+            style={windowStyle}
             initial="hidden"
             animate="visible"
             exit="hidden"
             variants={windowVariants}
             layout // Keep layout animation for smoother resizing
           >
-            <div className="floating-news-header">
+            <div className="floating-news-header" onMouseDown={handleHeaderMouseDown} style={{ cursor: 'move', userSelect: 'none' }}>
               {/* Placeholder for word transition - replace h3 later */}
               <h3>News related to "{wordData.text}"</h3>
               <button onClick={onClose} className="floating-news-close-btn" aria-label="Close">
@@ -191,15 +205,14 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
                     <div key={bias} className="bias-group">
                       <h4
                         className="bias-heading"
-                        style={{ color: getBiasColor(bias) }}
+                        style={{ color: getBiasColor(bias), WebkitTextFillColor: getBiasColor(bias) }}
                         onClick={() => toggleBiasExpand(bias)}
                         role="button"
                         tabIndex={0}
-                        // Add explicit type for event object 'e'
                         onKeyPress={(e: React.KeyboardEvent) => e.key === 'Enter' && toggleBiasExpand(bias)}
                       >
-                        <span className={`accordion-icon ${expandedBiases[bias] ? 'expanded' : ''}`}>
-                          {/* Using simpler arrows for now */}
+                        <span className={`accordion-icon${expandedBiases[bias] ? ' expanded' : ''}`}
+                          >
                           {expandedBiases[bias] ? '▼' : '▶'}
                         </span>
                         {getBiasLabel(bias)}
