@@ -12,12 +12,12 @@
 - 3D tag cloud using Three.js where words represent news topics
 - Words sized proportionally to their frequency/importance
 - Color coding based on media political spectrum:
-  - Pale blue: Mainstream left/Democratic-leaning outlets
-  - Bright blue: Alternative/progressive left media
-  - Purple/neutral: Centrist outlets
-  - Pale red: Mainstream right/Republican-leaning outlets
-  - Bright red: Alternative right media
-  - Gray: Sources with unclear political alignment
+  - Pale blue: Liberal
+  - Bright blue: Left
+  - Purple/neutral: Centrist 
+  - Pale red: Mainstream Conservative
+  - Bright red: Right
+  - Gray: Unclear
 
 ### Real-time Updates
 - News updates continually flow into the visualization

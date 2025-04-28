@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
 import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
@@ -9,7 +10,7 @@ import StarfieldTags from './StarfieldTags';
 // Main tag cloud component with performance optimizations
 const TagCloud3D: React.FC<{
   words: TagCloudWord[];
-  onWordClick: (word: TagCloudWord) => void;
+  onWordClick: (word: TagCloudWord, position: { top: number; left: number }) => void;
   selectedWord: string | null;
   newWords: Set<string>;
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
@@ -18,9 +19,6 @@ const TagCloud3D: React.FC<{
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: PoliticalBias): string => {
-    // Debug: Log the bias value to see what's being received
-    console.log('Bias value:', bias);
-    
     switch (bias) {
       case PoliticalBias.Left:
         return '#0000FF'; // Bright blue
@@ -234,7 +232,7 @@ const TagCloud3D: React.FC<{
 const TagCloud3DContainer: React.FC<{
   category: NewsCategory;
   words?: TagCloudWord[];
-  onWordSelect?: (word: TagCloudWord) => void;
+  onWordSelect?: (word: TagCloudWord, position: { top: number; left: number }) => void;
   selectedWord?: string | null;
 }> = ({ 
   category, 
@@ -274,9 +272,9 @@ const TagCloud3DContainer: React.FC<{
     setIsLoading(false);
   }, [words]); // Only depend on words changing
   
-  const handleWordClick = useCallback((word: TagCloudWord) => {
+  const handleWordClick = useCallback((word: TagCloudWord, position: { top: number; left: number }) => {
     if (onWordSelect) {
-      onWordSelect(word);
+      onWordSelect(word, position);
     }
   }, [onWordSelect]);
   

@@ -1,22 +1,26 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree, ThreeEvent, extend } from '@react-three/fiber';
 import { TagCloudWord } from '../types';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { getTagFont } from '../utils/fonts';
+import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
+
+extend({ SphereGeometry, MeshBasicMaterial });
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      group: any;
+      mesh: any;
+      sphereGeometry: any;
+      meshBasicMaterial: any;
+    }
+  }
+}
 
 // Optimized Word component for the 3D tag cloud
-export const Word: React.FC<{ 
-  word: TagCloudWord; 
-  position: [number, number, number]; 
-  fontSize: number; 
-  color: string; 
-  onClick: () => void; 
-  isSelected: boolean;
-  isNew: boolean;
-  animationSpeed?: number;
-  useSimpleRendering?: boolean;
-}> = ({ 
+export const Word = ({ 
   word, 
   position, 
   fontSize, 
@@ -26,10 +30,20 @@ export const Word: React.FC<{
   isNew,
   animationSpeed = 1,
   useSimpleRendering = false
+}: { 
+  word: TagCloudWord; 
+  position: [number, number, number]; 
+  fontSize: number; 
+  color: string; 
+  onClick: (word: TagCloudWord, position: { top: number; left: number }) => void; 
+  isSelected: boolean;
+  isNew: boolean;
+  animationSpeed?: number;
+  useSimpleRendering?: boolean;
 }) => {
-  const ref = useRef<THREE.Group>(null);
+  const ref = useRef<Group>(null);
   const [hovered, setHovered] = useState(false);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   
   // Store the initial position
   const initialPosition = useMemo((): [number, number, number] => {
@@ -37,23 +51,6 @@ export const Word: React.FC<{
       ? [position[0], position[1], position[2]]
       : [0, 0, 0];
   }, [position]);
-  
-  // Generate deterministic animation parameters based on word text
-  const animParams = useMemo(() => {
-    let hash = 5381;
-    for (let i = 0; i < word.text.length; i++) {
-      hash = ((hash << 5) + hash) + word.text.charCodeAt(i);
-    }
-    
-    // Create unique but stable frequencies for this word
-    const uniqueOffset = Math.sin(hash * 0.1) * 10;
-    return {
-      xFreq: 0.2 + Math.sin(hash * 0.05) * 0.1,
-      yFreq: 0.25 + Math.cos(hash * 0.05) * 0.1,
-      zFreq: 0.3 + Math.sin(hash * 0.05) * 0.1,
-      offset: uniqueOffset
-    };
-  }, [word.text]);
   
   // Animation for new words
   useEffect(() => {
@@ -88,11 +85,29 @@ export const Word: React.FC<{
     
     // Use the stored initial position for the floating animation
     ref.current.position.set(
-      initialPosition[0] + Math.sin(time * animParams.xFreq + animParams.offset) * floatAmount,
-      initialPosition[1] + Math.cos(time * animParams.yFreq + animParams.offset) * floatAmount,
-      initialPosition[2] + Math.sin(time * animParams.zFreq + animParams.offset) * floatAmount
+      initialPosition[0] + Math.sin(time * 0.2 + 0) * floatAmount,
+      initialPosition[1] + Math.cos(time * 0.25 + 0) * floatAmount,
+      initialPosition[2] + Math.sin(time * 0.3 + 0) * floatAmount
     );
   });
+
+  const handleClick = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    if (!ref.current) return;
+
+    // Get the world position of the word
+    const worldPosition = new THREE.Vector3();
+    ref.current.getWorldPosition(worldPosition);
+
+    // Project to screen coordinates
+    const vector = worldPosition.project(camera);
+
+    // Convert to screen coordinates
+    const screenX = (vector.x + 1) / 2 * size.width;
+    const screenY = (-vector.y + 1) / 2 * size.height;
+
+    onClick(word, { top: screenY, left: screenX });
+  };
   
   return (
     <group
@@ -111,10 +126,7 @@ export const Word: React.FC<{
         fontWeight={600}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
-        onPointerDown={e => {
-          e.stopPropagation();
-          onClick();
-        }}
+        onPointerDown={handleClick}
         characters="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?&@#$%()[]{}"
       >
         {word.text}

@@ -77,6 +77,45 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET api/news/related
+// @desc    Get news items related to a specific keyword
+// @access  Public
+// @query   keyword: string - The keyword to search for
+router.get('/related', async (req, res) => {
+  const { keyword } = req.query;
+
+  if (!keyword) {
+    return res.status(400).json({ msg: 'Keyword query parameter is required' });
+  }
+
+  try {
+    const db = getDB();
+    const newsCollection = db.collection('newsitems');
+
+    // Case-insensitive search for the keyword in title, description, or keywords array
+    const query = {
+      $or: [
+        { title: { $regex: keyword, $options: 'i' } },
+        { description: { $regex: keyword, $options: 'i' } },
+        { keywords: { $regex: keyword, $options: 'i' } } // Assumes keywords is an array of strings
+      ]
+    };
+
+    // Find related news, sort by published date descending, limit results (e.g., 50)
+    const relatedNews = await newsCollection
+      .find(query)
+      .sort({ publishedAt: -1 })
+      .limit(50) // Limit the number of related articles returned
+      .toArray();
+
+    res.json(relatedNews);
+
+  } catch (err) {
+    console.error('Error fetching related news:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/news/:id
 // @desc    Get specific news item by its custom ID (url-timestamp)
 // @access  Public

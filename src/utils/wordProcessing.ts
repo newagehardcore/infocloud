@@ -377,19 +377,19 @@ export const processNewsToWords = async (
   news: NewsItem[],
   config = DEFAULT_WORD_PROCESSING_CONFIG
 ): Promise<TagCloudWord[]> => {
-  // Create separate maps for each bias category
-  const biasMaps = new Map<PoliticalBias, Map<string, TagCloudWord>>();
-  Object.values(PoliticalBias).forEach(bias => {
-    biasMaps.set(bias, new Map<string, TagCloudWord>());
-  });
+  // Create a map to track word occurrences and their biases
+  const wordBiasMap = new Map<string, Map<PoliticalBias, number>>();
+  const wordDataMap = new Map<string, {
+    value: number;
+    newsIds: string[];
+    category: NewsCategory;
+    variants?: Set<string>;
+  }>();
 
   // Process words into their respective bias categories
   for (const item of news) {
     // Skip items with undefined bias or keywords
     if (!item.source?.bias || !item.keywords || !item.url) continue;
-    
-    // Default to Unknown bias if the bias is not in our map
-    const bias = biasMaps.has(item.source.bias) ? item.source.bias : PoliticalBias.Unknown;
     
     // Process each keyword from the item
     for (const keyword of item.keywords) {
@@ -405,80 +405,86 @@ export const processNewsToWords = async (
       const canonicalForm = normalizeEntity(normalizedWord);
       const finalWord = canonicalForm || normalizedWord;
       
-      // Add to the appropriate bias map
-      const biasMap = biasMaps.get(bias)!;
-      
-      if (biasMap.has(finalWord)) {
-        // Update existing word
-        const existingWord = biasMap.get(finalWord)!;
-        existingWord.value += 1;
-        if (!existingWord.newsIds.includes(item.id)) {
-          existingWord.newsIds.push(item.id);
-        }
-        // If this was a variant form, add it to the variants list
-        if (canonicalForm && normalizedWord !== canonicalForm) {
-          existingWord.variants = existingWord.variants || new Set();
-          existingWord.variants.add(normalizedWord);
-        }
-      } else {
-        // Create new word entry
-        const variants = new Set<string>();
-        if (canonicalForm && normalizedWord !== canonicalForm) {
-          variants.add(normalizedWord);
-        }
-        biasMap.set(finalWord, {
-          text: finalWord,
-          value: 1,
-          bias: bias,
-          newsIds: [item.id],
+      // Initialize or update word bias counts
+      if (!wordBiasMap.has(finalWord)) {
+        wordBiasMap.set(finalWord, new Map<PoliticalBias, number>());
+      }
+      const biasCount = wordBiasMap.get(finalWord)!;
+      biasCount.set(item.source.bias, (biasCount.get(item.source.bias) || 0) + 1);
+
+      // Update word data
+      if (!wordDataMap.has(finalWord)) {
+        wordDataMap.set(finalWord, {
+          value: 0,
+          newsIds: [],
           category: item.category,
-          variants: variants.size > 0 ? variants : undefined
+          variants: new Set<string>()
         });
+      }
+      const wordData = wordDataMap.get(finalWord)!;
+      wordData.value += 1;
+      if (!wordData.newsIds.includes(item.id)) {
+        wordData.newsIds.push(item.id);
+      }
+      // If this was a variant form, add it to the variants list
+      if (canonicalForm && normalizedWord !== canonicalForm) {
+        wordData.variants!.add(normalizedWord);
       }
     }
   }
 
-  // Collect all words, ensuring each has at least one valid news item
-  const balancedWords: TagCloudWord[] = [];
-  
-  // First, filter by minimum frequency and sort by value for each bias
-  const sortedBiasWords = new Map<PoliticalBias, TagCloudWord[]>();
-  
-  // Process each bias category
-  biasMaps.forEach((wordMap: Map<string, TagCloudWord>, bias: PoliticalBias) => {
-    // Convert to array and filter words
-    const words = Array.from(wordMap.values())
-      .filter((word: TagCloudWord) => 
-        word.value >= config.minFrequency && // Meets minimum frequency
-        word.newsIds.length > 0 && // Has at least one news item
-        news.some(item => word.newsIds.includes(item.id) && item.url) // Has at least one valid news item with URL
-      )
-      .sort((a: TagCloudWord, b: TagCloudWord) => b.value - a.value);
+  // Convert word data to TagCloudWords with majority bias
+  const words: TagCloudWord[] = [];
+  for (const [word, biasCount] of Array.from(wordBiasMap.entries())) {
+    // Find the bias with the highest count
+    let maxCount = 0;
+    let majorityBias = PoliticalBias.Unknown;
     
-    sortedBiasWords.set(bias, words);
-  });
+    for (const [bias, count] of Array.from(biasCount.entries())) {
+      if (count > maxCount) {
+        maxCount = count;
+        majorityBias = bias;
+      }
+    }
 
-  // Then balance words across biases while maintaining minimum frequency requirement
-  let wordsAdded = 0;
+    const wordData = wordDataMap.get(word)!;
+    words.push({
+      text: word,
+      value: wordData.value,
+      bias: majorityBias,
+      newsIds: wordData.newsIds,
+      category: wordData.category,
+      variants: wordData.variants && wordData.variants.size > 0 ? wordData.variants : undefined
+    });
+  }
+
+  // Sort words by value (frequency) in descending order
+  words.sort((a, b) => b.value - a.value);
+
+  // Apply max words limit while maintaining bias balance
   const maxWordsPerBias = Math.min(
     MAX_WORDS_PER_BIAS,
     Math.ceil(config.maxWords / Object.keys(PoliticalBias).length)
   );
 
+  const balancedWords: TagCloudWord[] = [];
+  let wordsAdded = 0;
+  
   while (wordsAdded < config.maxWords) {
     let addedThisRound = 0;
     
     for (const bias of Object.values(PoliticalBias)) {
-      const biasWords = sortedBiasWords.get(bias) || [];
-      if (biasWords.length > 0) {
-        const word = biasWords.shift();
-        if (word) {
-          balancedWords.push(word);
-          addedThisRound++;
-          wordsAdded++;
-          
-          if (wordsAdded >= config.maxWords) break;
-        }
+      const availableWords = words.filter(w => 
+        w.bias === bias && 
+        !balancedWords.includes(w)
+      );
+      
+      if (availableWords.length > 0) {
+        balancedWords.push(availableWords[0]);
+        addedThisRound++;
+        wordsAdded++;
+        
+        if (wordsAdded >= config.maxWords) break;
       }
     }
     

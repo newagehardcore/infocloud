@@ -44,40 +44,89 @@ const resetBiasCounts = () => {
   };
 };
 
+// Add these constants at the top with other constants
+const MAX_ITEMS_PER_BIAS = 50; // Maximum number of items to keep per bias category
+const BIAS_DISTRIBUTION_TARGET = {
+  [PoliticalBias.Left]: 0.2,    // 20% left
+  [PoliticalBias.Liberal]: 0.2, // 20% liberal
+  [PoliticalBias.Centrist]: 0.2, // 20% centrist
+  [PoliticalBias.Conservative]: 0.2, // 20% conservative
+  [PoliticalBias.Right]: 0.2,   // 20% right
+};
+
 // Default RSS feeds (Adapted from frontend code search results)
 const DEFAULT_RSS_FEEDS = [
   // === POLITICS ===
-  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire', category: NewsCategory.Politics, bias: PoliticalBias.Right },
+  // Left Sources
+  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.commondreams.org/feeds/feed.rss/', name: 'Common Dreams', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.democracynow.org/democracynow.rss', name: 'Democracy Now', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.thenation.com/feed/', name: 'The Nation', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://jacobin.com/feed', name: 'Jacobin', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://progressive.org/feed', name: 'The Progressive', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://thegrayzone.com/feed/', name: 'The Grayzone', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.mintpressnews.com/feed/', name: 'MintPress News', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://truthout.org/feed/', name: 'Truthout', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://www.counterpunch.org/feed/', name: 'CounterPunch', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://fair.org/feed/', name: 'FAIR', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+  { url: 'https://inthesetimes.com/feed/', name: 'In These Times', category: NewsCategory.Politics, bias: PoliticalBias.Left },
+
+  // Liberal Sources
+  { url: 'https://www.vox.com/rss/index.xml', name: 'Vox', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
+  { url: 'https://talkingpointsmemo.com/feed/all', name: 'Talking Points Memo', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
+  { url: 'https://slate.com/feeds/all.rss', name: 'Slate', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
+  { url: 'https://newrepublic.com/feed', name: 'The New Republic', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
+
+  // Centrist Sources
+  { url: 'https://thehill.com/rss/syndicator/19109', name: 'The Hill', category: NewsCategory.Politics, bias: PoliticalBias.Centrist },
+  { url: 'https://www.politico.com/rss/politicopicks.xml', name: 'Politico', category: NewsCategory.Politics, bias: PoliticalBias.Centrist },
+
+  // Conservative Sources
   { url: 'https://www.newsmax.com/rss/Politics/1/', name: 'Newsmax', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
   { url: 'https://townhall.com/rss/political-cartoons/', name: 'Townhall', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
   { url: 'https://www.redstate.com/feed/', name: 'RedState', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
-  { url: 'https://www.theblaze.com/feeds/feed.rss', name: 'The Blaze', category: NewsCategory.Politics, bias: PoliticalBias.Right },
   { url: 'https://freebeacon.com/feed/', name: 'Washington Free Beacon', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
-  { url: 'https://www.alternet.org/feeds/feed.rss', name: 'AlterNet', category: NewsCategory.Politics, bias: PoliticalBias.Left },
-  { url: 'https://www.commondreams.org/rss.xml', name: 'Common Dreams', category: NewsCategory.Politics, bias: PoliticalBias.Left },
   { url: 'https://thebulwark.com/feed/', name: 'The Bulwark', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
   { url: 'https://www.washingtonexaminer.com/tag/news.rss', name: 'Washington Examiner', category: NewsCategory.Politics, bias: PoliticalBias.Conservative },
-  { url: 'https://thehill.com/rss/syndicator/19109', name: 'The Hill', category: NewsCategory.Politics, bias: PoliticalBias.Centrist },
-  { url: 'https://www.motherjones.com/feed/', name: 'Mother Jones', category: NewsCategory.Politics, bias: PoliticalBias.Left },
-  { url: 'https://www.vox.com/rss/index.xml', name: 'Vox', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
-  { url: 'https://www.politico.com/rss/politicopicks.xml', name: 'Politico', category: NewsCategory.Politics, bias: PoliticalBias.Centrist },
+
+  // Right Sources
+  { url: 'https://www.dailywire.com/feeds/rss.xml', name: 'The Daily Wire', category: NewsCategory.Politics, bias: PoliticalBias.Right },
+  { url: 'https://www.theblaze.com/feeds/feed.rss', name: 'The Blaze', category: NewsCategory.Politics, bias: PoliticalBias.Right },
   { url: 'https://www.breitbart.com/feed/', name: 'Breitbart', category: NewsCategory.Politics, bias: PoliticalBias.Right },
-  { url: 'https://talkingpointsmemo.com/feed', name: 'Talking Points Memo', category: NewsCategory.Politics, bias: PoliticalBias.Liberal },
 
   // === NEWS ===
-  { url: 'https://www.washingtontimes.com/rss/headlines/news/', name: 'Washington Times', category: NewsCategory.News, bias: PoliticalBias.Conservative },
-  { url: 'https://www.oann.com/feed/', name: 'One America News Network', category: NewsCategory.News, bias: PoliticalBias.Right },
+  // Left Sources
+  { url: 'https://www.rawstory.com/feed/', name: 'Raw Story', category: NewsCategory.News, bias: PoliticalBias.Left },
+  { url: 'https://www.democracynow.org/democracynow.rss', name: 'Democracy Now News', category: NewsCategory.News, bias: PoliticalBias.Left },
+  { url: 'https://truthout.org/latest/feed/', name: 'Truthout News', category: NewsCategory.News, bias: PoliticalBias.Left },
+
+  // Liberal Sources
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', name: 'New York Times', category: NewsCategory.News, bias: PoliticalBias.Liberal },
   { url: 'https://feeds.washingtonpost.com/rss/world', name: 'Washington Post', category: NewsCategory.News, bias: PoliticalBias.Liberal },
   { url: 'https://www.theguardian.com/us/rss', name: 'The Guardian US', category: NewsCategory.News, bias: PoliticalBias.Liberal },
-  { url: 'https://www.reuters.com/rssfeed/topNews', name: 'Reuters Top News', category: NewsCategory.News, bias: PoliticalBias.Centrist },
   { url: 'https://www.npr.org/rss/rss.php?id=1001', name: 'NPR News', category: NewsCategory.News, bias: PoliticalBias.Liberal },
   { url: 'https://www.cbsnews.com/latest/rss/main', name: 'CBS News', category: NewsCategory.News, bias: PoliticalBias.Liberal },
   { url: 'https://abcnews.go.com/abcnews/topstories', name: 'ABC News', category: NewsCategory.News, bias: PoliticalBias.Liberal },
   { url: 'https://rss.cnn.com/rss/cnn_topstories.rss', name: 'CNN', category: NewsCategory.News, bias: PoliticalBias.Liberal },
-  { url: 'https://moxie.foxnews.com/google-publisher/latest.xml', name: 'Fox News', category: NewsCategory.News, bias: PoliticalBias.Conservative },
   { url: 'https://feeds.nbcnews.com/nbcnews/public/news', name: 'NBC News', category: NewsCategory.News, bias: PoliticalBias.Liberal },
+
+  // Centrist Sources
+  { url: 'https://www.reuters.com/rssfeed/topNews', name: 'Reuters Top News', category: NewsCategory.News, bias: PoliticalBias.Centrist },
   { url: 'https://www.usatoday.com/rss/', name: 'USA Today', category: NewsCategory.News, bias: PoliticalBias.Centrist },
+  { url: 'https://apnews.com/rss', name: 'Associated Press', category: NewsCategory.News, bias: PoliticalBias.Centrist },
+  { url: 'https://www.upi.com/rss/news/1/', name: 'UPI', category: NewsCategory.News, bias: PoliticalBias.Centrist },
+  { url: 'https://www.csmonitor.com/rss/all.rss', name: 'Christian Science Monitor', category: NewsCategory.News, bias: PoliticalBias.Centrist },
+
+  // Conservative Sources
+  { url: 'https://www.washingtontimes.com/rss/headlines/news/', name: 'Washington Times', category: NewsCategory.News, bias: PoliticalBias.Conservative },
+  { url: 'https://moxie.foxnews.com/google-publisher/latest.xml', name: 'Fox News', category: NewsCategory.News, bias: PoliticalBias.Conservative },
+  { url: 'https://www.nationalreview.com/feed/', name: 'National Review', category: NewsCategory.News, bias: PoliticalBias.Conservative },
+  { url: 'https://www.washingtonexaminer.com/tag/news.rss', name: 'Washington Examiner News', category: NewsCategory.News, bias: PoliticalBias.Conservative },
+
+  // Right Sources
+  { url: 'https://www.oann.com/feed/', name: 'One America News Network', category: NewsCategory.News, bias: PoliticalBias.Right },
+  { url: 'https://www.newsmax.com/rss/Newsfront/1/', name: 'Newsmax News', category: NewsCategory.News, bias: PoliticalBias.Right },
 
   // === SCIENCE ===
   { url: 'https://www.space.com/feeds/all', name: 'Space.com', category: NewsCategory.Science, bias: PoliticalBias.Centrist },
@@ -143,7 +192,7 @@ const DEFAULT_RSS_FEEDS = [
   { url: 'https://research.fb.com/feed/', name: 'Meta AI Research', category: NewsCategory.AI, bias: PoliticalBias.Centrist },
   { url: 'https://huggingface.co/blog/feed.xml', name: 'Hugging Face Blog', category: NewsCategory.AI, bias: PoliticalBias.Centrist },
   { url: 'https://www.reddit.com/r/artificial/.rss', name: 'Reddit r/artificial', category: NewsCategory.AI, bias: PoliticalBias.Centrist },
-  { url: 'https://www.analyticsvidhya.com/feed/', name: 'Analytics Vidhya', category: NewsCategory.AI, bias: PoliticalBias.Centrist }
+  { url: 'https://www.analyticsvidhya.com/feed/', name: 'Analytics Vidhya', category: NewsCategory.AI, bias: PoliticalBias.Centrist },
 ];
 
 /**
@@ -219,6 +268,130 @@ const mapRssItemToNewsItem = (item, feedConfig) => {
   }
 };
 
+// Add this function after the mapRssItemToNewsItem function
+const balanceNewsByBias = async (newsCollection) => {
+  console.log('[RSS Service] Balancing news items by political bias...');
+  
+  // Get current counts by bias
+  const biasCounts = await newsCollection.aggregate([
+    { $group: { _id: '$bias', count: { $sum: 1 } } }
+  ]).toArray();
+  
+  const totalItems = biasCounts.reduce((sum, item) => sum + item.count, 0);
+  const biasDistribution = {};
+  
+  // Calculate current distribution
+  biasCounts.forEach(item => {
+    biasDistribution[item._id] = item.count / totalItems;
+  });
+  
+  console.log('[RSS Service] Current bias distribution:', biasDistribution);
+  
+  // For each bias category that exceeds its target percentage
+  for (const [bias, currentRatio] of Object.entries(biasDistribution)) {
+    const targetRatio = BIAS_DISTRIBUTION_TARGET[bias] || 0;
+    if (currentRatio > targetRatio) {
+      const excessCount = Math.ceil((currentRatio - targetRatio) * totalItems);
+      if (excessCount > 0) {
+        // Remove excess items, keeping the most recent ones
+        await newsCollection.find({ bias })
+          .sort({ publishedAt: -1 })
+          .skip(MAX_ITEMS_PER_BIAS)
+          .limit(excessCount)
+          .forEach(async (doc) => {
+            await newsCollection.deleteOne({ _id: doc._id });
+          });
+        
+        console.log(`[RSS Service] Removed ${excessCount} excess items from ${bias} bias category`);
+      }
+    }
+  }
+};
+
+// Add these functions after the balanceNewsByBias function
+const calculateBiasMetrics = async (newsCollection) => {
+  const metrics = {
+    timestamp: new Date(),
+    totalItems: 0,
+    distribution: {},
+    categoryBreakdown: {},
+    recentTrends: {}
+  };
+
+  // Get total counts and distribution by bias
+  const biasCounts = await newsCollection.aggregate([
+    { $group: { _id: '$bias', count: { $sum: 1 } } }
+  ]).toArray();
+
+  metrics.totalItems = biasCounts.reduce((sum, item) => sum + item.count, 0);
+  
+  biasCounts.forEach(item => {
+    metrics.distribution[item._id] = {
+      count: item.count,
+      percentage: (item.count / metrics.totalItems * 100).toFixed(2) + '%'
+    };
+  });
+
+  // Get breakdown by category and bias
+  const categoryBiasCounts = await newsCollection.aggregate([
+    { $group: { 
+      _id: { category: '$category', bias: '$bias' },
+      count: { $sum: 1 }
+    }}
+  ]).toArray();
+
+  categoryBiasCounts.forEach(item => {
+    const category = item._id.category;
+    const bias = item._id.bias;
+    if (!metrics.categoryBreakdown[category]) {
+      metrics.categoryBreakdown[category] = {};
+    }
+    metrics.categoryBreakdown[category][bias] = item.count;
+  });
+
+  // Calculate trends over the last 24 hours
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentBiasCounts = await newsCollection.aggregate([
+    { $match: { publishedAt: { $gte: yesterday } } },
+    { $group: { _id: '$bias', count: { $sum: 1 } } }
+  ]).toArray();
+
+  recentBiasCounts.forEach(item => {
+    metrics.recentTrends[item._id] = item.count;
+  });
+
+  return metrics;
+};
+
+const logBiasMetrics = async (newsCollection) => {
+  const metrics = await calculateBiasMetrics(newsCollection);
+  
+  console.log('\n=== News Bias Distribution Report ===');
+  console.log(`Timestamp: ${metrics.timestamp}`);
+  console.log(`Total Items: ${metrics.totalItems}\n`);
+  
+  console.log('Overall Distribution:');
+  Object.entries(metrics.distribution).forEach(([bias, data]) => {
+    console.log(`${bias}: ${data.count} articles (${data.percentage})`);
+  });
+  
+  console.log('\nCategory Breakdown:');
+  Object.entries(metrics.categoryBreakdown).forEach(([category, biases]) => {
+    console.log(`\n${category}:`);
+    Object.entries(biases).forEach(([bias, count]) => {
+      console.log(`  ${bias}: ${count} articles`);
+    });
+  });
+  
+  console.log('\nLast 24 Hours Trends:');
+  Object.entries(metrics.recentTrends).forEach(([bias, count]) => {
+    console.log(`${bias}: ${count} new articles`);
+  });
+  
+  console.log('\n=====================================\n');
+  
+  return metrics;
+};
 
 /**
  * Fetches news from all configured RSS feeds.
@@ -302,7 +475,13 @@ const fetchAllRssNews = async () => {
   console.log(`[RSS Service] Finished fetching. Total items processed (potential duplicates): ${allNewsItems.length}. Check DB logs for upsert counts.`);
   // Keyword extraction could happen here on allNewsItems before returning/final save
   // For now, just return the collected items
-  return allNewsItems; 
+
+  // After all feeds are processed and before returning
+  await balanceNewsByBias(newsCollection);
+  await logBiasMetrics(newsCollection);
+  
+  console.log(`[RSS Service] Finished fetching, balancing, and monitoring. Total items processed: ${allNewsItems.length}`);
+  return allNewsItems;
 };
 
 
