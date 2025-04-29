@@ -3,6 +3,9 @@ import { TagCloudWord, PoliticalBias } from '../types';
 import { Word } from './Word';
 import * as THREE from 'three';
 
+// Re-add constant definition here as it's used for fallback
+const MIN_FONT_SIZE = 0.2;
+
 // Random starfield component that displays words randomly distributed
 // Biases: 'mainstream-democrat', 'alternative-left', 'centrist', 'mainstream-republican', 'alternative-right', 'unclear'
 const StarfieldTags: React.FC<{
@@ -11,10 +14,10 @@ const StarfieldTags: React.FC<{
   onWordClick: (word: TagCloudWord, position: { top: number; left: number }) => void;
   selectedWord: string | null;
   newWords: Set<string>;
-  getFontSize: (value: number) => number;
+  fontSizes: Map<string, number>;
   getBiasColor: (bias: PoliticalBias) => string;
   renderSettings: any;
-}> = ({ words, positions, onWordClick, selectedWord, newWords, getFontSize, getBiasColor, renderSettings }) => {
+}> = ({ words, positions, onWordClick, selectedWord, newWords, fontSizes, getBiasColor, renderSettings }) => {
   // Defensive: filter out words with null/undefined/empty text first
   const safeWords = words.filter(w => typeof w.text === 'string' && w.text.trim() !== '');
   
@@ -34,7 +37,7 @@ const StarfieldTags: React.FC<{
           key={`${word.text}-${i}`}
           word={word}
           position={validPositions[i]}
-          fontSize={getFontSize(word.value)}
+          fontSize={fontSizes.get(word.text) ?? MIN_FONT_SIZE}
           color={getBiasColor(word.bias)}
           onClick={onWordClick}
           isSelected={selectedWord === word.text}

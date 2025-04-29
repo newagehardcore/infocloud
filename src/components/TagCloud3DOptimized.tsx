@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
 import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
 import './TagCloud3D.css';
 import StarfieldTags from './StarfieldTags';
+
+// Define min/max size constants
+const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
+const MAX_FONT_SIZE = 4.5;
+const RANK_SCALE_POWER = 55.0; // Power for rank-based scaling (higher = smaller words shrink faster)
 
 // Main tag cloud component with performance optimizations
 const TagCloud3D: React.FC<{
@@ -16,6 +21,7 @@ const TagCloud3D: React.FC<{
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
   const [renderSettings, setRenderSettings] = useState(getAdaptiveRenderingSettings());
   const [positions, setPositions] = useState<[number, number, number][]>([]);
+  const [fontSizes, setFontSizes] = useState<Map<string, number>>(new Map()); // State for calculated font sizes
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: PoliticalBias): string => {
@@ -36,19 +42,35 @@ const TagCloud3D: React.FC<{
     }
   }, []);
   
-  // Calculate font size based on word frequency with more dramatic variation
-  const getFontSize = useCallback((value: number): number => {
-    const minSize = 0.1; // Smaller base size
-    const maxSize = 4.5; // Restored larger maximum size
-    const maxValue = Math.max(...words.map(w => w.value), 1); // Find max frequency
-    
-    // Use a power scale for non-linear sizing
-    const scalePower = 0.8; // Kept high power to keep many words small
-    const normalizedValue = value / maxValue;
-    
-    // Calculate size, ensuring it doesn't go below minSize
-    return minSize + (Math.pow(normalizedValue, scalePower) * (maxSize - minSize));
-  }, [words]);
+  // Calculate all font sizes based on rank when words change
+  useEffect(() => {
+    if (words.length === 0) {
+      setFontSizes(new Map());
+      return;
+    }
+
+    // Sort words by frequency (value) descending
+    const sortedWords = [...words].sort((a, b) => b.value - a.value);
+    const newFontSizes = new Map<string, number>();
+    const count = sortedWords.length;
+
+    sortedWords.forEach((word, rank) => {
+      // Normalize rank (0 = highest frequency, 1 = lowest frequency)
+      // Handle edge case of a single word (rank 0 / (1-1 || 1) -> 0)
+      const normalizedRank = count > 1 ? rank / (count - 1) : 0;
+
+      // Apply inverse power scaling to the normalized rank
+      // (1 - normalizedRank) maps lowest freq (rank 1) to 0, highest freq (rank 0) to 1
+      const scaledRankFactor = Math.pow(1 - normalizedRank, RANK_SCALE_POWER);
+
+      // Calculate final size
+      const fontSize = MIN_FONT_SIZE + scaledRankFactor * (MAX_FONT_SIZE - MIN_FONT_SIZE);
+      newFontSizes.set(word.text, fontSize);
+    });
+
+    setFontSizes(newFontSizes);
+
+  }, [words]); // Recalculate only when words array changes
   
   // Deterministic position generator based on word text
   const hashStringToSeed = useCallback((str: string): number => {
@@ -64,8 +86,8 @@ const TagCloud3D: React.FC<{
     const CLOUD_SIZE = 30; // Smaller base size for tighter clustering
     const DEPTH_FACTOR = 1.5; // Reduced depth range
     
-    // Find max frequency for normalization
-    const maxValue = Math.max(...words.map(w => w.value));
+    // Find max frequency for normalization (still needed for positioning)
+    const maxValue = Math.max(...words.map(w => w.value), 1); // Keep local max for positioning logic
     
     // Create a map of canonical forms to their positions
     const canonicalPositions = new Map<string, [number, number, number]>();
@@ -75,10 +97,10 @@ const TagCloud3D: React.FC<{
       const isVariant = word.variants && word.variants.size > 0;
       const seed = hashStringToSeed(word.text);
       
-      // Normalize word frequency to 0-1 range
+      // Normalize word frequency to 0-1 range (FOR POSITIONING ONLY)
       const frequencyFactor = word.value / maxValue;
       // Invert and dampen the frequency factor (high frequency = closer to center)
-      const distanceFactor = Math.pow(1 - frequencyFactor, 0.7);
+      const distanceFactor = Math.pow(1 - frequencyFactor, 0.5); // Keep positioning logic based on relative frequency
       
       // If this is a canonical form with variants, store its position
       if (isVariant) {
@@ -86,7 +108,7 @@ const TagCloud3D: React.FC<{
           // Calculate base position for the canonical form
           const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
                           CLOUD_SIZE * 
-                          (0.2 + distanceFactor * 0.8); // Scale by frequency
+                          (0.2 + distanceFactor * 0.8); // Scale by frequency // Uses updated distanceFactor
           
           const goldenRatio = 1.618033988749895;
           const i = seed % 500;
@@ -117,7 +139,7 @@ const TagCloud3D: React.FC<{
         // For non-variant words, use the original positioning logic
         const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
                         CLOUD_SIZE * 
-                        (0.2 + distanceFactor * 0.8); // Scale by frequency
+                        (0.2 + distanceFactor * 0.8); // Scale by frequency // Uses updated distanceFactor
         
         const goldenRatio = 1.618033988749895;
         const i = seed % 500;
@@ -138,7 +160,12 @@ const TagCloud3D: React.FC<{
 
   // Update positions when words change, using deterministic positioning
   useEffect(() => {
-    setPositions(generateDeterministicPositions(words));
+    // We still need positions generated per word set
+    if (words.length > 0) {
+        setPositions(generateDeterministicPositions(words));
+    } else {
+        setPositions([]);
+    }
   }, [words, generateDeterministicPositions]);
   
   // Initialize performance monitor
@@ -205,7 +232,7 @@ const TagCloud3D: React.FC<{
         onWordClick={onWordClick}
         selectedWord={selectedWord}
         newWords={newWords}
-        getFontSize={getFontSize}
+        fontSizes={fontSizes}
         getBiasColor={getBiasColor}
         renderSettings={renderSettings}
       />
