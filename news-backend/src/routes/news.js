@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb'); // Needed if querying by MongoDB's default _id
+const { fetchAllRssNews } = require('../services/rssService');
 
 // @route   GET api/news
 // @desc    Get news items with filtering, sorting, and pagination
@@ -137,6 +138,21 @@ router.get('/:id', async (req, res) => {
     // if (err.kind === 'ObjectId') {
     //    return res.status(404).json({ msg: 'News item not found (invalid ID format)' });
     // }
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/news/fetch
+// @desc    Manually trigger news fetch
+// @access  Public
+router.post('/fetch', async (req, res) => {
+  try {
+    console.log('[News Route] Manually triggering news fetch...');
+    const newsItems = await fetchAllRssNews();
+    console.log(`[News Route] Fetch complete. ${newsItems.length} items processed.`);
+    res.json({ success: true, count: newsItems.length });
+  } catch (err) {
+    console.error('[News Route] Error fetching news:', err.message);
     res.status(500).send('Server Error');
   }
 });
