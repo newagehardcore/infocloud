@@ -13,83 +13,25 @@ const decodeHtml = (html) => {
              .replace(/&nbsp;/g, ' ');
 };
 
-// Combined and simplified stop word list from the original code
-const stopWords = new Set([
-  // Standard English stop words
-  'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'from', 'of', 'for', 'with', 
-  'it', 'its', 'is', 'was', 'were', 'be', 'being', 'been', 'he', 'she', 'they', 'them', 'their', 
-  'this', 'that', 'these', 'those', 'i', 'you', 'me', 'my', 'your', 'we', 'us', 'our', 
-  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'shall', 'should', 'can', 'could',
-  'may', 'might', 'must', 'about', 'above', 'below', 'over', 'under', 'again', 'further', 'then', 
-  'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 
-  'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 
-  'than', 'too', 'very', 's', 't', 'just', 'don', 'now', 're', 've', 'll',
-  // Common news/article related words
-  'news', 'article', 'source', 'feed', 'rss', 'update', 'updates', 'story', 'report', 'reports', 
-  'says', 'said', 'told', 'also', 'like', 'via', 'pm', 'am', 'gmt', 'est', 'edt', 'pst', 'pdt',
-  'read', 'view', 'comments', 'share', 'follow', 'copyright', 'reserved', 'rights', 'advertisement',
-  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 
-  'october', 'november', 'december', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 
-  'saturday', 'sunday', 'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'time',
-  'new', 'old', 'first', 'last', 'next', 'previous', 'world', 'politics', 'us', 'u.s', 'u.s.',
-  'no.', 'inc.', 'ltd.', 'corp.', 'co.', 'llc', '-', '--', '...', '', 
-  // From wordProcessing.ts lists
-  'breaking', 'exclusive', 'live', 'developing', 'urgent',
-  'opinion', 'editorial', 'business', 'finance', 'money', 'economy', 'markets', 'technology', 'tech', 
-  'science', 'health', 'sports', 'arts', 'culture', 'entertainment', 'style', 'fashion', 'travel', 
-  'food', 'dining', 'real estate', 'home', 'education', 'books', 'obituaries', 'weather', 'local',
-  'metro', 'national', 'international', 'magazine', 'weekend', 'sunday', 'columns', 'features', 'lifestyle',
-  'society', 'law', 'crime', 'justice', 'environment', 'jobs', 'careers', 'autos', 'cars', 'classifieds',
-  'events', 'calendar', 'letters', 'comics', 'puzzles', 'games', 'horoscopes', 'crosswords', 'photos',
-  'video', 'audio', 'podcast', 'image', 'photo', 'picture', 'clip', 'series', 'episode', 'season', 'show', 
-  'film', 'documentary', 'announced', 'reported', 'claimed', 'stated', 'described', 'appeared', 'revealed', 
-  'suggested', 'mentioned', 'noted', 'added', 'explained', 'confirmed', 'denied', 'asked', 'called', 
-  'commented', 'shared', 'showed', 'headline', 'latest', 'interview', 'statement', 'press', 'release', 
-  'analysis', 'feature', 'briefing', 'recap', 'roundup', 'summary', 'preview', 'review', 'guide', 
-  'explainer', 'breakdown', 'profile', 'description', 'cartoon', 'cover', 'amid', 'despite', 'following', 
-  'according', 'regarding', 'concerning', 'per', 'through', 'throughout', 'during', 'before', 'after',
-  'among', 'between', 'within', 'around', 'across', 'along', 'beyond', 'top', 'big', 'major', 'key', 
-  'important', 'significant', 'critical', 'essential', 'vital', 'crucial', 'main', 'primary', 'secondary', 
-  'notable', 'recent', 'current', 'ongoing', 'developing', 'upcoming', 'potential', 'possible', 
-  'likely', 'unlikely', 'certain', 'controversial', 'popular', 'final', 'begin', 'began', 'begun', 
-  'start', 'started', 'end', 'ended', 'shows', 'showing', 'shown', 'see', 'sees', 'seen', 'saw',
-  'watch', 'watched', 'watching', 'look', 'looked', 'looking', 'think', 'thought', 'thinking', 'make', 
-  'made', 'making', 'take', 'took', 'taken', 'taking', 'get', 'got', 'getting', 'find', 'found', 
-  'finding', 'use', 'used', 'using', 'tell', 'telling', 'become', 'became', 'becoming', 
-  'president', 'vice', 'senator', 'rep', 'representative', 'secretary', 'governor', 'mayor', 'chief', 
-  'director', 'chairman', 'chairwoman', 'spokesperson', 'minister', 'chancellor', 'prime', 'king', 
-  'queen', 'prince', 'princess', 'duke', 'duchess', 'sir', 'dame', 'ceo', 'founder', 'official', 
-  'leader', 'spokesman', 'spokeswoman'
+// Re-introduce a basic stop word list for initial filtering
+const BASIC_STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+  'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were',
+  'will', 'with', 'this', 'but', 'they', 'have', 'had', 'what', 'when',
+  'where', 'who', 'which', 'why', 'how', 'all', 'any', 'both', 'each', 'few',
+  'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+  'same', 'so', 'than', 'too', 'very', 'can', 'just', 'should', 'now', 'she', 'him', 'her',
+  // Add a few more very common verbs/pronouns often missed by basic lists
+  'say', 'get', 'go', 'do', 'us', 'we', 'you', 'your' 
 ]);
 
-// List of media source names to filter out from keywords (lowercase)
-const mediaSourceNames = new Set([
-  // Mainstream Democrat
-  'cnn', 'msnbc', 'new york times', 'the new york times', 'washington post',
-  'npr', 'abc news', 'cbs news', 'nbc news', 'time', 'nytimes', 'wapo',
-  // Alternative Left
-  'mother jones', 'democracy now', 'huffington post', 'vox', 'huffpost',
-  'vanity fair', 'the new yorker', 'fair', 'truthout', 'alternet', 
-  'the intercept', 'truthdig', 'raw story', 'newyorker',
-  // Centrist
-  'associated press', 'reuters', 'bbc', 'christian science monitor', 'ap',
-  'axios', 'bloomberg', 'usa today', 'the hill', 'pbs', 'newsweek', 'hill',
-  // Mainstream Republican
-  'wall street journal', 'washington times', 'national review', 'fox news',
-  'new york post', 'forbes', 'wsj', 'fox', 'nypost',
-  // Alternative Right
-  'the daily wire', 'the american conservative', 'breitbart', 'the daily caller', 'dailywire', 'dailycaller',
-  'the political insider', 'newsmax', 'unz',
-  // Mixed/Financial
-  'the economist', 'financial times', 'cnbc', 'economist',
-  // International
-  'al jazeera', 'the guardian', 'deutsche welle', 'france 24', 'times of india', 'guardian', 'dw',
-  // General
-  'wires', 'source'
-]);
+// Stop words and media names will be filtered downstream in wordProcessing.ts
+// const stopWords = new Set([...]); // REMOVED
+// const mediaSourceNames = new Set([...]); // REMOVED
 
 /**
  * Extracts keywords from a news item using compromise NLP library.
+ * Focuses on nouns, topics, entities, and noun phrases.
  * @param {object} newsItem - The news item object (should have title and description).
  * @returns {Promise<string[]>} A promise that resolves to an array of keywords.
  */
@@ -102,15 +44,15 @@ const extractKeywords = async (newsItem) => {
     const textToAnalyze = `${decodeHtml(newsItem.title)}. ${decodeHtml(newsItem.description || '')}`;
     const doc = nlp(textToAnalyze);
 
-    // Extract various types of terms
+    // Extract various types of terms - **NO VERBS**
     const nouns = doc.nouns().out('array');
     const topics = doc.topics().out('array');
     const organizations = doc.organizations().out('array');
     const places = doc.places().out('array');
     const people = doc.people().out('array');
     const acronyms = doc.acronyms().out('array');
-    const verbsInfinitive = doc.verbs().toInfinitive().out('array'); // Get infinitive verbs
-    // Consider adding noun phrases if needed: doc.match('#Adjective? #Noun+').out('array')
+    // const verbsInfinitive = doc.verbs().toInfinitive().out('array'); // REMOVED VERBS
+    const nounPhrases = doc.match('#NounPhrase+').out('array'); 
 
     let combinedKeywords = [
         ...nouns, 
@@ -119,7 +61,8 @@ const extractKeywords = async (newsItem) => {
         ...places, 
         ...people, 
         ...acronyms,
-        ...verbsInfinitive
+        // ...verbsInfinitive, // REMOVED VERBS
+        ...nounPhrases 
     ];
 
     // Clean and filter terms
@@ -144,26 +87,17 @@ const extractKeywords = async (newsItem) => {
           // Basic filters
           if (lowerTerm.length <= 2) return false; // Min length
           if (/^\d+$/.test(lowerTerm)) return false; // Is numeric
-          if (stopWords.has(lowerTerm)) return false; // Is stop word
-          
-          // Filter out media source names (check partial matches too)
-          if (mediaSourceNames.has(lowerTerm)) return false;
-          for (const sourceName of mediaSourceNames) {
-            if (lowerTerm.includes(sourceName)) return false;
-          }
-          
+          if (BASIC_STOP_WORDS.has(lowerTerm)) return false; // ADDED basic stop word check here
+                    
           // Filter out terms containing "cartoon"
           if (lowerTerm.includes('cartoon')) return false;
-          
-          // Optional: Filter simple verbs if too generic (already done via infinitive?)
-          // if (doc.verbs().has(lowerTerm) && term.length < 5) return false; 
-
+                    
           return true;
       });
       
     // Get unique keywords and limit the count
     const uniqueKeywords = Array.from(new Set(processedKeywords));
-    const MAX_KEYWORDS = 15; // Keep the limit reasonable
+    const MAX_KEYWORDS = 25; 
     const finalKeywords = uniqueKeywords.slice(0, MAX_KEYWORDS);
 
     // Add debug logging for keyword extraction
@@ -181,7 +115,7 @@ const extractKeywords = async (newsItem) => {
       .toLowerCase()
       .split(/\s+/)
       .map(word => word.replace(/^[.,!?;:]+|[.,!?;:]+$/g, ''))
-      .filter(word => word.length > 3 && !stopWords.has(word) && !mediaSourceNames.has(word) && !word.includes('cartoon'))
+      .filter(word => word.length > 3 && !BASIC_STOP_WORDS.has(word) && !word.includes('cartoon')) 
       .slice(0, 10);
     
     console.log(`[KeywordExtractor] Used fallback method, found ${fallbackKeywords.length} keywords from title`);

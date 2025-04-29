@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid'); // For generating unique IDs if needed
 const { getDB } = require('../config/db');
 const { extractKeywords } = require('../utils/keywordExtractor'); // Import keyword extractor
 const { PoliticalBias } = require('../utils/biasAnalyzer');
+const { processNewsKeywords } = require('./wordProcessingService');
 
 const parser = new Parser();
 
@@ -379,7 +380,7 @@ const mapRssItemToNewsItem = (item, feedConfig) => {
 
     // Basic validation
     if (!title || !url) {
-      // console.warn(`[RSS] Skipping item due to missing title or URL from ${feedConfig.name}: ${item.title?.substring(0,50)}`);
+      console.warn(`[RSS] Skipping item due to missing title or URL from ${feedConfig.name}: ${item.title?.substring(0,50)}`);
       return null;
     }
 
@@ -388,7 +389,7 @@ const mapRssItemToNewsItem = (item, feedConfig) => {
       const parsedUrl = new URL(url);
       url = parsedUrl.href;
     } catch (e) {
-      // console.warn(`[RSS] Skipping item due to invalid URL from ${feedConfig.name}: ${url}`);
+      console.warn(`[RSS] Skipping item due to invalid URL from ${feedConfig.name}: ${url}`);
       return null;
     }
 
@@ -409,10 +410,9 @@ const mapRssItemToNewsItem = (item, feedConfig) => {
       publishedAt = new Date().toISOString(); // Fallback
     }
 
-    // Generate a unique ID (using URL and publication time for potential deduplication)
-    // Or use UUID if perfect uniqueness is needed and duplicates are handled elsewhere
-    // const id = uuidv4();
-    const id = `${url}-${publishedAt}`; 
+    // Generate a more robust unique ID that includes source and normalized title
+    const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const id = `${feedConfig.name}-${normalizedTitle}-${publishedAt}`;
 
     const newsItem = {
       id,
@@ -590,52 +590,51 @@ const fetchAllRssNews = async () => {
       const feed = await parser.parseURL(feedConfig.url);
       const mappedItems = feed.items
         .map(item => mapRssItemToNewsItem(item, feedConfig))
-        .filter(item => item !== null); // Filter out items that failed mapping/validation
+        .filter(item => item !== null);
 
       // Extract keywords for successfully mapped items
       const itemsWithKeywords = await Promise.all(
-          mappedItems.map(async (item) => {
-            item.keywords = await extractKeywords(item);
-            return item;
-          })
+        mappedItems.map(async (item) => {
+          item.keywords = await extractKeywords(item);
+          return item;
+        })
       );
 
-      console.log(`[RSS Service] Fetched, mapped, and extracted keywords for ${itemsWithKeywords.length} items from ${feedConfig.name}`);
-      
-      if (itemsWithKeywords.length > 0) {
-        // Insert into DB (handle potential duplicates if needed)
-        try {
-           // Use updateMany with upsert to avoid duplicates based on the custom 'id' field
-           const bulkOps = itemsWithKeywords.map(item => ({
-             updateOne: {
-               filter: { id: item.id }, // Use the custom id (url + publishedAt)
-               update: { $setOnInsert: item }, // Only insert if 'id' doesn't exist
-               upsert: true
-             }
-           }));
-           if (bulkOps.length > 0) {
-             const result = await newsCollection.bulkWrite(bulkOps, { ordered: false });
-             console.log(`[DB] Upserted ${result.upsertedCount} new items from ${feedConfig.name}. Matched: ${result.matchedCount}`);
-           }
-        } catch (dbError) {
-            console.error(`[DB] Error saving items from ${feedConfig.name}:`, dbError);
-            // Handle specific errors like duplicate keys if not using upsert correctly
-            if (dbError.code === 11000) {
-              console.warn(`[DB] Duplicate key error encountered for ${feedConfig.name}. Some items might already exist.`);
-            }
+      // Process keywords using TF-IDF
+      const itemsWithRefinedKeywords = await processNewsKeywords(itemsWithKeywords);
+
+      // Check for duplicates before saving
+      if (itemsWithRefinedKeywords.length > 0) {
+        const bulkOps = [];
+        for (const item of itemsWithRefinedKeywords) {
+          // Check if article with same title and source exists within last 24 hours
+          const existing = await newsCollection.findOne({
+            url: item.url
+          });
+
+          if (!existing) {
+            bulkOps.push({
+              updateOne: {
+                filter: { url: item.url },
+                update: { $set: item },
+                upsert: true
+              }
+            });
+          } else {
+            console.log(`[Duplicate] Skipping duplicate article from ${item.source.name}: "${item.title.substring(0, 50)}..."`);
+          }
         }
-        return itemsWithKeywords; // Return items with keywords
+
+        if (bulkOps.length > 0) {
+          await newsCollection.bulkWrite(bulkOps);
+        }
       }
-      return [];
+
+      console.log(`[RSS Service] Fetched, processed, and saved ${itemsWithRefinedKeywords.length} items from ${feedConfig.name}`);
+      return itemsWithRefinedKeywords;
     } catch (error) {
       console.error(`[RSS Service] Error processing ${feedConfig.name} (${feedConfig.url}):`, error.message);
-      // Log less severe errors like timeouts or parsing issues without stopping everything
-      if (error.code === 'ECONNABORTED') {
-          console.warn(`[RSS Service] Timeout fetching ${feedConfig.name}`);
-      } else if (error.message.includes('Invalid XML') || error.message.includes('Non-whitespace before first tag')) {
-          console.warn(`[RSS Service] Invalid XML or parsing error for ${feedConfig.name}`);
-      }
-      return []; // Return empty array on error for this feed
+      return [];
     }
   });
 
