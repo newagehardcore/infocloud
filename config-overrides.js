@@ -18,7 +18,11 @@ module.exports = function override(config, env) {
     "zlib": require.resolve("browserify-zlib"),
     "querystring": require.resolve("querystring-es3"),
     "process": require.resolve("process/browser"),
-    "timers": false
+    "timers": false,
+    // Add fallbacks for network modules causing errors
+    "net": false,
+    "tls": false,
+    "dns": false
   };
 
   // Add buffer and process polyfills

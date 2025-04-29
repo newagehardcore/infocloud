@@ -196,11 +196,7 @@ const App: React.FC = () => {
         // Process words with balanced bias distribution
         const words = await processNewsToWords(unfilteredNewsItems, {
           ...DEFAULT_WORD_PROCESSING_CONFIG,
-          minFrequency: 1, // Show words that appear at least once
           maxWords: 500, // Show more words
-          minWordLength: 3, // Keep minimum word length
-          removeStopWords: true,
-          combineWordForms: true // Enable root finding
         });
         
         // Log bias distribution for debugging

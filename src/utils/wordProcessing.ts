@@ -28,55 +28,114 @@ const SECTION_TITLE_WORDS = new Set([
   'metro', 'national', 'international', 'magazine', 'weekend', 'sunday', 'columns', 'features', 'lifestyle',
   'society', 'law', 'crime', 'justice', 'environment', 'jobs', 'careers', 'autos', 'cars', 'classifieds',
   'events', 'calendar', 'letters', 'comics', 'puzzles', 'games', 'horoscopes', 'crosswords', 'photos',
-  'video', 'multimedia'
+  'video', 'multimedia', 'podcast', 'audio', 'gallery', 'slideshow', 'infographic', 'advertisement', 'sponsored',
+  'subscription', 'subscribe', 'donate', 'support', 'contact', 'about', 'staff', 'corrections', 'archives'
 ]);
 
 // Common less descriptive words that appear frequently in news
 const COMMON_DESCRIPTIVE_WORDS = new Set([
   // Time-related words
-  'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'day', 'hour', 'minute',
-  'morning', 'afternoon', 'evening', 'night', 'monday', 'tuesday', 'wednesday', 
-  'thursday', 'friday', 'saturday', 'sunday', 'january', 'february', 'march', 'april',
-  'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+  'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'day', 'hour', 'minute', 'second',
+  'morning', 'afternoon', 'evening', 'night', 'midnight', 'noon', 'daily', 'weekly', 'monthly', 'annual', 'biannual',
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+  'date', 'time', 'period', 'season', 'era', 'century', 'decade', 'moment', 'schedule',
   
-  // Descriptive verbs that don't add much meaning
-  'says', 'said', 'told', 'announced', 'reported', 'claimed', 'stated', 'described',
-  'appeared', 'revealed', 'suggested', 'mentioned', 'noted', 'added', 'explained',
-  'confirmed', 'denied', 'asked', 'called', 'commented', 'shared', 'showed',
+  // Descriptive verbs that don't add much meaning (base forms and common conjugations)
+  'says', 'said', 'say', 'saying', 'told', 'tell', 'telling', 'announced', 'announce', 'announcing',
+  'reported', 'report', 'reporting', 'claimed', 'claim', 'claiming', 'stated', 'state', 'stating',
+  'described', 'describe', 'describing', 'appeared', 'appear', 'appearing', 'revealed', 'reveal', 'revealing',
+  'suggested', 'suggest', 'suggesting', 'mentioned', 'mention', 'mentioning', 'noted', 'note', 'noting',
+  'added', 'add', 'adding', 'explained', 'explain', 'explaining', 'confirmed', 'confirm', 'confirming',
+  'denied', 'deny', 'denying', 'asked', 'ask', 'asking', 'called', 'call', 'calling', 'commented', 'comment', 'commenting',
+  'shared', 'share', 'sharing', 'showed', 'show', 'showing', 'seen', 'see', 'seeing', 'saw',
+  'found', 'find', 'finding', 'gave', 'give', 'giving', 'got', 'get', 'getting', 'went', 'go', 'going',
+  'knew', 'know', 'knowing', 'made', 'make', 'making', 'took', 'take', 'taking', 'thought', 'think', 'thinking',
+  'used', 'use', 'using', 'wanted', 'want', 'wanting', 'worked', 'work', 'working', 'came', 'come', 'coming',
+  'become', 'became', 'becoming', 'began', 'begin', 'beginning', 'ended', 'end', 'ending', 'started', 'start', 'starting',
+  'continued', 'continue', 'continuing', 'remained', 'remain', 'remaining', 'seemed', 'seem', 'seeming', 'helped', 'help', 'helping',
+  'played', 'play', 'playing', 'moved', 'move', 'moving', 'liked', 'like', 'liking', 'lived', 'live', 'living', 'believed', 'believe', 'believing',
+  'brought', 'bring', 'bringing', 'happened', 'happen', 'happening', 'watched', 'watch', 'watching', 'followed', 'follow', 'following',
+  'stopped', 'stop', 'stopping', 'created', 'create', 'creating', 'spoke', 'speak', 'speaking', 'read', 'reading', 'allowed', 'allow', 'allowing',
+  'led', 'lead', 'leading', 'grew', 'grow', 'growing', 'offered', 'offer', 'offering', 'remembered', 'remember', 'remembering',
+  'considered', 'consider', 'considering', 'waited', 'wait', 'waiting', 'served', 'serve', 'serving', 'died', 'die', 'dying',
+  'sent', 'send', 'sending', 'expected', 'expect', 'expecting', 'built', 'build', 'building', 'stayed', 'stay', 'staying',
+  'fell', 'fall', 'falling', 'reached', 'reach', 'reaching', 'killed', 'kill', 'killing', 'raised', 'raise', 'raising',
+  'passed', 'pass', 'passing', 'sold', 'sell', 'selling', 'required', 'require', 'requiring', 'decided', 'decide', 'deciding',
+  'pulled', 'pull', 'pulling', 'returned', 'return', 'returning', 'hoped', 'hope', 'hoping', 'paid', 'pay', 'paying',
   
   // Common news article terms
   'report', 'story', 'article', 'headline', 'breaking', 'update', 'news', 'latest',
   'exclusive', 'interview', 'statement', 'press', 'release', 'analysis', 'opinion',
   'editorial', 'feature', 'briefing', 'recap', 'roundup', 'summary', 'preview',
   'review', 'guide', 'explainer', 'breakdown', 'profile', 'description', 'cartoon', 'cover',
+  'coverage', 'source', 'media', 'journalism', 'journalist', 'reporter', 'correspondent', 'editor',
+  'column', 'blog', 'post', 'wire', 'dispatch', 'bulletin', 'issue', 'edition', 'publication',
+  'content', 'information', 'data', 'details', 'facts', 'figure', 'statistics', 'poll', 'survey',
+  'quote', 'excerpt', 'image', 'photo', 'picture', 'video', 'audio', 'clip', 'document',
   
   // General words that don't provide specific content
-  'amid', 'despite', 'following', 'according', 'regarding', 'concerning',
-  'per', 'via', 'through', 'throughout', 'during', 'before', 'after',
-  'among', 'between', 'within', 'around', 'across', 'along', 'beyond',
+  'amid', 'despite', 'following', 'according', 'regarding', 'concerning', 'instead', 'unless', 'while',
+  'per', 'via', 'through', 'throughout', 'during', 'before', 'after', 'since', 'until', 'till',
+  'among', 'between', 'within', 'without', 'around', 'across', 'along', 'beyond', 'above', 'below', 'under', 'over',
+  'about', 'against', 'toward', 'towards', 'onto', 'into', 'out', 'off', 'up', 'down', 'away',
+  'thing', 'things', 'stuff', 'lot', 'lots', 'kind', 'sort', 'type', 'way', 'ways', 'manner', 'form', 'aspect',
+  'part', 'parts', 'piece', 'bit', 'section', 'area', 'item', 'items', 'case', 'cases', 'point', 'points',
+  'example', 'examples', 'instance', 'instances', 'situation', 'context', 'background', 'result', 'results',
+  'number', 'numbers', 'amount', 'level', 'rate', 'degree', 'percent', 'percentage', 'volume', 'measure',
+  'group', 'groups', 'team', 'teams', 'side', 'sides', 'member', 'members', 'people', 'person', 'individual',
+  'man', 'men', 'woman', 'women', 'child', 'children', 'family', 'families', 'community', 'public',
+  'government', 'company', 'organization', 'agency', 'department', 'office', 'official', 'officials',
+  'system', 'process', 'program', 'project', 'plan', 'effort', 'approach', 'method', 'strategy',
+  'term', 'terms', 'word', 'words', 'name', 'names', 'title', 'titles', 'label', 'labels',
+  'question', 'questions', 'answer', 'answers', 'issue', 'issues', 'problem', 'problems', 'challenge', 'challenges',
+  'reason', 'reasons', 'cause', 'causes', 'effect', 'effects', 'impact', 'impacts', 'consequence', 'consequences',
+  'change', 'changes', 'development', 'developments', 'trend', 'trends', 'pattern', 'patterns',
+  'need', 'needs', 'role', 'roles', 'job', 'jobs', 'work', 'task', 'tasks',
+  'place', 'places', 'location', 'locations', 'site', 'sites', 'country', 'countries', 'nation', 'nations',
+  'state', 'states', 'city', 'cities', 'town', 'towns', 'region', 'regions', 'area', 'areas', 'world',
+  'life', 'lives', 'death', 'deaths', 'event', 'events', 'incident', 'incidents', 'situation', 'situations',
+  'home', 'house', 'building', 'school', 'hospital', 'car', 'vehicle', 'road', 'street',
   
   // High-frequency adjectives in news
-  'new', 'top', 'big', 'major', 'key', 'important', 'significant', 'critical',
-  'essential', 'vital', 'crucial', 'main', 'primary', 'secondary', 'notable',
-  'recent', 'latest', 'current', 'ongoing', 'developing', 'upcoming', 'potential',
-  'possible', 'likely', 'unlikely', 'certain', 'controversial', 'popular',
+  'new', 'old', 'top', 'bottom', 'big', 'small', 'large', 'little', 'major', 'minor',
+  'key', 'important', 'unimportant', 'significant', 'insignificant', 'critical', 'noncritical',
+  'essential', 'vital', 'crucial', 'main', 'primary', 'secondary', 'tertiary', 'notable',
+  'recent', 'past', 'latest', 'earliest', 'current', 'former', 'previous', 'next', 'upcoming',
+  'ongoing', 'developing', 'potential', 'possible', 'impossible', 'likely', 'unlikely', 'certain', 'uncertain',
+  'controversial', 'uncontroversial', 'popular', 'unpopular', 'known', 'unknown', 'famous', 'infamous',
+  'good', 'bad', 'better', 'worse', 'best', 'worst', 'great', 'poor', 'high', 'low', 'long', 'short',
+  'early', 'late', 'quick', 'slow', 'easy', 'hard', 'difficult', 'simple', 'complex', 'clear', 'unclear',
+  'true', 'false', 'real', 'fake', 'actual', 'virtual', 'right', 'wrong', 'correct', 'incorrect',
+  'different', 'same', 'similar', 'various', 'several', 'multiple', 'single', 'double', 'triple',
+  'many', 'few', 'much', 'less', 'more', 'most', 'least', 'enough', 'additional', 'extra',
+  'full', 'empty', 'open', 'closed', 'public', 'private', 'common', 'rare', 'general', 'specific',
+  'local', 'national', 'international', 'global', 'federal', 'state', 'political', 'economic', 'social',
+  'financial', 'military', 'legal', 'medical', 'technical', 'official', 'personal', 'human',
+  'dead', 'alive', 'available', 'unavailable', 'ready', 'prepared', 'related', 'unrelated',
+  'serious', 'safe', 'dangerous', 'able', 'unable', 'concerned', 'aware', 'unaware', 'happy', 'sad',
+  
+  // High-frequency adverbs
+  'also', 'just', 'very', 'really', 'well', 'even', 'still', 'too', 'yet', 'never', 'always',
+  'often', 'sometimes', 'usually', 'generally', 'recently', 'currently', 'finally', 'already',
+  'later', 'sooner', 'early', 'late', 'now', 'then', 'here', 'there', 'everywhere', 'nowhere',
+  'back', 'forward', 'again', 'once', 'twice', 'first', 'secondly', 'thirdly', 'lastly',
+  'together', 'apart', 'especially', 'particularly', 'specifically', 'clearly', 'obviously',
+  'likely', 'probably', 'possibly', 'perhaps', 'maybe', 'actually', 'indeed', 'truly',
+  'nearly', 'almost', 'about', 'around', 'roughly', 'approximately', 'exactly', 'precisely',
+  'highly', 'largely', 'mainly', 'mostly', 'partly', 'fully', 'completely', 'entirely', 'totally',
+  'quickly', 'slowly', 'easily', 'hardly', 'simply', 'directly', 'indirectly', 'effectively', 'successfully',
+  'however', 'therefore', 'thus', 'hence', 'consequently', 'furthermore', 'moreover', 'meanwhile', 'instead',
   
   // Additional common news terms
-  'first', 'second', 'third', 'last', 'next', 'previous', 'final',
-  'begin', 'began', 'begun', 'start', 'started', 'end', 'ended',
-  'show', 'shows', 'showing', 'shown', 'see', 'sees', 'seen', 'saw',
-  'watch', 'watched', 'watching', 'look', 'looked', 'looking',
-  'think', 'thought', 'thinking', 'make', 'made', 'making',
-  'take', 'took', 'taken', 'taking', 'get', 'got', 'getting',
-  'find', 'found', 'finding', 'use', 'used', 'using',
-  'tell', 'telling', 'become', 'became', 'becoming',
+  'first', 'second', 'third', 'fourth', 'fifth', 'last', 'next', 'previous', 'final', 'initial',
   
-  // Title prefixes that should be removed
+  // Title prefixes (already handled somewhat but reinforcing here)
   'president', 'vice', 'senator', 'rep', 'representative', 'secretary',
   'governor', 'mayor', 'chief', 'director', 'chairman', 'chairwoman',
   'spokesperson', 'minister', 'chancellor', 'prime', 'king', 'queen',
   'prince', 'princess', 'duke', 'duchess', 'sir', 'dame', 'ceo',
-  'founder', 'official', 'leader', 'spokesman', 'spokeswoman'
+  'founder', 'official', 'leader', 'spokesman', 'spokeswoman', 'dr', 'prof', 'mr', 'mrs', 'ms'
 ]);
 
 // Common news source names to filter out
@@ -95,351 +154,80 @@ const MAX_WORDS_PER_BIAS = 100;
 
 // Configuration options for word processing
 export interface WordProcessingConfig {
-  minWordLength: number;        // Minimum length of words to include
-  maxWordLength: number;        // Maximum length of words to include
-  minFrequency: number;         // Minimum frequency for a word to be included
-  maxWords: number;             // Maximum number of words to include in cloud
-  removeStopWords: boolean;     // Whether to remove stop words
-  combineWordForms: boolean;    // Whether to combine similar word forms
+  maxWords: number;
 }
 
 // Default configuration
 export const DEFAULT_WORD_PROCESSING_CONFIG: WordProcessingConfig = {
-  minWordLength: 3,        // Allow shorter words
-  maxWordLength: 30,       // Allow longer words/phrases
-  minFrequency: 1,         // Include words that appear only once
-  maxWords: 500,           // Allow many more words
-  removeStopWords: true,   // Keep filtering stop words
-  combineWordForms: true  // Combine word forms to preserve variety
-};
-
-// Map of known entities and their canonical forms
-// This helps normalize entities like "Trump", "Donald Trump", "President Trump" to a single form
-const ENTITY_CANONICAL_FORMS: Record<string, string> = {
-  // Political figures - US
-  'trump': 'trump',
-  'donald trump': 'trump',
-  'president trump': 'trump',
-  'former president trump': 'trump',
-  'donald j trump': 'trump',
-  
-  'biden': 'biden',
-  'joe biden': 'biden',
-  'president biden': 'biden',
-  'joseph biden': 'biden',
-  'joseph r biden': 'biden',
-  
-  'obama': 'obama',
-  'barack obama': 'obama',
-  'president obama': 'obama',
-  'former president obama': 'obama',
-  
-  'harris': 'harris',
-  'kamala harris': 'harris',
-  'vice president harris': 'harris',
-  'vp harris': 'harris',
-  
-  'pence': 'pence',
-  'mike pence': 'pence',
-  'michael pence': 'pence',
-  'vice president pence': 'pence',
-  'former vice president pence': 'pence',
-  
-  // Political figures - International
-  'putin': 'putin',
-  'vladimir putin': 'putin',
-  'president putin': 'putin',
-  
-  'zelensky': 'zelensky',
-  'zelenskyy': 'zelensky',
-  'volodymyr zelensky': 'zelensky',
-  'president zelensky': 'zelensky',
-  
-  'xi': 'xi jinping',
-  'xi jinping': 'xi jinping',
-  'president xi': 'xi jinping',
-  
-  'trudeau': 'trudeau',
-  'justin trudeau': 'trudeau',
-  'prime minister trudeau': 'trudeau',
-  
-  // Organizations/Companies
-  'meta': 'meta',
-  'facebook': 'meta',
-  'meta platforms': 'meta',
-  
-  'google': 'google',
-  'alphabet': 'google',
-  
-  'amazon': 'amazon',
-  'amazon.com': 'amazon',
-  
-  'apple': 'apple',
-  'apple inc': 'apple',
-  
-  'microsoft': 'microsoft',
-  'msft': 'microsoft',
-  
-  'openai': 'openai',
-  'open ai': 'openai',
-  
-  'gop': 'republican party',
-  'republican': 'republican party',
-  'republicans': 'republican party',
-  'republican party': 'republican party',
-  
-  'democrat': 'democratic party',
-  'democrats': 'democratic party',
-  'democratic party': 'democratic party',
-  'dems': 'democratic party',
-  
-  // Countries/Regions
-  'us': 'united states',
-  'usa': 'united states',
-  'united states': 'united states',
-  'america': 'united states',
-  
-  'uk': 'united kingdom',
-  'britain': 'united kingdom',
-  'great britain': 'united kingdom',
-  'united kingdom': 'united kingdom',
-  
-  'eu': 'european union',
-  'european union': 'european union',
-  
-  'russia': 'russia',
-  'russian federation': 'russia',
-  
-  'china': 'china',
-  'prc': 'china',
-  'peoples republic of china': 'china',
-  
-  'ukraine': 'ukraine',
-  
-  'israel': 'israel',
-  
-  'gaza': 'gaza',
-  'gaza strip': 'gaza',
-  
-  'palestine': 'palestine',
-  'palestinian territories': 'palestine'
+  maxWords: 500,
 };
 
 /**
- * Simple word stemming function to find word roots
- * For example: "running" -> "run", "politics" -> "politic"
- */
-const findWordRoot = (word: string): string => {
-  if (word.length <= 3) return word;
-  
-  // Handle common suffixes
-  if (word.endsWith('ing')) return word.slice(0, -3);
-  if (word.endsWith('ed')) return word.slice(0, -2);
-  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
-  if (word.endsWith('ly')) return word.slice(0, -2);
-  if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
-  if (word.endsWith('es')) return word.slice(0, -2);
-  
-  return word;
-};
-
-/**
- * Normalizes entities to their canonical forms
- * For example: "President Trump" -> "trump", "Joe Biden" -> "biden"
- */
-const normalizeEntity = (term: string): string => {
-  const lowerTerm = term.toLowerCase();
-  
-  // Direct lookup in our entity map
-  if (ENTITY_CANONICAL_FORMS[lowerTerm]) {
-    return ENTITY_CANONICAL_FORMS[lowerTerm];
-  }
-  
-  // Check if this is a term with a title prefix (e.g., "President [Name]")
-  const parts = lowerTerm.split(' ');
-  if (parts.length > 1) {
-    // If the first word is a title/prefix in common descriptive words, remove it
-    // and check if the rest is in our entity map
-    if (COMMON_DESCRIPTIVE_WORDS.has(parts[0])) {
-      const withoutPrefix = parts.slice(1).join(' ');
-      if (ENTITY_CANONICAL_FORMS[withoutPrefix]) {
-        return ENTITY_CANONICAL_FORMS[withoutPrefix];
-      }
-    }
-    
-    // Check if the last part is a known entity (e.g., "Donald J. Trump" -> "Trump")
-    const lastPart = parts[parts.length - 1];
-    if (ENTITY_CANONICAL_FORMS[lastPart]) {
-      return ENTITY_CANONICAL_FORMS[lastPart];
-    }
-  }
-  
-  // No normalization found, return the original term
-  return term;
-};
-
-// Helper to normalize a word for descriptive/section filtering
-function normalizeForFilter(word: string): string {
-  let w = word.toLowerCase();
-  if (w.endsWith("'s")) w = w.slice(0, -2);
-  else if (w.endsWith("es")) w = w.slice(0, -2);
-  else if (w.endsWith("s")) w = w.slice(0, -1);
-  return w;
-}
-
-/**
- * Determines if a word should be kept based on the configuration
- */
-const shouldKeepWord = (
-  word: string,
-  config: WordProcessingConfig
-): boolean => {
-  // Block all words containing "cartoon" in any form
-  if (word.toLowerCase().includes('cartoon')) {
-    return false;
-  }
-
-  // Check word length
-  if (word.length < config.minWordLength || word.length > config.maxWordLength) {
-    return false;
-  }
-
-  // Remove descriptive/section words and their possessive/plural forms
-  const normalized = normalizeForFilter(word);
-  if (COMMON_DESCRIPTIVE_WORDS.has(normalized) || SECTION_TITLE_WORDS.has(normalized)) {
-    return false;
-  }
-
-  // For hyphenated or multi-word terms, check each part
-  if (word.includes('-') || word.includes(' ')) {
-    const parts = word.split(/\s|-+/);
-    if (parts.every(part => 
-      (STOP_WORDS.has(part) && !NEWS_SPECIFIC_WORDS.has(part)) || 
-      CATEGORY_TITLE_WORDS.has(part) || 
-      SECTION_TITLE_WORDS.has(part) ||
-      COMMON_DESCRIPTIVE_WORDS.has(part) ||
-      COMMON_DESCRIPTIVE_WORDS.has(normalizeForFilter(part)) ||
-      SECTION_TITLE_WORDS.has(normalizeForFilter(part))
-    )) {
-      return false;
-    }
-  } else {
-    // Single word checks
-    if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) {
-      return false;
-    }
-    if (NEWS_SOURCE_NAMES.has(word)) {
-      return false;
-    }
-    if (CATEGORY_TITLE_WORDS.has(word) || SECTION_TITLE_WORDS.has(word)) {
-      return false;
-    }
-    if (COMMON_DESCRIPTIVE_WORDS.has(word)) {
-      return false;
-    }
-  }
-
-  // Additional filters can be added here
-  if (/^\d+$/.test(word)) {
-    return false;
-  }
-
-  return true;
-};
-
-/**
- * Clean a string by removing/normalizing punctuation and HTML entities
- */
-const cleanString = (str: string): string => {
-  // Convert HTML entities like &amp; &apos; etc. to their character equivalents
-  const decodedStr = str.replace(/&apos;/g, "'")
-                         .replace(/&quot;/g, '"')
-                         .replace(/&amp;/g, '&')
-                         .replace(/&lt;/g, '<')
-                         .replace(/&gt;/g, '>')
-                         .replace(/&#39;/g, "'")
-                         .replace(/&rsquo;/g, "'")
-                         .replace(/&ldquo;|&rdquo;/g, '"');
-  
-  // Normalize apostrophes (replace fancy quotes with simple apostrophe)
-  const normalizedApostrophes = decodedStr.replace(/['′'']/g, "'");
-  
-  // Remove all punctuation except apostrophes in words (like "don't")
-  // Keep hyphens in compound words but remove other punctuation
-  return normalizedApostrophes.replace(/[.,;:!?()[\]{}"\\|@#$%^&*+=_~<>]/g, '')
-                              .replace(/\s-+\s/g, ' '); // Remove standalone hyphens
-};
-
-/**
- * Processes news items to generate refined tag cloud words with balanced bias distribution
+ * Processes news items to generate tag cloud words by aggregating pre-processed keywords from the backend.
  */
 export const processNewsToWords = async (
   news: NewsItem[],
   config = DEFAULT_WORD_PROCESSING_CONFIG
 ): Promise<TagCloudWord[]> => {
+  if (!news || news.length === 0) {
+    return [];
+  }
+
   // Create a map to track word occurrences and their biases
   const wordBiasMap = new Map<string, Map<PoliticalBias, number>>();
   const wordDataMap = new Map<string, {
     value: number;
+    frequency: number;
     newsIds: string[];
-    category: NewsCategory;
-    variants?: Set<string>;
+    categories: Set<NewsCategory>;
   }>();
 
   // Process words into their respective bias categories
-  for (const item of news) {
-    // Skip items with undefined bias or keywords
-    if (!item.source?.bias || !item.keywords || !item.url) continue;
+  news.forEach(item => {
+    // Only need bias, keywords, url, id, category for processing here
+    if (!item.source?.bias || !item.keywords || !item.url || !item.id || !item.category) return; 
     
-    // Process each keyword from the item
-    for (const keyword of item.keywords) {
-      // Skip empty keywords
-      if (!keyword) continue;
-      
-      // Apply filters based on config
-      const normalizedWord = keyword.toLowerCase().trim();
-      
-      if (!shouldKeepWord(normalizedWord, config)) continue;
+    item.keywords.forEach(keyword => {
+      // Normalize keyword (simple lowercase)
+      const normalizedKeyword = keyword.toLowerCase().trim();
+      // Skip empty keywords just in case
+      if (!normalizedKeyword) return; 
 
-      // Check if this is a known entity and normalize it
-      const canonicalForm = normalizeEntity(normalizedWord);
-      const finalWord = canonicalForm || normalizedWord;
-      
       // Initialize or update word bias counts
-      if (!wordBiasMap.has(finalWord)) {
-        wordBiasMap.set(finalWord, new Map<PoliticalBias, number>());
+      if (!wordBiasMap.has(normalizedKeyword)) {
+        wordBiasMap.set(normalizedKeyword, new Map<PoliticalBias, number>());
       }
-      const biasCount = wordBiasMap.get(finalWord)!;
+      const biasCount = wordBiasMap.get(normalizedKeyword)!;
       biasCount.set(item.source.bias, (biasCount.get(item.source.bias) || 0) + 1);
 
       // Update word data
-      if (!wordDataMap.has(finalWord)) {
-        wordDataMap.set(finalWord, {
+      if (!wordDataMap.has(normalizedKeyword)) {
+        wordDataMap.set(normalizedKeyword, {
           value: 0,
+          frequency: 0,
           newsIds: [],
-          category: item.category,
-          variants: new Set<string>()
+          categories: new Set<NewsCategory>()
         });
       }
-      const wordData = wordDataMap.get(finalWord)!;
-      wordData.value += 1;
+      const wordData = wordDataMap.get(normalizedKeyword)!;
+      wordData.value += 1; // Use frequency as value since TF-IDF is done in backend
+      wordData.frequency += 1;
       if (!wordData.newsIds.includes(item.id)) {
         wordData.newsIds.push(item.id);
       }
-      // If this was a variant form, add it to the variants list
-      if (canonicalForm && normalizedWord !== canonicalForm) {
-        wordData.variants!.add(normalizedWord);
-      }
-    }
-  }
+      wordData.categories.add(item.category);
+    });
+  });
 
   // Convert word data to TagCloudWords with majority bias
   const words: TagCloudWord[] = [];
-  for (const [word, biasCount] of Array.from(wordBiasMap.entries())) {
+  for (const [key, biasCount] of Array.from(wordBiasMap.entries())) {
+    const wordData = wordDataMap.get(key);
+    if (!wordData) continue;
+
     // Find the bias with the highest count
     let maxCount = 0;
     let majorityBias = PoliticalBias.Unknown;
-    
     for (const [bias, count] of Array.from(biasCount.entries())) {
       if (count > maxCount) {
         maxCount = count;
@@ -447,56 +235,27 @@ export const processNewsToWords = async (
       }
     }
 
-    const wordData = wordDataMap.get(word)!;
+    // Choose the most representative category
+    const representativeCategory = wordData.categories.values().next().value || NewsCategory.News;
+
     words.push({
-      text: word,
+      text: key,
       value: wordData.value,
       bias: majorityBias,
       newsIds: wordData.newsIds,
-      category: wordData.category,
-      variants: wordData.variants && wordData.variants.size > 0 ? wordData.variants : undefined
+      category: representativeCategory
     });
   }
 
-  // Sort words by value (frequency) in descending order
+  // Sort words by value in descending order
   words.sort((a, b) => b.value - a.value);
 
-  // Apply max words limit while maintaining bias balance
-  const maxWordsPerBias = Math.min(
-    MAX_WORDS_PER_BIAS,
-    Math.ceil(config.maxWords / Object.keys(PoliticalBias).length)
-  );
-
-  const balancedWords: TagCloudWord[] = [];
-  let wordsAdded = 0;
-  
-  while (wordsAdded < config.maxWords) {
-    let addedThisRound = 0;
-    
-    for (const bias of Object.values(PoliticalBias)) {
-      const availableWords = words.filter(w => 
-        w.bias === bias && 
-        !balancedWords.includes(w)
-      );
-      
-      if (availableWords.length > 0) {
-        balancedWords.push(availableWords[0]);
-        addedThisRound++;
-        wordsAdded++;
-        
-        if (wordsAdded >= config.maxWords) break;
-      }
-    }
-    
-    if (addedThisRound === 0) break; // No more words to add
-  }
-
-  return balancedWords;
+  // Apply max words limit
+  return words.slice(0, config.maxWords);
 };
 
 /**
  * Utility function to analyze word frequency distribution
- * Useful for tuning the word processing parameters
  */
 export const analyzeWordDistribution = (words: TagCloudWord[]): {
   totalWords: number;
