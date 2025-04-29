@@ -70,6 +70,9 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
       } catch (e) {
          console.error("Failed to parse biases from localStorage", e);
       }
+    } else {
+      // If no biases are saved, enable all biases by default
+      localStorage.setItem('enabled_biases', JSON.stringify(Object.values(PoliticalBias)));
     }
     return initialBiases;
   });

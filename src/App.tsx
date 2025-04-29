@@ -145,6 +145,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadNews = async () => {
       console.log(`Starting loadNews for category: ${selectedCategory}`);
+      console.log('Enabled biases:', Array.from(enabledBiases));
       setLoading(true);
       setError(null);
       setNewsItems([]);
@@ -157,14 +158,20 @@ const App: React.FC = () => {
       };
 
       try {
+        console.log('Fetching news from:', `${API_BASE_URL}/api/news`);
         const response = await axios.get(`${API_BASE_URL}/api/news`, { params });
+        console.log('Received response:', response.data);
 
         if (response.data && response.data.data) {
+          console.log(`Received ${response.data.data.length} news items`);
           setUnfilteredNewsItems(response.data.data);
           const biasFiltered = filterNewsByBias(response.data.data, enabledBiases);
+          console.log(`After bias filtering: ${biasFiltered.length} items`);
           const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
+          console.log(`After time filtering: ${timeFiltered.length} items`);
           setNewsItems(timeFiltered);
         } else {
+          console.warn('No data received from API');
           setNewsItems([]);
           setUnfilteredNewsItems([]);
         }
