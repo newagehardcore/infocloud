@@ -1,5 +1,7 @@
 const natural = require('natural');
 const nlp = require('compromise');
+// const { PoliticalBias } = require('../utils/biasAnalyzer'); // Old import
+const { PoliticalBias } = require('../types'); // Import PoliticalBias from shared types
 
 // **Expanded and Merged Stop Words List**
 // Combining basic English stop words, common news/descriptive/title words,
@@ -372,7 +374,64 @@ const processNewsKeywords = async (newsItems, config = DEFAULT_CONFIG) => {
   return finalItems;
 };
 
+/**
+ * Aggregates keywords from a list of news items for the tag cloud.
+ * Calculates frequency counts for each keyword.
+ *
+ * @param {Array<Object>} newsItems - Array of news item objects, each expected to have a `keywords` array field.
+ * @param {number} maxWords - The maximum number of words to return for the cloud.
+ * @returns {Array<{text: string, value: number, bias: PoliticalBias}>} - Array of objects for the tag cloud, including bias.
+ */
+const aggregateKeywordsForCloud = (newsItems, maxWords = 500) => {
+  if (!newsItems || newsItems.length === 0) {
+    return [];
+  }
+
+  // Store frequency and the bias of the *first* article encountered for each keyword
+  const wordData = new Map();
+
+  newsItems.forEach(item => {
+    // Ensure source and bias exist, default to Unknown if not
+    const itemBias = item.source?.bias || PoliticalBias.Unknown; 
+
+    if (item.keywords && Array.isArray(item.keywords)) {
+      item.keywords.forEach(keyword => {
+        if (typeof keyword === 'string' && keyword.trim()) { // Basic validation
+          const lowerKeyword = keyword.toLowerCase().trim(); // Normalize
+          
+          if (!wordData.has(lowerKeyword)) {
+            // First time seeing this keyword, store its data
+            wordData.set(lowerKeyword, { 
+              value: 1, 
+              bias: itemBias // Assign bias from this item
+            });
+          } else {
+            // Already seen, just increment count
+            const currentData = wordData.get(lowerKeyword);
+            currentData.value += 1;
+            // Keep the bias from the first encounter
+          }
+        }
+      });
+    }
+  });
+
+  // Convert map to array, sort by frequency descending, and take top N
+  const sortedKeywords = Array.from(wordData.entries())
+    .map(([text, data]) => ({ 
+      text, 
+      value: data.value, 
+      bias: data.bias // Include the stored bias
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, maxWords);
+
+  console.log(`[aggregateKeywordsForCloud] Aggregated ${sortedKeywords.length} unique keywords with bias from ${newsItems.length} items.`);
+  return sortedKeywords;
+};
+
 module.exports = {
   processNewsKeywords,
+  aggregateKeywordsForCloud,
   DEFAULT_CONFIG
 }; 

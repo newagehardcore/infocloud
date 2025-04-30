@@ -1,9 +1,5 @@
 const cron = require('node-cron');
 const { fetchAllRssNews } = require('./services/rssService');
-// Import other API service fetch functions here when ready
-// const { fetchNewsApiNews } = require('./services/newsApiService');
-// const { fetchGNewsNews } = require('./services/gNewsService');
-// const { fetchTheNewsApiNews } = require('./services/theNewsApiService');
 
 // Define the main fetching task
 const fetchAllSources = async () => {
@@ -13,17 +9,6 @@ const fetchAllSources = async () => {
   try {
     // Fetch RSS feeds
     await fetchAllRssNews();
-
-    // --- Placeholder for future API calls ---
-    // console.log('\n[Cron Job] Fetching from NewsAPI...');
-    // await fetchNewsApiNews(); // Uncomment when ready
-    
-    // console.log('\n[Cron Job] Fetching from GNews...');
-    // await fetchGNewsNews(); // Uncomment when ready
-
-    // console.log('\n[Cron Job] Fetching from TheNewsAPI...');
-    // await fetchTheNewsApiNews(); // Uncomment when ready
-    // ----------------------------------------
 
     const duration = (Date.now() - startTime) / 1000;
     console.log(`\nCron Job: Finished feed fetch task in ${duration.toFixed(2)} seconds.`);

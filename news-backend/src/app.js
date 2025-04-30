@@ -24,7 +24,7 @@ connectDB().then(() => {
 app.use(express.json({ extended: false })); // Allows us to accept JSON data in the body
 
 // Define Routes
-app.get('/', (req, res) => res.send('API Running'));
+app.get('/', (req, res) => res.send('News Backend Running'));
 app.use('/api/news', newsRoutes);
 
 // Basic Error Handling Middleware (can be expanded later)

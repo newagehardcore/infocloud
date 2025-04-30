@@ -3,6 +3,7 @@ const router = express.Router();
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb'); // Needed if querying by MongoDB's default _id
 const { fetchAllRssNews } = require('../services/rssService');
+const { aggregateKeywordsForCloud } = require('../services/wordProcessingService');
 
 // @route   GET api/news
 // @desc    Get news items with filtering, sorting, and pagination
@@ -48,7 +49,7 @@ router.get('/', async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;   // Default page 1
     const skip = (page - 1) * limit;
 
-    // --- Querying --- 
+    // --- Querying News Items --- 
     const news = await newsCollection
       .find(filter)
       .sort(sortOptions)
@@ -56,12 +57,17 @@ router.get('/', async (req, res) => {
       .limit(limit)
       .toArray();
 
+    // --- Aggregating Keywords for Tag Cloud ---
+    // Aggregate keywords from the fetched news items for this specific request/filter
+    const wordsForCloud = aggregateKeywordsForCloud(news, 500); // Use the new function, limit to 500 words
+
     // Optional: Get total count for pagination headers/info
     const totalItems = await newsCollection.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / limit);
 
     res.json({
       data: news,
+      words: wordsForCloud,
       pagination: {
         totalItems,
         totalPages,
