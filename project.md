@@ -2,18 +2,18 @@
 
 ## 1. Project Overview
 
-This project is a full-stack news aggregation application designed to collect, analyze, and display news from various RSS feeds and external news APIs. The frontend, built with React, features a dynamic 3D tag cloud for exploring topics with category- and bias-based filters. The backend, using Node.js and Express, manages data retrieval, storage, keyword extraction, and bias analysis, serving data to the frontend via RESTful APIs.
+This project is a full-stack news aggregation application designed to collect, analyze, and display news exclusively from various RSS feeds. The frontend, built with React, features a dynamic 3D tag cloud for exploring topics. The backend, using Node.js and Express, manages RSS feed retrieval, storage, keyword extraction/processing, and serves this processed data to the frontend via RESTful APIs.
 
 **Technologies:**
 
 *   **Frontend:** React, CSS
 *   **Backend:** Node.js, Express
-*   **Data:** JSON
-*   **APIs:** External News APIs (e.g., News API, Google News), RSS Feeds
+*   **Data:** JSON (from RSS feeds)
+*   **APIs:** RSS Feeds
 
 **Core Design:**
 
-*   **Microservice-inspired:** Backend services are modular (e.g., `rssService`, `newsApiService`).
+*   **Modular Backend:** Backend services handle specific tasks (e.g., `rssService`, `wordProcessingService`).
 *   **Data-driven:** News data is the central element.
 *   **Client-Server:** Clear separation between frontend and backend.
 
@@ -71,10 +71,10 @@ This project is a full-stack news aggregation application designed to collect, a
         *   **Key Functions:** `fetchRelatedNews()`.
         *   **Dependencies:** `rssService`
     *   **`TagCloud3DOptimized.tsx`:** 3D interactive tag cloud.
-        *   **Purpose:** Visualizes news keywords as an interactive 3D tag cloud.
+        *   **Purpose:** Visualizes news keywords as an interactive 3D tag cloud using pre-processed data from the backend.
         *   **Location:** `src/components/TagCloud3DOptimized.tsx`
-        *   **Key Functions:** `generateCloud()`
-        *   **Dependencies:** `wordProcessing`
+        *   **Key Functions:** Renders words based on input props.
+        *   **Dependencies:** Receives processed words via props.
     *   **`TimeControls.tsx`:** UI controls for time-based filtering.
         *   **Purpose:** Handles selection of time frames for news.
         *   **Location:** `src/components/TimeControls.tsx`
@@ -87,20 +87,20 @@ This project is a full-stack news aggregation application designed to collect, a
     *   **Dependencies:** React Context API.
 *   **`services/`:**
     *   **`rssService.js`:**
-        *   **Purpose:** Fetches and processes news data from the backend API.
+        *   **Purpose:** Fetches processed news and keyword data from the backend API.
         *   **Location:** `src/services/rssService.js`
-        *   **Key Functions:** `fetchNews()`.
-        *   **Dependencies:** `timeSnapshotService`
+        *   **Key Functions:** `fetchNews()` (or similar function fetching from backend).
+        *   **Dependencies:** Backend API endpoint.
     *   **`timeSnapshotService.ts`:**
         *   **Purpose:** Manages time snapshot related operations.
         *   **Location:** `src/services/timeSnapshotService.ts`
         *   **Key Functions:** `fetchTimeSnapshots()`, `createTimeSnapshot()`
         *   **Dependencies:** None
-*   **`utils/wordProcessing.ts`**:
-    *   **Purpose:** Processes word data for the 3D Tag Cloud.
+*   **`utils/wordProcessing.ts`:**
+    *   **Purpose:** **[DEPRECATED]** Previously processed word data for the 3D Tag Cloud. This logic is now handled by the backend `wordProcessingService`.
     *   **Location:** `src/utils/wordProcessing.ts`
-    *   **Key Functions:** `processWordsForCloud()`, `sortAndFilterWords()`
-    *   **Dependencies:** None
+    *   **Key Functions:** None (obsolete).
+    *   **Dependencies:** None.
 
 ### Backend (`news-backend/src/`)
 
@@ -109,6 +109,10 @@ This project is a full-stack news aggregation application designed to collect, a
     *   **Location:** `news-backend/src/app.js`
     *   **Key Functions:** Route setup, server initialization.
     *   **Dependencies:** `express`, `routes/news.js`
+    *   **Purpose:** Scheduled tasks for fetching news from RSS feeds.
+    *   **Location:** `news-backend/src/cron.js`
+    *   **Key Functions:** `startNewsFetchingJob()` (or similar).
+    *   **Dependencies:** `node-cron`, `rssService`, `wordProcessingService`
 *   **`cron.js`:**
     *   **Purpose:** Scheduled tasks for fetching news.
     *   **Location:** `news-backend/src/cron.js`
@@ -125,90 +129,80 @@ This project is a full-stack news aggregation application designed to collect, a
     *   **Key Functions:** `NewsItemSchema`.
     *   **Dependencies:** `mongoose`
 *   **`routes/news.js`:**
-    *   **Purpose:** API routes for news data.
+    *   **Purpose:** API routes for serving processed news and keyword data.
     *   **Location:** `news-backend/src/routes/news.js`
-    *   **Key Functions:** `GET /news`, `GET /news/:id`, `GET /relatedNews`
-    *   **Dependencies:** `services`
+    *   **Key Functions:** `GET /news` (or similar endpoint providing news and words).
+    *   **Dependencies:** `services/rssService`, `services/wordProcessingService`
 *   **`services/`:**
-    *   **`gNewsService.js`:**
-        *   **Purpose:** Fetches data from Google News API.
+    *   **`gNewsService.js`:** **[DEPRECATED]**
+        *   **Purpose:** Previously fetched data from Google News API. Removed as project now uses RSS exclusively.
         *   **Location:** `news-backend/src/services/gNewsService.js`
-        *   **Key Functions:** `fetchNews()`.
-        *   **Dependencies:** `axios`
-    *   **`newsApiService.js`:**
-        *   **Purpose:** Fetches data from News API.
+    *   **`newsApiService.js`:** **[DEPRECATED]**
+        *   **Purpose:** Previously fetched data from News API. Removed as project now uses RSS exclusively.
         *   **Location:** `news-backend/src/services/newsApiService.js`
-        *   **Key Functions:** `fetchNews()`.
-        *   **Dependencies:** `axios`
     *   **`rssService.js`:**
         *   **Purpose:** Fetches and parses RSS feeds.
         *   **Location:** `news-backend/src/services/rssService.js`
         *   **Key Functions:** `fetchAndParseFeed()`.
         *   **Dependencies:** `rss-parser`
-    *   **`theNewsApiService.js`:**
-        *   **Purpose:** Fetches data from The News API.
+    *   **`theNewsApiService.js`:** **[DEPRECATED]**
+        *   **Purpose:** Previously fetched data from The News API. Removed as project now uses RSS exclusively.
         *   **Location:** `news-backend/src/services/theNewsApiService.js`
-        *   **Key Functions:** `fetchNews()`.
-        *   **Dependencies:** `axios`
+    *   **`wordProcessingService.js`:**
+        *   **Purpose:** Processes text from fetched RSS items to extract and rank keywords/tags.
+        *   **Location:** `news-backend/src/services/wordProcessingService.js`
+        *   **Key Functions:** Keyword extraction, frequency counting, potentially NLP tasks.
+        *   **Dependencies:** Input text data (likely from `rssService`).
 *   **`utils/`:**
-    *   **`biasAnalyzer.js`:**
-        *   **Purpose:** Analyzes news articles for potential bias.
+    *   **`biasAnalyzer.js`:** **[STATUS UNCERTAIN - Review Needed]**
+        *   **Purpose:** Previously analyzed news articles for potential bias. Verify if still used or deprecated.
         *   **Location:** `news-backend/src/utils/biasAnalyzer.js`
-        *   **Key Functions:** `analyzeBias()`.
-        *   **Dependencies:** external APIs.
-    *   **`keywordExtractor.js`:**
-        *   **Purpose:** Extracts keywords from news articles.
+    *   **`keywordExtractor.js`:** **[DEPRECATED]**
+        *   **Purpose:** Previously extracted keywords. This functionality is now likely part of `wordProcessingService`.
         *   **Location:** `news-backend/src/utils/keywordExtractor.js`
-        *   **Key Functions:** `extractKeywords()`.
-        *   **Dependencies:** external APIs.
-    *   **`rssUtils.js`:**
-        *   **Purpose:** Utilities for RSS parsing and handling.
+    *   **`rssUtils.js`:** **[STATUS UNCERTAIN - Review Needed]**
+        *   **Purpose:** Utilities for RSS parsing and handling. Verify if still needed or merged into `rssService`.
         *   **Location:** `news-backend/src/utils/rssUtils.js`
-        *   **Key Functions:** `parseFeed()`.
-        *   **Dependencies:** None
 
 ## 4. Data Flow
 
-1.  **Backend Data Fetching:**
-    *   `cron.js` schedules jobs to fetch news from RSS feeds (`rssService.js`) and external APIs (`gNewsService.js`, `newsApiService.js`, `theNewsApiService.js`).
-    *   Fetched data is processed by `keywordExtractor.js` and `biasAnalyzer.js`.
-    *   Cleaned data is stored in MongoDB via `NewsItem.js`.
+1.  **Backend Data Fetching & Processing:**
+    *   `cron.js` schedules jobs to fetch news from RSS feeds via `rssService.js`.
+    *   Fetched article text is passed to `wordProcessingService.js` for keyword extraction and processing.
+    *   Processed data (news items and associated keywords/tags) is stored (e.g., in MongoDB via `NewsItem.js`).
 2.  **Frontend Data Request:**
-    *   `rssService.js` (frontend) sends requests to the backend API (e.g., `GET /news`) to fetch news.
-    *   Data may be filtered via `FilterContext`.
+    *   `rssService.js` (frontend) sends requests to the backend API (e.g., `GET /news`) to fetch processed news and keyword data.
+    *   Data may be filtered based on user selections via `FilterContext`.
 3.  **Data Display:**
-    *   Fetched data is used to render components like `NewsDetail.tsx`, `RelatedNewsPanel.tsx`, and `TagCloud3DOptimized.tsx`.
-    *   `TagCloud3DOptimized.tsx` uses `wordProcessing.ts` to prepare keyword data for visualization.
-    *   Time related filtering data is handled via `TimeControls.tsx`
+    *   Fetched data is used to render components.
+    *   `TagCloud3DOptimized.tsx` receives pre-processed keyword data from the backend to visualize the tag cloud.
+    *   Time-related filtering data is handled via `TimeControls.tsx`.
 4. The user makes UI changes via `EditMenu.tsx`, which modifies the state and then refreshes data.
 
 ## 5. External Dependencies
 
-*   **`axios`:** HTTP client for making API requests.
+*   **`axios`:** HTTP client (potentially less used now if only fetching RSS via backend).
 *   **`mongoose`:** MongoDB Object Modeling.
-*   **`rss-parser`:** RSS feed parsing.
-*   **`node-cron`:** Scheduling jobs for data fetching.
-*   **External APIs:** Google News, News API, and potential RSS feeds.
+*   **`rss-parser`:** RSS feed parsing (Backend).
+*   **`node-cron`:** Scheduling jobs for data fetching (Backend).
+*   **External APIs:** **RSS Feeds only.**
 
 ## 6. Critical Functions and Files
 
 *   **Backend:**
-    *   `news-backend/src/cron.js`: `startNewsFetchingJob()` - Core logic for fetching new data on a schedule.
-    *   `news-backend/src/routes/news.js`: API endpoint handling.
+    *   `news-backend/src/cron.js`: `startNewsFetchingJob()` - Core logic for fetching new RSS data.
+    *   `news-backend/src/routes/news.js`: API endpoint handling for processed data.
     *   `news-backend/src/services/rssService.js`: `fetchAndParseFeed()` - Handles RSS feed data retrieval.
-    * `news-backend/src/utils/keywordExtractor.js`: `extractKeywords()` - Key logic for word extraction.
-    * `news-backend/src/utils/biasAnalyzer.js`: `analyzeBias()` - Key logic for analyzing bias in the news articles.
+    *   `news-backend/src/services/wordProcessingService.js`: Core logic for keyword extraction and processing.
 *   **Frontend:**
-    *   `src/services/rssService.js`: `fetchNews()` - Handles fetching news from the backend.
-    *   `src/components/TagCloud3DOptimized.tsx`: `generateCloud()` - Core logic for creating the 3D tag cloud visualization.
-    *   `src/utils/wordProcessing.ts`: `processWordsForCloud()`- processes the keywords for the cloud.
-    * `src/contexts/FilterContext.tsx`: Core logic for storing and accessing filter values.
+    *   `src/services/rssService.js`: `fetchNews()` - Handles fetching processed data from the backend.
+    *   `src/components/TagCloud3DOptimized.tsx`: Renders the 3D tag cloud visualization using backend data.
+    *   `src/contexts/FilterContext.tsx`: Core logic for storing and accessing filter values.
 
 ## 7. Configuration and Environment
 
 *   **Environment Variables:**
-    *   Backend requires database connection strings and API keys for external services.
-    *   API keys for external services like newsapi.org or gnews.io.
+    *   Backend requires database connection strings. API keys for external news services are no longer needed.
 *   **Configuration Files:**
     *   `news-backend/src/config/db.js`: Handles database connection details.
     *   `package.json`: Defines environment variables via scripts.
@@ -220,7 +214,7 @@ This project is a full-stack news aggregation application designed to collect, a
 *   **Component-Based:** React components are modular and reusable.
 *   **Utility Functions:** `utils/` directories for shared functionality.
 *   **RESTful APIs:** Backend exposes data via REST.
-* **Data Caching:** The backend database stores fetched news data, reducing redundant API calls.
+* **Data Caching:** The backend database stores fetched and processed news data.
 * **Naming Conventions:** Files and functions are generally named descriptively.
 * **Error Handling:** No explicit pattern, but try-catch blocks are present in API interaction code.
 * **Testing:** There are `test.tsx` files, but no clear testing strategy in place.

@@ -7,7 +7,6 @@ import TagCloud3DOptimized from './components/TagCloud3DOptimized';
 import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new component
 import ResponsiveContainer from './components/ResponsiveContainer';
 import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias } from './types';
-import { processNewsToWords, DEFAULT_WORD_PROCESSING_CONFIG } from './utils/wordProcessing';
 import { preloadFonts } from './utils/fonts';
 import { FilterProvider, useFilters, BIAS_UPDATE_EVENT } from './contexts/FilterContext';
 import LoadingBar from './components/LoadingBar';
@@ -170,10 +169,21 @@ const App: React.FC = () => {
           const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
           console.log(`After time filtering: ${timeFiltered.length} items`);
           setNewsItems(timeFiltered);
+
+          // Use processed words directly from API response
+          if (response.data.words) {
+            console.log(`Received ${response.data.words.length} processed words from backend.`);
+            setAllTagCloudWords(response.data.words);
+          } else {
+            console.warn('No processed words received from API');
+            setAllTagCloudWords([]);
+          }
+
         } else {
           console.warn('No data received from API');
           setNewsItems([]);
           setUnfilteredNewsItems([]);
+          setAllTagCloudWords([]); // Ensure words are cleared if no data
         }
       } catch (err: any) {
         console.error('Error fetching news from backend:', err);
@@ -188,35 +198,13 @@ const App: React.FC = () => {
     loadNews();
   }, [selectedCategory, enabledBiases, use24HourFilter]);
 
-  // Effect for processing words - now depends on unfilteredNewsItems
-  useEffect(() => {
-    if (unfilteredNewsItems.length > 0 && !loading) {
-      const processWords = async () => {
-        console.log(`Processing words for ${unfilteredNewsItems.length} unfiltered news items`);
-        // Process words with balanced bias distribution
-        const words = await processNewsToWords(unfilteredNewsItems, {
-          ...DEFAULT_WORD_PROCESSING_CONFIG,
-          maxWords: 500, // Show more words
-        });
-        
-        // Log bias distribution for debugging
-        const biasDistribution = words.reduce((acc, word) => {
-          acc[word.bias] = (acc[word.bias] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        console.log('Tag cloud bias distribution:', biasDistribution);
-        
-        setAllTagCloudWords(words);
-        console.log(`Generated ${words.length} tag cloud words with balanced bias distribution.`);
-      };
-      processWords();
-    } else if (unfilteredNewsItems.length === 0 && !loading) {
-      setAllTagCloudWords([]);
-    }
-  }, [unfilteredNewsItems, loading]);
-
   // Compute displayed words based on enabled biases (fast, in-memory)
-  const displayedWords = allTagCloudWords.filter(word => enabledBiases.has(word.bias));
+  const displayedWords = useMemo(() => {
+    console.log(`Filtering ${allTagCloudWords.length} total words by biases:`, Array.from(enabledBiases));
+    const filtered = allTagCloudWords.filter(word => enabledBiases.has(word.bias));
+    console.log(`Displaying ${filtered.length} words`);
+    return filtered;
+  }, [allTagCloudWords, enabledBiases]);
 
   const handleCategoryChange = (category: NewsCategory) => {
     console.log("Category changed to:", category);

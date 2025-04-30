@@ -2,8 +2,7 @@ const axios = require('axios');
 const Parser = require('rss-parser');
 const { v4: uuidv4 } = require('uuid'); // For generating unique IDs if needed
 const { getDB } = require('../config/db');
-const { extractKeywords } = require('../utils/keywordExtractor'); // Import keyword extractor
-const { PoliticalBias } = require('../utils/biasAnalyzer');
+const { PoliticalBias } = require('../types'); // Import PoliticalBias from shared types
 const { processNewsKeywords } = require('./wordProcessingService');
 
 const parser = new Parser();
