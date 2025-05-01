@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb'); // Needed if querying by MongoDB's default _id
-const { fetchAllRssNews } = require('../services/rssService');
+const { fetchNews } = require('../miniflux/fetchEntries'); // Use new Miniflux integration
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService');
 
 // @route   GET api/news
@@ -153,12 +153,44 @@ router.get('/:id', async (req, res) => {
 // @access  Public
 router.post('/fetch', async (req, res) => {
   try {
-    console.log('[News Route] Manually triggering news fetch...');
-    const newsItems = await fetchAllRssNews();
-    console.log(`[News Route] Fetch complete. ${newsItems.length} items processed.`);
+    console.log('[News Route] Manually triggering Miniflux news fetch...');
+    
+    // Use our new Miniflux integration
+    const newsItems = await fetchNews();
+    
+    console.log(`[News Route] Miniflux fetch complete. ${newsItems.length} items processed.`);
     res.json({ success: true, count: newsItems.length });
   } catch (err) {
-    console.error('[News Route] Error fetching news:', err.message);
+    console.error('[News Route] Error fetching news from Miniflux:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/news/refresh-feeds
+// @desc    Refresh feeds in Miniflux
+// @access  Public
+router.post('/refresh-feeds', async (req, res) => {
+  try {
+    console.log('[News Route] Triggering Miniflux feed refresh...');
+    
+    // Execute the refresh script using child_process
+    const { exec } = require('child_process');
+    const path = require('path');
+    const REFRESH_SCRIPT_PATH = path.join(__dirname, '../miniflux/refreshFeeds.js');
+    
+    exec(`node ${REFRESH_SCRIPT_PATH}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error refreshing feeds: ${error.message}`);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+      if (stderr) {
+        console.error(`Refresh stderr: ${stderr}`);
+      }
+      console.log(stdout);
+      res.json({ success: true, message: 'Feed refresh triggered successfully' });
+    });
+  } catch (err) {
+    console.error('[News Route] Error refreshing Miniflux feeds:', err.message);
     res.status(500).send('Server Error');
   }
 });

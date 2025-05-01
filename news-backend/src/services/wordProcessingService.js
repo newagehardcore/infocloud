@@ -16,8 +16,20 @@ const STOP_WORDS = new Set([
   'same', 'so', 'than', 'too', 'very', 'can', 'just', 'should', 'now', 'she', 'him', 'her',
 
   // Common Descriptive/Filler Words (from old frontend list & STOP_WORDS)
-  // ... (Keep the extensive list of verbs, time-related, general/abstract words, adjectives, adverbs, ordinals/titles, section titles) ...
-  // [Existing extensive list remains here - truncated for brevity in this example]
+  // Common verbs, articles, prepositions, etc that don't add meaningful context in a tag cloud
+  'get', 'got', 'getting', 'goes', 'going', 'gone', 'come', 'came', 'coming', 'make', 'made', 'making',
+  'take', 'took', 'taking', 'put', 'puts', 'putting', 'set', 'setting', 'go', 'went', 'give', 'gave',
+  'giving', 'run', 'ran', 'running', 'talk', 'talks', 'talking', 'tell', 'told', 'telling', 'call',
+  'called', 'calling', 'use', 'used', 'using', 'ask', 'asked', 'asking', 'need', 'needed', 'needing',
+  'want', 'wanted', 'wanting', 'try', 'tried', 'trying', 'feel', 'felt', 'feeling', 'become', 'became',
+  'becoming', 'leave', 'left', 'leaving', 'may', 'might', 'must', 'could', 'would', 'should', 'shall',
+  'said', 'says', 'do', 'does', 'did', 'doing', 'done', 'see', 'saw', 'seen', 'seeing', 'seem', 'seemed',
+  'seeming', 'seems', 'look', 'looked', 'looking', 'looks', 'think', 'thought', 'thinking', 'thinks',
+  'way', 'ways', 'thing', 'things', 'something', 'anything', 'everything', 'nothing', 'someone', 'anyone',
+  'everyone', 'somebody', 'anybody', 'everybody', 'nobody', 'somewhere', 'anywhere', 'everywhere',
+  'you', 'your', 'yours', 'yourself', 'yourselves', 'me', 'my', 'mine', 'myself', 'much', 'many',
+  'us', 'we', 'our', 'ours', 'ourselves', 'they', 'them', 'their', 'theirs', 'themselves',
+  'here', 'there', 'where', 'get', 'gets', 'getting', 'let', 'lets', 'letting', 'able', 'non',
   'story', 'article', 'headline', 'update', 'news', 'latest', 'exclusive', 'interview', 'statement',
   'press', 'release', 'analysis', 'opinion', 'editorial', 'feature', 'briefing', 'recap',
   'roundup', 'summary', 'preview', 'review', 'guide', 'explainer', 'breakdown', 'profile',
@@ -160,16 +172,18 @@ const NEWS_SOURCE_NAMES = new Set([
   // ... rest of the list ...
 ]);
 
-// Configuration options for word processing
+// Global configuration with defaults
 const DEFAULT_CONFIG = {
-  minWordLength: 4, // Increased from 3 to reduce short, non-descriptive words
-  maxWordLength: 30,
-  minTfidfScore: 1.2, // Increased from 0.8 to be more selective
-  maxWords: 500,
-  removeStopWords: true,
-  minPhraseWords: 2, // Minimum words in a phrase to consider it
-  maxPhraseWords: 5, // Maximum words in a phrase
-  minPhraseTfidfScore: 1.5 // Higher threshold for phrases
+  minWordLength: 2,  // Reduced to allow more short words
+  maxWordLength: 40, // Increased to allow longer phrases
+  minPhraseWords: 2, // Minimum words for a phrase to be kept
+  maxPhraseWords: 5, // Increased to allow longer phrases
+  removeStopWords: true,  // Filter out common stop words
+  useStemming: false,     // Use stemming (disabled because it can create confusing output)
+  useLemmatization: true, // Use lemmatization for better normalization
+  minTfIdfScore: 0.001,   // Significantly reduced to allow many more terms
+  extractNounPhrases: true, // Extract noun phrases for better multi-word entities
+  maxWords: 1500 // Increased from default to allow more words in the cloud
 };
 
 // Add more descriptive words that should be kept even if they're in stop words
@@ -214,27 +228,61 @@ const isProperNoun = (text) => {
 };
 
 /**
- * Detects meaningful phrases using NLP
+ * Extracts meaningful phrases using NLP
+ * Prioritizes named entities and important news constructions
  */
 const extractMeaningfulPhrases = (text) => {
   const doc = nlp(text);
   const phrases = [];
 
-  // Get noun phrases
+  // Extract named entities - people (prioritize names of people)
+  doc.match('#Person+').forEach(match => {
+    const phrase = match.text('normal');
+    if (phrase.length >= 3 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrases.push({ text: phrase, weight: 1.5 }); // Higher weight for people's names
+    }
+  });
+
+  // Extract organizations and companies
+  doc.match('#Organization+').forEach(match => {
+    const phrase = match.text('normal');
+    if (phrase.length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrases.push({ text: phrase, weight: 1.4 }); // Higher weight for organizations
+    }
+  });
+
+  // Extract locations
+  doc.match('#Place+').forEach(match => {
+    const phrase = match.text('normal');
+    if (phrase.length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrases.push({ text: phrase, weight: 1.3 }); // Higher weight for places
+    }
+  });
+
+  // Extract topics and issues (noun phrases with adjectives)
   doc.match('#Adjective+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
         phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push(phrase);
+      phrases.push({ text: phrase, weight: 1.0 });
     }
   });
 
-  // Get verb phrases
+  // Extract active events (verb phrases)
   doc.match('#Noun+ #Verb+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
         phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push(phrase);
+      phrases.push({ text: phrase, weight: 1.1 }); // Slightly higher weight for actions
+    }
+  });
+  
+  // Extract special patterns that often indicate newsworthy events
+  // E.g., "President announces", "Supreme Court rules"
+  doc.match('(president|minister|official|court|government|senate|congress|police|military|forces) #Verb+').forEach(match => {
+    const phrase = match.text('normal');
+    if (phrase.split(' ').length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrases.push({ text: phrase, weight: 1.5 }); // Higher weight for official actions
     }
   });
 
@@ -242,18 +290,92 @@ const extractMeaningfulPhrases = (text) => {
 };
 
 /**
+ * Strip HTML tags from text
+ * @param {string} text - The text containing HTML to strip
+ * @returns {string} - Clean text without HTML tags
+ */
+const stripHtml = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  
+  // First remove script and style tags with their content
+  let clean = text.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
+  
+  // Then remove all HTML tags
+  clean = clean.replace(/<\/?[^>]+(>|$)/g, ' ');
+  
+  // Replace HTML entities
+  clean = clean.replace(/&nbsp;/g, ' ')
+               .replace(/&amp;/g, '&')
+               .replace(/&lt;/g, '<')
+               .replace(/&gt;/g, '>')
+               .replace(/&quot;/g, '"')
+               .replace(/&#39;/g, "'");
+  
+  // Replace multiple spaces with a single space
+  clean = clean.replace(/\s+/g, ' ').trim();
+  
+  return clean;
+};
+
+/**
  * Determines if a word should be kept based on configuration and filter lists
+ * Enhanced to better filter out low-quality words while preserving meaningful ones
  */
 const shouldKeepWord = (phrase, config) => {
-  const lowerPhrase = phrase.toLowerCase();
+  // First strip any HTML from the phrase
+  const cleanPhrase = stripHtml(phrase);
+  if (!cleanPhrase) return false;
+  
+  const lowerPhrase = cleanPhrase.toLowerCase();
   
   // Always keep important descriptive words
   if (IMPORTANT_DESCRIPTIVE_WORDS.has(lowerPhrase)) {
     return true;
   }
 
-  // Block phrases containing "cartoon" or purely numeric strings
-  if (lowerPhrase.includes('cartoon') || /^\d+$/.test(phrase)) {
+  // Block problematic patterns and common non-meaningful patterns
+  if (/^\d+$/.test(cleanPhrase) || // Just numbers
+      /^[a-z]{1,2}$/.test(lowerPhrase) || // Single or two letters (like 'am', 're', 'if', 'or', 'vs')
+      /^[a-z]{1,2}\d+$/.test(lowerPhrase) || // Short code like a1, b2, etc
+      lowerPhrase.includes('href=') || 
+      lowerPhrase.includes('src=') ||
+      lowerPhrase.includes('http:') ||
+      lowerPhrase.includes('https:') ||
+      lowerPhrase.includes('www.') ||
+      lowerPhrase.includes('@') ||
+      lowerPhrase.includes('...') ||
+      // Filter common UI elements and navigation text
+      lowerPhrase.includes('skip') ||
+      lowerPhrase.includes('advertisement') ||
+      lowerPhrase.includes('login') ||
+      lowerPhrase.includes('verify') ||
+      lowerPhrase.includes('access') ||
+      lowerPhrase.includes('click') ||
+      lowerPhrase.includes('continue reading') ||
+      lowerPhrase.includes('read more') ||
+      lowerPhrase.includes('sign in') ||
+      lowerPhrase.includes('sign up') ||
+      lowerPhrase.includes('subscribe') ||
+      // Common meaningless prefixes
+      /^(am|is|are|was|were|be|been|being|ve|ll|re|not|no)\s/.test(lowerPhrase) ||
+      // Common meaningless suffixes
+      /\s(am|is|are|was|were|ll|ve|re|vs|etc|or|if)$/.test(lowerPhrase)) {
+    return false;
+  }
+
+  // Additional filtering for common low-quality patterns
+  // Filter out words that are likely not meaningful in a tag cloud
+  if (/^(can|get|may|must|will|shall|would|could|should|might|let|make)\s/.test(lowerPhrase) ||
+      /\s(get|got|said|told|says|than|etc)$/.test(lowerPhrase)) {
+    return false;
+  }
+  
+  // Reject words that contain certain substrings (like JavaScript identifiers)
+  if (lowerPhrase.includes('_') || 
+      lowerPhrase.includes('function') || 
+      lowerPhrase.includes('var') ||
+      lowerPhrase.includes('const') ||
+      lowerPhrase.includes('javascript')) {
     return false;
   }
 
@@ -263,17 +385,30 @@ const shouldKeepWord = (phrase, config) => {
   if (words.length === 1) {
     const word = words[0];
     
-    // Check length requirements
+    // Length requirements
     if (word.length < config.minWordLength || word.length > config.maxWordLength) {
       return false;
     }
 
-    // Filter out source names and stop words
+    // Filter out source names to avoid publication names dominating
     if (NEWS_SOURCE_NAMES.has(word)) {
       return false;
     }
 
-    if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) {
+    // Filter common web-related terms that shouldn't appear in a news tag cloud
+    if (['click', 'tap', 'page', 'site', 'website', 'browser', 'app', 'login', 'password',
+         'user', 'access', 'account', 'subscribe', 'subscription', 'premium', 'newsletter',
+         'download', 'upload', 'file', 'button', 'menu', 'widget', 'free', 'paid', 'unlimited',
+         'email', 'phone', 'contact', 'comment', 'submit', 'search', 'find', 'link'].includes(word)) {
+      return false;
+    }
+
+    // More aggressive stop word filtering - filter out words that add little meaning to the cloud
+    if (config.removeStopWords && 
+        (STOP_WORDS.has(word) || 
+         /^(get|can|may|be|have|do|go|say|see|know|like|think|come|take|make|want|use|find|give)$/.test(word)) && 
+         !NEWS_SPECIFIC_WORDS.has(word) && 
+         !isProperNoun(word)) {
       return false;
     }
 
@@ -282,147 +417,298 @@ const shouldKeepWord = (phrase, config) => {
       return true;
     }
 
-    // Additional checks for single words
-    if (!/[a-zA-Z]/.test(word)) { // Must contain at least one letter
+    // Must contain at least one letter
+    if (!/[a-zA-Z]/.test(word)) {
       return false;
     }
   } else {
-    // For multi-word phrases, check if it's a meaningful phrase
-    return words.length >= config.minPhraseWords && 
-           words.length <= config.maxPhraseWords &&
-           !words.every(w => STOP_WORDS.has(w));
+    // For multi-word phrases, be more selective while still preserving important phrases
+    if (words.length < config.minPhraseWords || words.length > config.maxPhraseWords) {
+      return false;
+    }
+    
+    // For 2-word phrases, at least one word should NOT be a stop word
+    if (words.length === 2) {
+      const allStopWords = words.every(w => STOP_WORDS.has(w) && !NEWS_SPECIFIC_WORDS.has(w) && !isProperNoun(w));
+      if (allStopWords) {
+        return false;
+      }
+    }
+    
+    // Allow longer phrases (3+ words) even if they contain stop words, they're likely meaningful
+    return words.length >= 3 || words.some(w => isProperNoun(w) || NEWS_SPECIFIC_WORDS.has(w));
   }
 
   return true;
 };
 
 /**
- * Processes news items to generate refined keywords using TF-IDF scoring
+ * Processes news items to generate refined keywords using NLP techniques
+ * @param {Array<Object>} newsItems - Array of news item objects
+ * @param {Object} config - Configuration options
+ * @returns {Array<Object>} - News items with extracted keywords
  */
 const processNewsKeywords = async (newsItems, config = DEFAULT_CONFIG) => {
-  console.log(`[WordProcessingService] Starting keyword processing for ${newsItems.length} items.`);
-  if (!newsItems || newsItems.length === 0) return [];
+  console.log(`[WordProcessingService] Starting keyword processing for ${newsItems?.length || 0} items.`);
+  if (!newsItems || !Array.isArray(newsItems) || newsItems.length === 0) {
+    return [];
+  }
 
-  // Initialize TF-IDF
-  const tfidf = new natural.TfIdf();
-  const documents = [];
+  // Default configuration merged with provided config
+  config = { ...DEFAULT_CONFIG, ...config };
   let totalRawKeywords = 0;
-  let totalLemmatizedKeywords = 0;
-
-  // Extract meaningful phrases from titles and descriptions
-  const processedItems = newsItems.map(item => {
-    const rawKeywords = (item.keywords || [])
-      .map(kw => kw?.toLowerCase().trim())
-      .filter(kw => kw && kw.length > 0);
+  
+  // Create corpus-wide term frequency map
+  const corpusTerms = new Map();
+  
+  // First pass: collect statistics about terms across all documents
+  for (const item of newsItems) {
+    if (!item) continue;
     
-    // Add phrases from title and description
-    const titlePhrases = extractMeaningfulPhrases(item.title);
-    const descPhrases = extractMeaningfulPhrases(item.description);
-    const allPhrases = [...new Set([...rawKeywords, ...titlePhrases, ...descPhrases])];
+    const rawText = `${item.title || ''} ${item.description || ''}`;
+    if (!rawText.trim()) continue;
     
-    totalRawKeywords += allPhrases.length;
-    const lemmatizedKeywords = allPhrases.map(lemmatizeWord);
-    totalLemmatizedKeywords += lemmatizedKeywords.length;
-
-    if (lemmatizedKeywords.length > 0) {
-      tfidf.addDocument(lemmatizedKeywords);
-      documents.push(lemmatizedKeywords);
-    } else {
-      documents.push([]);
-    }
-
-    return { ...item, processedKeywords: lemmatizedKeywords };
-  });
-
-  // Calculate TF-IDF scores with different thresholds for single words and phrases
-  const termScores = new Map();
-  const uniqueLemmas = new Set();
-  processedItems.forEach(item => item.processedKeywords.forEach(lemma => uniqueLemmas.add(lemma)));
-
-  uniqueLemmas.forEach(lemma => {
-    let maxScore = 0;
-    tfidf.tfidfs(lemma, (docIndex, score) => {
-      if (score > maxScore) maxScore = score;
+    // Clean and normalize text
+    const cleanText = stripHtml(rawText).trim();
+    
+    // Extract words for corpus statistics
+    const words = cleanText.split(/\W+/)
+      .filter(word => word.length >= 3) // Minimum word length for corpus stats
+      .map(word => word.toLowerCase());
+    
+    // Count each word's occurrence in the corpus
+    words.forEach(word => {
+      corpusTerms.set(word, (corpusTerms.get(word) || 0) + 1);
     });
-    
-    // Apply different thresholds based on whether it's a single word or phrase
-    const isPhrase = lemma.includes(' ');
-    const threshold = isPhrase ? config.minPhraseTfidfScore : config.minTfidfScore;
-    
-    if (maxScore >= threshold) {
-      termScores.set(lemma, maxScore);
+  }
+  
+  // Second pass: Process each item to extract keywords with improved relevance
+  const finalItems = await Promise.all(newsItems.map(async (item) => {
+    try {
+      if (!item) return null;
+      
+      // Create a copy of the item to avoid modifying the original
+      const newItem = { ...item };
+      
+      // Extract raw text from title and description
+      const rawText = `${item.title || ''} ${item.description || ''}`;
+      if (!rawText.trim()) {
+        console.warn(`[WordProcessingService] Empty content for item ${item.id}`);
+        return newItem;
+      }
+      
+      // Clean text: normalize whitespace, remove HTML entities
+      const cleanText = stripHtml(rawText).trim();
+      
+      // Store keywords with their weights
+      const keywordScores = new Map();
+      
+      // Extract named entities and meaningful phrases
+      const phrases = extractMeaningfulPhrases(cleanText);
+      
+      // Process extracted phrases with weights
+      phrases.forEach(phrase => {
+        if (typeof phrase === 'object' && phrase.text) {
+          // Handle new format with weighted phrases
+          const phraseTerm = phrase.text.toLowerCase().trim();
+          if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
+            // Use the weight provided by the named entity extraction
+            keywordScores.set(phraseTerm, (keywordScores.get(phraseTerm) || 0) + phrase.weight);
+          }
+        } else if (typeof phrase === 'string') {
+          // Handle older format for backward compatibility
+          const phraseTerm = phrase.toLowerCase().trim();
+          if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
+            keywordScores.set(phraseTerm, (keywordScores.get(phraseTerm) || 0) + 1.0);
+          }
+        }
+      });
+      
+      // Lemmatize and filter individual words
+      const words = cleanText.split(/\W+/)
+        .filter(word => word.length >= config.minWordLength)
+        .map(word => lemmatizeWord(word))
+        .filter(word => shouldKeepWord(word, config));
+      
+      // Enhance title terms with higher weight
+      if (item.title) {
+        const titleClean = stripHtml(item.title).trim();
+        const titleWords = titleClean.split(/\W+/)
+          .filter(word => word.length >= config.minWordLength)
+          .map(word => lemmatizeWord(word))
+          .filter(word => shouldKeepWord(word, config));
+        
+        titleWords.forEach(word => {
+          const term = word.toLowerCase();
+          // Title words get 1.5x weight
+          keywordScores.set(term, (keywordScores.get(term) || 0) + 1.5);
+        });
+      }
+      
+      // Add individual words with basic weight
+      words.forEach(word => {
+        const term = word.toLowerCase();
+        // Check if it's already in the list (from phrases or title)
+        if (!keywordScores.has(term)) {
+          // Adjust word importance based on corpus frequency
+          const corpusFreq = corpusTerms.get(term) || 1;
+          const documentRelevance = 1 / Math.sqrt(corpusFreq); // Lower weight for very common terms
+          keywordScores.set(term, 0.8 * documentRelevance); // Base weight for individual words
+        }
+      });
+      
+      // Convert Map to sorted Array of keywords (highest weight first)
+      const sortedKeywords = Array.from(keywordScores.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 25) // Limit to 25 most relevant keywords per item
+        .map(entry => entry[0]);
+      
+      newItem.keywords = sortedKeywords;
+      totalRawKeywords += newItem.keywords.length;
+      
+      return newItem;
+    } catch (error) {
+      console.error(`[WordProcessingService] Error processing item: ${error.message}`);
+      return item; // Return original item on error
     }
-  });
+  }));
 
-  // Process and return items with refined keywords
-  const finalItems = processedItems.map(item => {
-    const filteredKeywords = item.processedKeywords
-      .filter(lemma => {
-        const score = termScores.get(lemma);
-        return score && shouldKeepWord(lemma, config);
-      })
-      .sort((a, b) => (termScores.get(b) || 0) - (termScores.get(a) || 0))
-      .slice(0, config.maxWords);
-
-    const newItem = { ...item };
-    delete newItem.processedKeywords;
-    newItem.keywords = filteredKeywords;
-    return newItem;
-  });
-
-  console.log(`[WordProcessingService] Finished processing. Input keywords: ${totalRawKeywords}, Output keywords: ${finalItems.reduce((sum, item) => sum + item.keywords.length, 0)}`);
+  console.log(`[WordProcessingService] Finished processing. Input keywords: ${totalRawKeywords}, Output keywords: ${finalItems.reduce((sum, item) => sum + (item?.keywords?.length || 0), 0)}`);
   return finalItems;
 };
 
 /**
  * Aggregates keywords from a list of news items for the tag cloud.
- * Calculates frequency counts for each keyword.
+ * Calculates frequency counts for each keyword, with bias information.
  *
  * @param {Array<Object>} newsItems - Array of news item objects, each expected to have a `keywords` array field.
  * @param {number} maxWords - The maximum number of words to return for the cloud.
  * @returns {Array<{text: string, value: number, bias: PoliticalBias}>} - Array of objects for the tag cloud, including bias.
  */
-const aggregateKeywordsForCloud = (newsItems, maxWords = 500) => {
+const aggregateKeywordsForCloud = (newsItems, maxWords = 1000) => {
   if (!newsItems || newsItems.length === 0) {
     return [];
   }
 
-  // Store frequency and the bias of the *first* article encountered for each keyword
+  // Store frequency, sources by bias, and bias weight for each keyword
   const wordData = new Map();
 
+  // Process all keywords from all news items
   newsItems.forEach(item => {
     // Ensure source and bias exist, default to Unknown if not
     const itemBias = item.source?.bias || PoliticalBias.Unknown; 
+    if (!itemBias) {
+      console.warn(`Item is missing bias information: ${item.id}`);
+    }
 
     if (item.keywords && Array.isArray(item.keywords)) {
+      // Process each keyword from this item
       item.keywords.forEach(keyword => {
-        if (typeof keyword === 'string' && keyword.trim()) { // Basic validation
-          const lowerKeyword = keyword.toLowerCase().trim(); // Normalize
+        if (typeof keyword === 'string') {
+          // Clean and normalize the keyword
+          const cleanKeyword = stripHtml(keyword);
+          if (!cleanKeyword || cleanKeyword.length < 2) return; // Skip empty or very short keywords
           
+          const lowerKeyword = cleanKeyword.toLowerCase().trim();
+          
+          // Skip keywords that contain problematic patterns (simplified check to allow more words)
+          if (lowerKeyword.includes('href=') || 
+              lowerKeyword.includes('src=') || 
+              lowerKeyword.includes('http:') || 
+              lowerKeyword.includes('https:')) {
+            return;
+          }
+          
+          // Add or update the keyword in our map
           if (!wordData.has(lowerKeyword)) {
             // First time seeing this keyword, store its data
             wordData.set(lowerKeyword, { 
               value: 1, 
-              bias: itemBias // Assign bias from this item
+              bias: itemBias, // Assign initial bias
+              biasCounts: { [itemBias]: 1 } // Track bias occurrences
             });
           } else {
-            // Already seen, just increment count
+            // Already seen, update counts and bias tracking
             const currentData = wordData.get(lowerKeyword);
             currentData.value += 1;
-            // Keep the bias from the first encounter
+            
+            // Update bias tracking
+            if (!currentData.biasCounts[itemBias]) {
+              currentData.biasCounts[itemBias] = 1;
+            } else {
+              currentData.biasCounts[itemBias] += 1;
+            }
+            
+            // Recalculate dominant bias
+            let maxCount = 0;
+            let dominantBias = currentData.bias;
+            
+            Object.entries(currentData.biasCounts).forEach(([bias, count]) => {
+              if (count > maxCount) {
+                maxCount = count;
+                dominantBias = bias;
+              }
+            });
+            
+            currentData.bias = dominantBias;
           }
         }
       });
+
+      // Also add the title words as keywords (optional, helps increase keyword count)
+      if (item.title) {
+        const titleWords = item.title.split(/\s+/).filter(w => w.length >= 3 && w.length <= 20);
+        titleWords.forEach(word => {
+          const cleanWord = stripHtml(word).toLowerCase().trim();
+          if (cleanWord && !STOP_WORDS.has(cleanWord)) {
+            if (!wordData.has(cleanWord)) {
+              wordData.set(cleanWord, {
+                value: 1,
+                bias: itemBias,
+                biasCounts: { [itemBias]: 1 }
+              });
+            } else {
+              const currentData = wordData.get(cleanWord);
+              currentData.value += 0.5; // Lower weight for title words
+              
+              // Update bias tracking (same as above)
+              if (!currentData.biasCounts[itemBias]) {
+                currentData.biasCounts[itemBias] = 1;
+              } else {
+                currentData.biasCounts[itemBias] += 1;
+              }
+              
+              let maxCount = 0;
+              let dominantBias = currentData.bias;
+              
+              Object.entries(currentData.biasCounts).forEach(([bias, count]) => {
+                if (count > maxCount) {
+                  maxCount = count;
+                  dominantBias = bias;
+                }
+              });
+              
+              currentData.bias = dominantBias;
+            }
+          }
+        });
+      }
     }
   });
 
   // Convert map to array, sort by frequency descending, and take top N
   const sortedKeywords = Array.from(wordData.entries())
-    .map(([text, data]) => ({ 
+    .map(([text, data]) => ({
       text, 
       value: data.value, 
-      bias: data.bias // Include the stored bias
+      bias: data.bias // Include the calculated dominant bias
     }))
+    .filter(item => {
+      // Simplified filtering to allow more terms
+      return item.text && 
+             item.text.length >= 2 && 
+             item.text.length <= 50;
+    })
     .sort((a, b) => b.value - a.value)
     .slice(0, maxWords);
 
