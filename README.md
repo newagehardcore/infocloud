@@ -43,28 +43,40 @@
 - Clear visual indicator when viewing historical vs. current data
 
 ### Multiple News Sources
-- News aggregation from multiple sources:
-  - NewsAPI.org
-  - The Guardian
-  - The New York Times
-  - GNews
-  - TheNewsAPI
+- Self-hosted Miniflux RSS aggregation system 
+- Over 200 feeds from diverse news sources across the political spectrum
+- Organized by topic categories (Politics, Tech, Health, etc.)
+- Color-coded by political bias for balanced representation
 - Deduplication of similar stories from different sources
 - Wider variety of perspectives and coverage
 
 ## Technical Implementation
 
 ### Framework and Architecture
-- React with TypeScript for the web application framework
-- Three.js for 3D visualization rendering
+- **Frontend**: React with TypeScript for the web application framework
+- **Visualization**: Three.js for 3D tag cloud rendering
+- **Backend**: Node.js/Express with MongoDB for news storage and processing
+- **RSS System**: Self-hosted Miniflux for feed aggregation and management
+- **Database**: MongoDB for news items, PostgreSQL for Miniflux
 - Responsive design that works on desktop and mobile browsers
 
 ### Data Handling
-- Fetches news from multiple news APIs
-- Processes text to extract key terms using NLP techniques (natural and compromise libraries)
-- Analyzes and categorizes media bias
-- Stores historical snapshots for the time machine feature
-- Updates data every 5-10 minutes for real-time feeling
+- **Feed Management**: 
+  - Miniflux handles RSS fetching, parsing, and categorization
+  - Feeds organized by topics/categories within Miniflux
+  - Bias information maintained in the backend
+- **Data Processing**:
+  - Fetches processed entries from Miniflux API
+  - Enriches entries with bias information
+  - Extracts keywords using NLP techniques (natural and compromise libraries)
+  - Analyzes and categorizes media bias using a curated mapping system
+- **Storage**:
+  - MongoDB for processed news items and keywords
+  - PostgreSQL for the underlying Miniflux feed database
+- **Update Frequency**:
+  - Automatic feed refresh through scheduled cron jobs
+  - Updates data every 5-10 minutes for real-time visualization
+  - Stores historical snapshots for the time machine feature
 
 ### Performance Optimization
 - Adaptive rendering based on device capabilities
@@ -77,37 +89,68 @@
 ### Prerequisites
 - Node.js (v16 or higher)
 - npm (v7 or higher)
-- API keys for news sources (see below)
+- Docker and Docker Compose for running Miniflux
+- MongoDB installed locally or accessible instance
 
-### API Keys Setup
-The application uses multiple news APIs to aggregate content. You'll need to obtain API keys from the following services:
+### Environment Setup
 
-1. **NewsAPI.org** - Get a free API key at [https://newsapi.org/register](https://newsapi.org/register)
-2. **The Guardian API** - Register for a free API key at [https://open-platform.theguardian.com/access/](https://open-platform.theguardian.com/access/)
-3. **New York Times API** - Get an API key at [https://developer.nytimes.com/get-started](https://developer.nytimes.com/get-started)
-4. **GNews API** - Register for an API key at [https://gnews.io/register](https://gnews.io/register)
-5. **TheNewsAPI** - Get an API key at [https://www.thenewsapi.com/](https://www.thenewsapi.com/)
+1. **Backend Configuration**
 
-After obtaining your API keys, create a `.env` file in the root directory with the following content:
+Create a `.env` file in the `news-backend` directory with the following content:
+
 ```
-REACT_APP_NEWS_API_KEY=your-newsapi-key
-REACT_APP_GUARDIAN_API_KEY=your-guardian-api-key
-REACT_APP_NY_TIMES_API_KEY=your-nytimes-api-key
-REACT_APP_GNEWS_API_KEY=your-gnews-api-key
-REACT_APP_THE_NEWS_API_KEY=your-thenewsapi-key
+MINIFLUX_URL=http://localhost:8080
+MINIFLUX_USERNAME=admin
+MINIFLUX_PASSWORD=adminpass
+MONGODB_URI=mongodb://localhost:27017/infocloud
 ```
 
-The application will work with at least one API key, but for best results, provide keys for multiple services.
+2. **Start Miniflux and Database Services**
+
+The application uses self-hosted Miniflux for RSS aggregation, which runs in Docker containers:
+
+```bash
+# Start the containers (Miniflux and PostgreSQL)
+docker-compose up -d
+```
+
+Default Miniflux credentials:
+- Username: `admin`
+- Password: `adminpass`
+- Access URL: http://localhost:8080
 
 ### Installation
+
 1. Clone the repository
-2. Install dependencies:
-```
+
+2. Install dependencies for both backend and frontend:
+```bash
+# Install backend dependencies
+cd news-backend
+npm install
+
+# Install frontend dependencies
+cd ../news-frontend
 npm install
 ```
-3. Set up your API keys in the `.env` file (see API Keys Setup above)
-4. Start the development server:
+
+3. Set up your environment (see Environment Setup above)
+
+4. Import RSS feeds into Miniflux:
+```bash
+cd news-backend
+node src/miniflux/importAllFeeds.js
 ```
+
+5. Start the backend server:
+```bash
+cd news-backend
+npm start
+```
+
+6. In a separate terminal, start the frontend:
+```bash
+cd news-frontend
 npm start
 ```
 
@@ -126,6 +169,8 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-- News data provided by [NewsAPI.org](https://newsapi.org/), [The Guardian API](https://open-platform.theguardian.com/), [New York Times API](https://developer.nytimes.com/), [GNews API](https://gnews.io/), and [TheNewsAPI](https://www.thenewsapi.com/)
-- Built with [React](https://reactjs.org/) and [Three.js](https://threejs.org/)
+- RSS aggregation powered by [Miniflux](https://miniflux.app/)
+- News data from over 200 diverse news sources across the political spectrum
+- Built with [React](https://reactjs.org/), [Express](https://expressjs.com/), and [Three.js](https://threejs.org/)
 - NLP processing with [natural](https://github.com/NaturalNode/natural) and [compromise](https://github.com/spencermountain/compromise)
+- Database systems: [MongoDB](https://www.mongodb.com/) and [PostgreSQL](https://www.postgresql.org/)
