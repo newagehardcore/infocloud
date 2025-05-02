@@ -1,21 +1,29 @@
 const axios = require('axios');
+require('dotenv').config(); // Load environment variables
 
-// Configuration
-const MINIFLUX_URL = 'http://localhost:8080';
-const MINIFLUX_USERNAME = 'admin';
-const MINIFLUX_PASSWORD = 'adminpass';
+// Configuration from environment variables
+const MINIFLUX_URL = process.env.MINIFLUX_URL || 'http://localhost:8080';
+const MINIFLUX_USERNAME = process.env.MINIFLUX_USERNAME || 'admin';
+const MINIFLUX_PASSWORD = process.env.MINIFLUX_PASSWORD || 'adminpass';
+const MINIFLUX_API_KEY = process.env.MINIFLUX_API_KEY;
 
 // Miniflux client with authentication
 const client = axios.create({
   baseURL: MINIFLUX_URL,
-  auth: {
-    username: MINIFLUX_USERNAME,
-    password: MINIFLUX_PASSWORD
-  },
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Auth-Token': MINIFLUX_API_KEY
   }
 });
+
+// Fallback to basic auth if API key is not available
+if (!MINIFLUX_API_KEY) {
+  console.log('API key not found, falling back to basic authentication');
+  client.defaults.auth = {
+    username: MINIFLUX_USERNAME,
+    password: MINIFLUX_PASSWORD
+  };
+}
 
 // Helper to handle API errors
 function logApiError(error, action) {

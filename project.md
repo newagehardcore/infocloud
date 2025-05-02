@@ -149,27 +149,47 @@ This project is a full-stack news aggregation application designed to collect, a
         *   **Purpose:** Previously fetched data from The News API. Removed as project now uses RSS exclusively.
         *   **Location:** `news-backend/src/services/theNewsApiService.js`
     *   **`wordProcessingService.js`:**
-        *   **Purpose:** Processes text from fetched RSS items to extract and rank keywords/tags.
+        *   **Purpose:** Processes text from fetched RSS items to extract and rank keywords/tags, enhanced with LLM-powered analysis.
         *   **Location:** `news-backend/src/services/wordProcessingService.js`
-        *   **Key Functions:** Keyword extraction, frequency counting, potentially NLP tasks.
-        *   **Dependencies:** Input text data (likely from `rssService`).
-*   **`utils/`:**
-    *   **`biasAnalyzer.js`:** **[STATUS UNCERTAIN - Review Needed]**
-        *   **Purpose:** Previously analyzed news articles for potential bias. Verify if still used or deprecated.
-        *   **Location:** `news-backend/src/utils/biasAnalyzer.js`
+        *   **Key Functions:** `processNewsKeywords()`, `aggregateKeywordsForCloud()`, `combineKeywords()`.
+        *   **Dependencies:** Input text data (from `rssService`), `llmService`.
+*   **`services/llmService.js`:**
+        *   **Purpose:** Provides LLM (Large Language Model) capabilities for natural language processing tasks.
+        *   **Location:** `news-backend/src/services/llmService.js`
+        *   **Key Functions:** `processArticle()`, `processArticleWithRetry()`.
+        *   **Dependencies:** `axios`, `lru-cache`, locally hosted Ollama LLM.
+
+*   **`scripts/`:**
+    *   **`startup.js`:**
+        *   **Purpose:** Automates environment setup by checking and starting required services.
+        *   **Location:** `news-backend/src/scripts/startup.js`
+        *   **Key Functions:** `startup()`, service health checks for Docker, Miniflux, Ollama, and MongoDB.
+        *   **Dependencies:** Docker, Ollama, MongoDB.
+    *   **`start-dev.js`:**
+        *   **Purpose:** Comprehensive development environment startup script.
+        *   **Location:** `news-backend/src/scripts/start-dev.js`
+        *   **Key Functions:** `run()` - orchestrates service startup and application launch.
+        *   **Dependencies:** `startup.js`, `nodemon`.
+
+*   **`utils/`:** 
+    *   **`biasAnalyzer.js`:** **[DEPRECATED]**
+        *   **Purpose:** Previously analyzed news articles for potential bias. This functionality is now handled by `llmService`.
+        *   **Location:** Previously in `news-backend/src/utils/biasAnalyzer.js`
     *   **`keywordExtractor.js`:** **[DEPRECATED]**
-        *   **Purpose:** Previously extracted keywords. This functionality is now likely part of `wordProcessingService`.
-        *   **Location:** `news-backend/src/utils/keywordExtractor.js`
-    *   **`rssUtils.js`:** **[STATUS UNCERTAIN - Review Needed]**
-        *   **Purpose:** Utilities for RSS parsing and handling. Verify if still needed or merged into `rssService`.
-        *   **Location:** `news-backend/src/utils/rssUtils.js`
+        *   **Purpose:** Previously extracted keywords. This functionality is now part of `wordProcessingService` and enhanced with `llmService`.
+        *   **Location:** Previously in `news-backend/src/utils/keywordExtractor.js`
+    *   **`rssUtils.js`:** **[DEPRECATED]**
+        *   **Purpose:** Utilities for RSS parsing and handling. Functionality merged into `rssService`.
+        *   **Location:** Previously in `news-backend/src/utils/rssUtils.js`
 
 ## 4. Data Flow
 
 1.  **Backend Data Fetching & Processing:**
-    *   `cron.js` schedules jobs to fetch news from RSS feeds via `rssService.js`.
-    *   Fetched article text is passed to `wordProcessingService.js` for keyword extraction and processing.
-    *   Processed data (news items and associated keywords/tags) is stored (e.g., in MongoDB via `NewsItem.js`).
+    *   `cron.js` schedules jobs to fetch news from RSS feeds via Miniflux and `rssService.js`.
+    *   Fetched article text is passed to `wordProcessingService.js` for initial NLP processing.
+    *   Each article is analyzed by the LLM through `llmService.js` for enhanced keyword extraction and bias detection.
+    *   Processing occurs in batches using a queue system for optimal performance.
+    *   Processed data (news items, keywords, and bias information) is stored in MongoDB.
 2.  **Frontend Data Request:**
     *   `rssService.js` (frontend) sends requests to the backend API (e.g., `GET /news`) to fetch processed news and keyword data.
     *   Data may be filtered based on user selections via `FilterContext`.
@@ -181,25 +201,70 @@ This project is a full-stack news aggregation application designed to collect, a
 
 ## 5. External Dependencies
 
-*   **`axios`:** HTTP client (potentially less used now if only fetching RSS via backend).
+*   **`axios`:** HTTP client for API requests to Miniflux and Ollama.
 *   **`mongoose`:** MongoDB Object Modeling.
 *   **`rss-parser`:** RSS feed parsing (Backend).
 *   **`node-cron`:** Scheduling jobs for data fetching (Backend).
+*   **`lru-cache`:** Caching mechanism for LLM responses.
+*   **`better-queue`:** Batch processing for LLM operations.
+*   **Miniflux:** Self-hosted RSS aggregator (runs in Docker).
+*   **Ollama:** Local LLM inference engine.
 *   **External APIs:** **RSS Feeds only.**
 
 ## 6. Critical Functions and Files
 
 *   **Backend:**
-    *   `news-backend/src/cron.js`: `startNewsFetchingJob()` - Core logic for fetching new RSS data.
+    *   `news-backend/src/cron.js`: `startNewsFetchingJob()` - Core logic for fetching new RSS data with batch processing queue.
     *   `news-backend/src/routes/news.js`: API endpoint handling for processed data.
-    *   `news-backend/src/services/rssService.js`: `fetchAndParseFeed()` - Handles RSS feed data retrieval.
-    *   `news-backend/src/services/wordProcessingService.js`: Core logic for keyword extraction and processing.
+    *   `news-backend/src/services/rssService.js`: Integration with Miniflux for RSS feed data retrieval.
+    *   `news-backend/src/services/wordProcessingService.js`: `processNewsKeywords()` - Core logic for keyword extraction and NLP processing.
+    *   `news-backend/src/services/llmService.js`: `processArticleWithRetry()` - LLM-based text analysis for keywords and bias detection.
+    *   `news-backend/src/scripts/startup.js`: Environment setup and service management.
 *   **Frontend:**
     *   `src/services/rssService.js`: `fetchNews()` - Handles fetching processed data from the backend.
     *   `src/components/TagCloud3DOptimized.tsx`: Renders the 3D tag cloud visualization using backend data.
     *   `src/contexts/FilterContext.tsx`: Core logic for storing and accessing filter values.
 
-## 7. Configuration and Environment
+## 7. LLM Integration
+
+*   **Architecture:**
+    *   **Local LLM:** Uses Ollama to run open-source language models locally (Gemma 2B recommended).
+    *   **Processing Flow:** All news articles are analyzed by the LLM for keywords and bias detection.
+    *   **Caching:** LRU cache improves performance by storing results for identical content.
+    *   **Queue System:** Articles are processed in batches to optimize throughput.
+    *   **Fallback Mechanisms:** Traditional NLP is used alongside LLM for redundancy.
+
+*   **Key Components:**
+    *   **`llmService.js`:** Central service for all LLM operations with caching and retry capability.
+    *   **Enhanced `wordProcessingService.js`:** Combines traditional NLP with LLM analysis.
+    *   **Processing Queue:** Implemented in `cron.js` to handle article processing efficiently.
+    *   **Documentation:** Detailed in `LLM_INTEGRATION.md`.
+
+*   **Setup Requirements:**
+    *   Ollama must be installed and running (`ollama serve`).
+    *   At least one language model must be pulled (e.g., `ollama pull gemma:2b`).
+    *   MongoDB for storing processed data.
+    *   Miniflux for RSS feed management.
+
+*   **Development Workflow:**
+    *   The `npm run dev` command automatically starts all required services.
+    *   Ollama runs locally with increased concurrency for better performance.
+    *   The backend connects to Miniflux via API key for RSS feed management.
+
+## 8. Development Workflow
+
+*   **Frontend:**
+  * `npm start` - Start the frontend application
+
+*   **Backend:**
+  * `npm run dev` - Start all services (Miniflux, Ollama, MongoDB) and backend with auto-reload
+  * `npm run services:start` - Start just the required services without the backend
+  * `npm run dev:simple` - Start backend with minimal setup (legacy mode)
+
+*   **Root Project:**
+  * `npm run dev` - Start both frontend and backend concurrently
+
+## 9. Configuration and Environment
 
 *   **Environment Variables:**
     *   Backend requires database connection strings. API keys for external news services are no longer needed.
@@ -208,7 +273,7 @@ This project is a full-stack news aggregation application designed to collect, a
     *   `package.json`: Defines environment variables via scripts.
 *   **Environments:** No clear differentiation between dev/prod in the current setup.
 
-## 8. Common Patterns
+## 10. Common Patterns
 
 *   **Service Layer:** Clear separation of concerns with backend `services/` and frontend `services/`.
 *   **Component-Based:** React components are modular and reusable.
