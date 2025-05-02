@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoCloud System Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #ccc;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #111;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #3498db;
+            margin-top: 0;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .status-card {
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .status-card h2 {
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #ddd;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .status-indicator .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-indicator .status-text {
+            flex-grow: 1;
+        }
+        .status-good .dot {
+            background-color: #2ecc71;
+            box-shadow: 0 0 8px #2ecc71;
+        }
+        .status-warning .dot {
+            background-color: #f39c12;
+            box-shadow: 0 0 8px #f39c12;
+        }
+        .status-bad .dot {
+            background-color: #e74c3c;
+            box-shadow: 0 0 8px #e74c3c;
+        }
+        .status-unknown .dot {
+            background-color: #7f8c8d;
+            box-shadow: 0 0 8px #7f8c8d;
+        }
+        .status-good {
+            color: #2ecc71;
+        }
+        .status-warning {
+            color: #f39c12;
+        }
+        .status-bad {
+            color: #e74c3c;
+        }
+        .status-unknown {
+            color: #7f8c8d;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .metric-card {
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            padding: 15px;
+            flex-basis: calc(50% - 15px);
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .metric-card h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #3498db;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ddd;
+        }
+        .refresh-btn {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+        .refresh-btn:hover {
+            background-color: #3498db;
+        }
+        .log-console {
+            background-color: #0a0a0a;
+            color: #2ecc71;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #333;
+        }
+        .log-entry {
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            margin-right: 10px;
+        }
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            .metric-card {
+                flex-basis: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>InfoCloud System Status</h1>
+        <button id="refresh-btn" class="refresh-btn">Refresh Status</button>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h2>Core Services</h2>
+                <div class="status-indicator">
+                    <div class="dot"></div>
+                    <div class="status-text" id="docker-status">Docker: Checking...</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="dot"></div>
+                    <div class="status-text" id="miniflux-status">Miniflux: Checking...</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="dot"></div>
+                    <div class="status-text" id="mongodb-status">MongoDB: Checking...</div>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h2>AI Components</h2>
+                <div class="status-indicator">
+                    <div class="dot"></div>
+                    <div class="status-text" id="ollama-status">Ollama: Checking...</div>
+                </div>
+                <div class="status-indicator">
+                    <div class="dot"></div>
+                    <div class="status-text" id="llm-model-status">LLM Model: Checking...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric-card">
+                <h3>Articles Fetched</h3>
+                <div class="metric-value" id="articles-count">-</div>
+            </div>
+            <div class="metric-card">
+                <h3>LLM Processing Queue</h3>
+                <div class="metric-value" id="llm-queue">-</div>
+            </div>
+            <div class="metric-card">
+                <h3>CPU Usage</h3>
+                <div class="metric-value" id="cpu-usage">-</div>
+            </div>
+            <div class="metric-card">
+                <h3>Memory Usage</h3>
+                <div class="metric-value" id="memory-usage">-</div>
+            </div>
+        </div>
+        
+        <h2>System Log</h2>
+        <div class="log-console" id="log-console">
+            <div class="log-entry"><span class="timestamp">[00:00:00]</span> Initializing status page...</div>
+        </div>
+    </div>
+
+    <script>
+        // Function to update status indicators
+        function updateStatus(elementId, status, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.parentElement.className = `status-indicator status-${status}`;
+        }
+
+        // Function to add log entry
+        function addLogEntry(message) {
+            const logConsole = document.getElementById('log-console');
+            const now = new Date();
+            const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="timestamp">${timestamp}</span> ${message}`;
+            
+            logConsole.appendChild(logEntry);
+            logConsole.scrollTop = logConsole.scrollHeight;
+        }
+
+        // Function to fetch status from backend
+        async function fetchStatus() {
+            try {
+                addLogEntry('Fetching system status...');
+                
+                const response = await fetch('/status/api');
+                
+                if (!response.ok) {
+                    throw new Error(`Status check failed with HTTP status ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Update service statuses
+                updateStatus('docker-status', data.docker.status, `Docker: ${data.docker.message}`);
+                updateStatus('miniflux-status', data.miniflux.status, `Miniflux: ${data.miniflux.message}`);
+                updateStatus('mongodb-status', data.mongodb.status, `MongoDB: ${data.mongodb.message}`);
+                updateStatus('ollama-status', data.ollama.status, `Ollama: ${data.ollama.message}`);
+                updateStatus('llm-model-status', data.llmModel.status, `LLM Model: ${data.llmModel.message}`);
+                
+                // Update metrics
+                document.getElementById('articles-count').textContent = data.metrics.articlesCount;
+                document.getElementById('llm-queue').textContent = data.metrics.queueSize;
+                document.getElementById('cpu-usage').textContent = data.metrics.cpuUsage;
+                document.getElementById('memory-usage').textContent = data.metrics.memoryUsage;
+                
+                addLogEntry('Status update complete');
+            } catch (error) {
+                addLogEntry(`Error fetching status: ${error.message}`);
+                
+                // Set all status indicators to unknown if we couldn't connect
+                updateStatus('docker-status', 'unknown', 'Docker: Connection error');
+                updateStatus('miniflux-status', 'unknown', 'Miniflux: Connection error');
+                updateStatus('mongodb-status', 'unknown', 'MongoDB: Connection error');
+                updateStatus('ollama-status', 'unknown', 'Ollama: Connection error');
+                updateStatus('llm-model-status', 'unknown', 'LLM Model: Connection error');
+            }
+        }
+
+        // Initial fetch
+        fetchStatus();
+        
+        // Add event listener for refresh button
+        document.getElementById('refresh-btn').addEventListener('click', fetchStatus);
+        
+        // Auto refresh every 30 seconds
+        setInterval(fetchStatus, 30000);
+    </script>
+</body>
+</html>
