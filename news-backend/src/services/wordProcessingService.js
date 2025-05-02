@@ -1,7 +1,7 @@
 const natural = require('natural');
 const nlp = require('compromise');
-// const { PoliticalBias } = require('../utils/biasAnalyzer'); // Old import
 const { PoliticalBias } = require('../types'); // Import PoliticalBias from shared types
+const { processArticleWithRetry } = require('./llmService'); // Import LLM service
 
 // **Expanded and Merged Stop Words List**
 // Combining basic English stop words, common news/descriptive/title words,
@@ -443,12 +443,12 @@ const shouldKeepWord = (phrase, config) => {
 };
 
 /**
- * Processes news items to generate refined keywords using NLP techniques
+ * Processes news items to generate refined keywords using LLM and NLP techniques
  * @param {Array<Object>} newsItems - Array of news item objects
  * @param {Object} config - Configuration options
- * @returns {Array<Object>} - News items with extracted keywords
+ * @returns {Promise<Array<Object>>} - News items with extracted keywords and bias
  */
-const processNewsKeywords = async (newsItems, config = DEFAULT_CONFIG) => {
+async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
   console.log(`[WordProcessingService] Starting keyword processing for ${newsItems?.length || 0} items.`);
   if (!newsItems || !Array.isArray(newsItems) || newsItems.length === 0) {
     return [];
@@ -483,98 +483,131 @@ const processNewsKeywords = async (newsItems, config = DEFAULT_CONFIG) => {
   }
   
   // Second pass: Process each item to extract keywords with improved relevance
-  const finalItems = await Promise.all(newsItems.map(async (item) => {
-    try {
-      if (!item) return null;
-      
-      // Create a copy of the item to avoid modifying the original
-      const newItem = { ...item };
-      
-      // Extract raw text from title and description
-      const rawText = `${item.title || ''} ${item.description || ''}`;
-      if (!rawText.trim()) {
-        console.warn(`[WordProcessingService] Empty content for item ${item.id}`);
-        return newItem;
-      }
-      
-      // Clean text: normalize whitespace, remove HTML entities
-      const cleanText = stripHtml(rawText).trim();
-      
-      // Store keywords with their weights
-      const keywordScores = new Map();
-      
-      // Extract named entities and meaningful phrases
-      const phrases = extractMeaningfulPhrases(cleanText);
-      
-      // Process extracted phrases with weights
-      phrases.forEach(phrase => {
-        if (typeof phrase === 'object' && phrase.text) {
-          // Handle new format with weighted phrases
-          const phraseTerm = phrase.text.toLowerCase().trim();
-          if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
-            // Use the weight provided by the named entity extraction
-            keywordScores.set(phraseTerm, (keywordScores.get(phraseTerm) || 0) + phrase.weight);
-          }
-        } else if (typeof phrase === 'string') {
-          // Handle older format for backward compatibility
-          const phraseTerm = phrase.toLowerCase().trim();
-          if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
-            keywordScores.set(phraseTerm, (keywordScores.get(phraseTerm) || 0) + 1.0);
-          }
-        }
+  const processedItems = [];
+  
+  for (const item of newsItems) {
+    // Ensure source and bias exist, default to Unknown if not
+    const itemBias = item.source?.bias || PoliticalBias.Unknown; 
+    if (!itemBias) {
+      console.warn(`Item is missing bias information: ${item.id}`);
+    }
+    
+    if (!item || (!item.title && !item.description)) {
+      processedItems.push({
+        ...item,
+        keywords: [],
+        bias: PoliticalBias.Unknown
       });
-      
-      // Lemmatize and filter individual words
-      const words = cleanText.split(/\W+/)
+      continue;
+    }
+    
+    // Create a copy of the item to avoid modifying the original
+    const newItem = { ...item };
+    
+    // Combine text for processing (some articles only have titles)
+    const fullText = `${item.title || ''} ${item.description || ''}`;
+    
+    // Extract traditional NLP keywords first
+    const rawText = fullText;
+    if (!rawText.trim()) {
+      console.warn(`[WordProcessingService] Empty content for item ${item.id}`);
+      processedItems.push({
+        ...item,
+        keywords: [],
+        bias: PoliticalBias.Unknown
+      });
+      continue;
+    }
+    
+    // Clean text: normalize whitespace, remove HTML entities
+    const cleanText = stripHtml(rawText).trim();
+    
+    // Generate keyword frequency object with TF-IDF scores
+    let keywordFrequency = {};
+    let tfidf = new natural.TfIdf();
+    tfidf.addDocument(fullText);
+    
+    // Process with traditional NLP first
+    const phrases = extractMeaningfulPhrases(cleanText);
+    
+    // Process extracted phrases with weights
+    phrases.forEach(phrase => {
+      if (typeof phrase === 'object' && phrase.text) {
+        // Handle new format with weighted phrases
+        const phraseTerm = phrase.text.toLowerCase().trim();
+        if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
+          // Use the weight provided by the named entity extraction
+          keywordFrequency[phraseTerm] = (keywordFrequency[phraseTerm] || 0) + phrase.weight;
+        }
+      } else if (typeof phrase === 'string') {
+        // Handle older format for backward compatibility
+        const phraseTerm = phrase.toLowerCase().trim();
+        if (phraseTerm && shouldKeepWord(phraseTerm, config)) {
+          keywordFrequency[phraseTerm] = (keywordFrequency[phraseTerm] || 0) + 1.0;
+        }
+      }
+    });
+    
+    // Lemmatize and filter individual words
+    const words = cleanText.split(/\W+/)
+      .filter(word => word.length >= config.minWordLength)
+      .map(word => lemmatizeWord(word))
+      .filter(word => shouldKeepWord(word, config));
+    
+    // Enhance title terms with higher weight
+    if (item.title) {
+      const titleClean = stripHtml(item.title).trim();
+      const titleWords = titleClean.split(/\W+/)
         .filter(word => word.length >= config.minWordLength)
         .map(word => lemmatizeWord(word))
         .filter(word => shouldKeepWord(word, config));
       
-      // Enhance title terms with higher weight
-      if (item.title) {
-        const titleClean = stripHtml(item.title).trim();
-        const titleWords = titleClean.split(/\W+/)
-          .filter(word => word.length >= config.minWordLength)
-          .map(word => lemmatizeWord(word))
-          .filter(word => shouldKeepWord(word, config));
-        
-        titleWords.forEach(word => {
-          const term = word.toLowerCase();
-          // Title words get 1.5x weight
-          keywordScores.set(term, (keywordScores.get(term) || 0) + 1.5);
-        });
-      }
-      
-      // Add individual words with basic weight
-      words.forEach(word => {
+      titleWords.forEach(word => {
         const term = word.toLowerCase();
-        // Check if it's already in the list (from phrases or title)
-        if (!keywordScores.has(term)) {
-          // Adjust word importance based on corpus frequency
-          const corpusFreq = corpusTerms.get(term) || 1;
-          const documentRelevance = 1 / Math.sqrt(corpusFreq); // Lower weight for very common terms
-          keywordScores.set(term, 0.8 * documentRelevance); // Base weight for individual words
-        }
+        // Title words get 1.5x weight
+        keywordFrequency[term] = (keywordFrequency[term] || 0) + 1.5;
       });
-      
-      // Convert Map to sorted Array of keywords (highest weight first)
-      const sortedKeywords = Array.from(keywordScores.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 25) // Limit to 25 most relevant keywords per item
-        .map(entry => entry[0]);
-      
-      newItem.keywords = sortedKeywords;
-      totalRawKeywords += newItem.keywords.length;
-      
-      return newItem;
-    } catch (error) {
-      console.error(`[WordProcessingService] Error processing item: ${error.message}`);
-      return item; // Return original item on error
     }
-  }));
-
-  console.log(`[WordProcessingService] Finished processing. Input keywords: ${totalRawKeywords}, Output keywords: ${finalItems.reduce((sum, item) => sum + (item?.keywords?.length || 0), 0)}`);
-  return finalItems;
+    
+    // Add individual words with basic weight
+    words.forEach(word => {
+      const term = word.toLowerCase();
+      // Check if it's already in the list (from phrases or title)
+      if (!keywordFrequency[term]) {
+        // Adjust word importance based on corpus frequency
+        const corpusFreq = corpusTerms.get(term) || 1;
+        const documentRelevance = 1 / Math.sqrt(corpusFreq); // Lower weight for very common terms
+        keywordFrequency[term] = 0.8 * documentRelevance; // Base weight for individual words
+      }
+    });
+    
+    // Get traditional NLP keywords
+    const traditionalKeywords = Object.keys(keywordFrequency).map(word => ({
+      text: word,
+      value: keywordFrequency[word]
+    }));
+    
+    // Process with LLM to get bias and additional keywords
+    const { bias, keywords: llmKeywords } = await processArticleWithRetry(fullText);
+    
+    // Convert LLM keywords to same format as traditional keywords
+    const formattedLlmKeywords = llmKeywords.map(keyword => ({
+      text: keyword,
+      value: 1.0  // Default importance value
+    }));
+    
+    // Combine keywords, prioritizing LLM results
+    const combinedKeywords = combineKeywords(formattedLlmKeywords, traditionalKeywords);
+    
+    processedItems.push({
+      ...item,
+      keywords: combinedKeywords,
+      bias: bias
+    });
+  }
+  
+  console.log(`[WordProcessingService] Finished processing. Input keywords: ${totalRawKeywords}, Output keywords: ${processedItems.reduce((sum, item) => sum + (item?.keywords?.length || 0), 0)}`);
+  return processedItems;
 };
 
 /**
@@ -716,8 +749,29 @@ const aggregateKeywordsForCloud = (newsItems, maxWords = 1000) => {
   return sortedKeywords;
 };
 
+/**
+ * Combine keywords from LLM and traditional NLP processing
+ * Prioritize LLM keywords but preserve relevant traditional ones
+ * @param {Array<Object>} llmKeywords - Keywords from LLM
+ * @param {Array<Object>} traditionalKeywords - Keywords from traditional NLP
+ * @returns {Array<Object>} - Combined keywords
+ */
+function combineKeywords(llmKeywords, traditionalKeywords) {
+  // Create a set from LLM keywords for quick lookup
+  const llmKeywordSet = new Set(llmKeywords.map(k => k.text.toLowerCase()));
+  
+  // Filter traditional keywords to only keep those not already in LLM keywords
+  const uniqueTraditionalKeywords = traditionalKeywords.filter(
+    k => !llmKeywordSet.has(k.text.toLowerCase())
+  );
+  
+  // Combine, prioritizing LLM keywords
+  return [...llmKeywords, ...uniqueTraditionalKeywords];
+}
+
 module.exports = {
   processNewsKeywords,
   aggregateKeywordsForCloud,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  combineKeywords // Export for testing
 }; 
