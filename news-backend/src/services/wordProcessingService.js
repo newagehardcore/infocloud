@@ -210,8 +210,7 @@ const lemmatizeWord = (word) => {
     const termsData = doc.json({ terms: { normal: true, text: true } });
     const normalizedTerms = termsData[0]?.terms.map(t => t.normal || t.text) || [];
     const result = normalizedTerms.join(' ').trim();
-    // ** Log input and output (UNCOMMENTED) **
-    console.log(`[LemmaDebug] Input: "${originalWord}", Output: "${result || '(empty)'}"`); 
+    // Debug logging removed for performance improvement
     return result;
   } catch (error) {
     console.warn(`[WordProcessing] Error lemmatizing "${word}":`, error);
@@ -318,128 +317,125 @@ const stripHtml = (text) => {
 };
 
 /**
- * Determines if a word should be kept based on configuration and filter lists
- * Enhanced to better filter out low-quality words while preserving meaningful ones
+ * Determines if a word/phrase should be kept for the tag cloud
+ * Simplified filtering logic to focus on meaningful, informative words/phrases
+ * while avoiding redundancy and excessive filtering
  */
 const shouldKeepWord = (phrase, config) => {
-  // First strip any HTML from the phrase
+  // Remove HTML and check if anything remains
   const cleanPhrase = stripHtml(phrase);
   if (!cleanPhrase) return false;
   
   const lowerPhrase = cleanPhrase.toLowerCase();
+  const words = lowerPhrase.split(/\s+/).filter(w => w.length > 0);
+  
+  // Quick length validation
+  if (words.length === 0) return false;
   
   // Always keep important descriptive words
   if (IMPORTANT_DESCRIPTIVE_WORDS.has(lowerPhrase)) {
     return true;
   }
 
-  // Block problematic patterns and common non-meaningful patterns
-  if (/^\d+$/.test(cleanPhrase) || // Just numbers
-      /^[a-z]{1,2}$/.test(lowerPhrase) || // Single or two letters (like 'am', 're', 'if', 'or', 'vs')
-      /^[a-z]{1,2}\d+$/.test(lowerPhrase) || // Short code like a1, b2, etc
-      lowerPhrase.includes('href=') || 
+  // ==== STAGE 1: Quick rejects (fast pattern matching) ====
+  
+  // Reject obvious HTML/URL elements that shouldn't be in a word cloud
+  if (lowerPhrase.includes('href=') || 
       lowerPhrase.includes('src=') ||
       lowerPhrase.includes('http:') ||
       lowerPhrase.includes('https:') ||
       lowerPhrase.includes('www.') ||
       lowerPhrase.includes('@') ||
-      lowerPhrase.includes('...') ||
-      // Filter common UI elements and navigation text
-      lowerPhrase.includes('skip') ||
-      lowerPhrase.includes('advertisement') ||
-      lowerPhrase.includes('login') ||
-      lowerPhrase.includes('verify') ||
-      lowerPhrase.includes('access') ||
-      lowerPhrase.includes('click') ||
-      lowerPhrase.includes('continue reading') ||
+      lowerPhrase.includes('...')) {
+    return false;
+  }
+  
+  // Reject UI navigation text that shouldn't be in a news tag cloud
+  if (lowerPhrase.includes('continue reading') ||
       lowerPhrase.includes('read more') ||
       lowerPhrase.includes('sign in') ||
       lowerPhrase.includes('sign up') ||
       lowerPhrase.includes('subscribe') ||
-      // Common meaningless prefixes
-      /^(am|is|are|was|were|be|been|being|ve|ll|re|not|no)\s/.test(lowerPhrase) ||
-      // Common meaningless suffixes
-      /\s(am|is|are|was|were|ll|ve|re|vs|etc|or|if)$/.test(lowerPhrase)) {
-    return false;
-  }
-
-  // Additional filtering for common low-quality patterns
-  // Filter out words that are likely not meaningful in a tag cloud
-  if (/^(can|get|may|must|will|shall|would|could|should|might|let|make)\s/.test(lowerPhrase) ||
-      /\s(get|got|said|told|says|than|etc)$/.test(lowerPhrase)) {
+      lowerPhrase.includes('click here') ||
+      lowerPhrase.includes('tap here')) {
     return false;
   }
   
-  // Reject words that contain certain substrings (like JavaScript identifiers)
-  if (lowerPhrase.includes('_') || 
-      lowerPhrase.includes('function') || 
-      lowerPhrase.includes('var') ||
-      lowerPhrase.includes('const') ||
+  // Reject code-like patterns
+  if (lowerPhrase.includes('function') || 
+      lowerPhrase.includes('var ') ||
+      lowerPhrase.includes('const ') ||
+      lowerPhrase.includes('class ') ||
       lowerPhrase.includes('javascript')) {
     return false;
   }
 
-  const words = lowerPhrase.split(/\s+/).filter(w => w.length > 0);
-
-  // For single words, apply stricter filtering
+  // ==== STAGE 2: Handle differently based on phrase length ====
+  
+  // Single word handling
   if (words.length === 1) {
     const word = words[0];
     
-    // Length requirements
-    if (word.length < config.minWordLength || word.length > config.maxWordLength) {
-      return false;
-    }
-
-    // Filter out source names to avoid publication names dominating
-    if (NEWS_SOURCE_NAMES.has(word)) {
-      return false;
-    }
-
-    // Filter common web-related terms that shouldn't appear in a news tag cloud
-    if (['click', 'tap', 'page', 'site', 'website', 'browser', 'app', 'login', 'password',
-         'user', 'access', 'account', 'subscribe', 'subscription', 'premium', 'newsletter',
-         'download', 'upload', 'file', 'button', 'menu', 'widget', 'free', 'paid', 'unlimited',
-         'email', 'phone', 'contact', 'comment', 'submit', 'search', 'find', 'link'].includes(word)) {
-      return false;
-    }
-
-    // More aggressive stop word filtering - filter out words that add little meaning to the cloud
-    if (config.removeStopWords && 
-        (STOP_WORDS.has(word) || 
-         /^(get|can|may|be|have|do|go|say|see|know|like|think|come|take|make|want|use|find|give)$/.test(word)) && 
-         !NEWS_SPECIFIC_WORDS.has(word) && 
-         !isProperNoun(word)) {
-      return false;
-    }
-
-    // Keep proper nouns even if they're short
+    // Keep proper nouns regardless of other rules
     if (isProperNoun(word)) {
       return true;
     }
-
-    // Must contain at least one letter
-    if (!/[a-zA-Z]/.test(word)) {
+    
+    // Basic length validation
+    if (word.length < config.minWordLength || word.length > config.maxWordLength) {
       return false;
     }
-  } else {
-    // For multi-word phrases, be more selective while still preserving important phrases
+    
+    // Reject just numbers, single letters, or codes like a1, b2
+    if (/^\d+$/.test(word) || /^[a-z]$/.test(word) || /^[a-z]\d+$/.test(word)) {
+      return false;
+    }
+    
+    // Reject news source names to avoid them dominating the cloud
+    if (NEWS_SOURCE_NAMES.has(word)) {
+      return false;
+    }
+    
+    // Remove stop words unless they're news-specific
+    if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) {
+      return false;
+    }
+    
+    // Require at least one letter (not just symbols or numbers)
+    return /[a-zA-Z]/.test(word);
+  } 
+  
+  // Multi-word phrase handling
+  else {
+    // Validate phrase length
     if (words.length < config.minPhraseWords || words.length > config.maxPhraseWords) {
       return false;
     }
     
-    // For 2-word phrases, at least one word should NOT be a stop word
-    if (words.length === 2) {
-      const allStopWords = words.every(w => STOP_WORDS.has(w) && !NEWS_SPECIFIC_WORDS.has(w) && !isProperNoun(w));
-      if (allStopWords) {
-        return false;
-      }
+    // Reject phrases with meaningless prefixes/suffixes
+    const firstWord = words[0];
+    const lastWord = words[words.length - 1];
+    
+    const meaninglessPrefixes = ['a', 'an', 'the', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'am', 'is', 'are', 'was', 'were', 'be', 'been'];
+    const meaninglessSuffixes = ['etc', 'so', 'to', 'for', 'of', 'by', 'with', 'in', 'on', 'at'];
+    
+    if (meaninglessPrefixes.includes(firstWord) && words.length <= 2) {
+      return false;
     }
     
-    // Allow longer phrases (3+ words) even if they contain stop words, they're likely meaningful
-    return words.length >= 3 || words.some(w => isProperNoun(w) || NEWS_SPECIFIC_WORDS.has(w));
+    if (meaninglessSuffixes.includes(lastWord) && words.length <= 2) {
+      return false;
+    }
+    
+    // For 2-word phrases, require at least one non-stop word or proper noun
+    if (words.length === 2) {
+      return words.some(w => !STOP_WORDS.has(w) || isProperNoun(w) || NEWS_SPECIFIC_WORDS.has(w));
+    }
+    
+    // For 3+ word phrases, they're likely meaningful, so keep them
+    // unless they're composed entirely of stop words
+    return !words.every(w => STOP_WORDS.has(w) && !NEWS_SPECIFIC_WORDS.has(w) && !isProperNoun(w));
   }
-
-  return true;
 };
 
 /**
@@ -590,11 +586,35 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
     // Process with LLM to get bias and additional keywords
     const { bias, keywords: llmKeywords } = await processArticleWithRetry(fullText);
     
-    // Convert LLM keywords to same format as traditional keywords
-    const formattedLlmKeywords = llmKeywords.map(keyword => ({
-      text: keyword,
-      value: 1.0  // Default importance value
-    }));
+    // Convert LLM keywords to same format as traditional keywords, with enhanced weighting
+    // Multi-word phrases are given higher weight based on word count and specificity
+    const formattedLlmKeywords = llmKeywords.map(keyword => {
+      // Calculate a weight based on the number of words (longer phrases = more specific = higher weight)
+      const wordCount = keyword.split(/\s+/).length;
+      let weight = 1.0; // Base weight
+      
+      // Increase weight for multi-word phrases
+      if (wordCount >= 2) {
+        // Phrases with 2-4 words get progressively higher weights
+        // This ensures multi-word phrases dominate the tag cloud
+        weight = 1.5 + (wordCount * 0.5); // 2 words = 2.5, 3 words = 3.0, 4 words = 3.5
+      }
+      
+      // Check if phrase contains proper nouns or entities (capitalized words)
+      if (/[A-Z][a-z]+/.test(keyword)) {
+        weight += 0.5; // Boost phrases with proper nouns
+      }
+      
+      // Check if the phrase has a relationship indicator (contains prepositions)
+      if (/\s(of|in|for|by|with|against|to|from|over|under|on)\s/.test(` ${keyword} `)) {
+        weight += 0.5; // Boost phrases that show relationships
+      }
+      
+      return {
+        text: keyword,
+        value: weight
+      };
+    });
     
     // Combine keywords, prioritizing LLM results
     const combinedKeywords = combineKeywords(formattedLlmKeywords, traditionalKeywords);
@@ -613,12 +633,13 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
 /**
  * Aggregates keywords from a list of news items for the tag cloud.
  * Calculates frequency counts for each keyword, with bias information.
- *
+ * Enhanced to prioritize multi-word phrases for better storytelling.
+ * 
  * @param {Array<Object>} newsItems - Array of news item objects, each expected to have a `keywords` array field.
  * @param {number} maxWords - The maximum number of words to return for the cloud.
  * @returns {Array<{text: string, value: number, bias: PoliticalBias}>} - Array of objects for the tag cloud, including bias.
  */
-const aggregateKeywordsForCloud = (newsItems, maxWords = 1000) => {
+function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
   if (!newsItems || newsItems.length === 0) {
     return [];
   }
@@ -751,7 +772,7 @@ const aggregateKeywordsForCloud = (newsItems, maxWords = 1000) => {
 
 /**
  * Combine keywords from LLM and traditional NLP processing
- * Prioritize LLM keywords but preserve relevant traditional ones
+ * Strongly prioritizes LLM multi-word phrases while preserving high-value traditional keywords
  * @param {Array<Object>} llmKeywords - Keywords from LLM
  * @param {Array<Object>} traditionalKeywords - Keywords from traditional NLP
  * @returns {Array<Object>} - Combined keywords
@@ -761,11 +782,46 @@ function combineKeywords(llmKeywords, traditionalKeywords) {
   const llmKeywordSet = new Set(llmKeywords.map(k => k.text.toLowerCase()));
   
   // Filter traditional keywords to only keep those not already in LLM keywords
-  const uniqueTraditionalKeywords = traditionalKeywords.filter(
-    k => !llmKeywordSet.has(k.text.toLowerCase())
-  );
+  // and prioritize high-value multi-word phrases from traditional method
+  const uniqueTraditionalKeywords = traditionalKeywords
+    .filter(k => !llmKeywordSet.has(k.text.toLowerCase()))
+    // Prioritize traditional multi-word entities
+    .map(keyword => {
+      const wordCount = keyword.text.split(/\s+/).length;
+      // For traditional keywords, only keep multi-words with good weight
+      // or single words with high weight (indicating importance)
+      const isMultiWord = wordCount > 1;
+      const isHighValue = keyword.value > 1.3;
+      
+      // Boost multi-word phrases from traditional NLP
+      if (isMultiWord) {
+        return {
+          ...keyword,
+          value: keyword.value * 1.2 // 20% boost for multi-word phrases
+        };
+      }
+      
+      // Slightly reduce weight of single words to favor phrases
+      if (!isMultiWord && !isHighValue) {
+        return {
+          ...keyword,
+          value: keyword.value * 0.8 // 20% reduction for single words
+        };
+      }
+      
+      return keyword;
+    })
+    // For traditional keywords, prioritize phrases more strongly
+    .sort((a, b) => {
+      const aWords = a.text.split(/\s+/).length;
+      const bWords = b.text.split(/\s+/).length;
+      // Sort by word count (descending) then by value (descending)
+      return (bWords - aWords) || (b.value - a.value);
+    })
+    // Limit the number of traditional keywords to prevent overwhelming the LLM ones
+    .slice(0, Math.min(llmKeywords.length, 30));
   
-  // Combine, prioritizing LLM keywords
+  // Combine, strongly prioritizing LLM keywords (they come first in the array)
   return [...llmKeywords, ...uniqueTraditionalKeywords];
 }
 

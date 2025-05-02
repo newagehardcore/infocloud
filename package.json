@@ -42,7 +42,7 @@
     "eject": "react-scripts eject",
     "server": "node server.js",
     "backend": "cd news-backend && npm start",
-    "dev": "concurrently \"npm start\" \"npm run backend\"",
+    "dev": "concurrently \"npm start\" \"cd news-backend && npm run dev\"",
     "start:prod": "NODE_ENV=production node server.js"
   },
   "eslintConfig": {

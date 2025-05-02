@@ -3,6 +3,7 @@ require('dotenv').config(); // Ensure env vars are loaded
 const cors = require('cors'); // Add CORS
 const { connectDB } = require('./config/db');
 const newsRoutes = require('./routes/news');
+const statusRoutes = require('./routes/statusRoutes');
 const { scheduleFeedFetching } = require('./cron'); // Import the scheduler
 
 const app = express();
@@ -15,26 +16,34 @@ app.use(cors({
 }));
 
 // Connect to Database
+const PORT = process.env.PORT || 5001; // Use port from env or default to 5001
+
+// Connect to Database and Start Server
 connectDB().then(() => {
+  console.log('Database connection successful. Starting server...');
+  app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
   // Start the cron job scheduler only after DB connection is successful
   scheduleFeedFetching();
+}).catch(err => {
+  console.error('Failed to connect to database. Server not started.', err);
+  process.exit(1);
 });
 
 // Init Middleware
 app.use(express.json({ extended: false })); // Allows us to accept JSON data in the body
 
+// Serve static files from the public directory
+app.use(express.static('public'));
+
 // Define Routes
 app.get('/', (req, res) => res.send('News Backend Running'));
 app.use('/api/news', newsRoutes);
+app.use('/status', statusRoutes);
 
 // Basic Error Handling Middleware (can be expanded later)
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
-
-const PORT = process.env.PORT || 5001; // Use port from env or default to 5001
-
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
 module.exports = app; // Export for potential testing

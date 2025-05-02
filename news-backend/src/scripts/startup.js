@@ -75,7 +75,7 @@ const isMongoDBRunning = () => {
 };
 
 // Start Docker if not running
-const startDocker = () => {
+const startDocker = async () => {
   if (!isDockerRunning()) {
     console.log('🐳 Docker is not running. Starting Docker...');
     runCommand('open -a Docker');
@@ -103,26 +103,32 @@ const startDocker = () => {
 };
 
 // Start Miniflux container
-const startMiniflux = () => {
+const startMiniflux = async () => {
   if (!isMinifluxRunning()) {
     console.log('📰 Miniflux is not running. Starting Miniflux...');
-    runCommand('docker-compose up -d', { cwd: PROJECT_ROOT });
-    
-    // Wait for Miniflux to start (up to 30 seconds)
-    console.log('Waiting for Miniflux to start...');
-    let attempts = 0;
-    while (!isMinifluxRunning() && attempts < 30) {
-      execSync('sleep 1');
-      attempts++;
-      process.stdout.write('.');
-    }
-    console.log('');
-    
-    if (isMinifluxRunning()) {
-      console.log('✅ Miniflux is now running');
-      return true;
-    } else {
-      console.error('❌ Failed to start Miniflux within timeout');
+    try {
+      // Start Miniflux container
+      runCommand('docker-compose up -d', { cwd: PROJECT_ROOT });
+      
+      // Wait for Miniflux to start (up to 30 seconds)
+      console.log('Waiting for Miniflux to start...');
+      let attempts = 0;
+      while (!isMinifluxRunning() && attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+        process.stdout.write('.');
+      }
+      console.log('');
+      
+      if (isMinifluxRunning()) {
+        console.log('✅ Miniflux is now running');
+        return true;
+      } else {
+        console.error('❌ Failed to start Miniflux within timeout');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Failed to start Miniflux:', error.message);
       return false;
     }
   }
@@ -131,40 +137,32 @@ const startMiniflux = () => {
 };
 
 // Start Ollama if not running
-const startOllama = () => {
+const startOllama = async () => {
   if (!isOllamaRunning()) {
-    console.log('🧠 Ollama is not running. Starting Ollama with optimized settings...');
-    
-    // Start Ollama in the background
-    const child = exec('OLLAMA_CONCURRENCY=4 ollama serve >/dev/null 2>&1 &');
-    
-    // Wait for Ollama to start (up to 10 seconds)
-    console.log('Waiting for Ollama to start...');
-    let attempts = 0;
-    while (!isOllamaRunning() && attempts < 10) {
-      execSync('sleep 1');
-      attempts++;
-      process.stdout.write('.');
-    }
-    console.log('');
-    
-    if (isOllamaRunning()) {
-      console.log('✅ Ollama is now running');
+    console.log('🧠 Ollama is not running. Starting Ollama...');
+    try {
+      // Start Ollama in the background
+      const child = exec('ollama serve', { stdio: 'inherit' });
       
-      // Check if the model is available
-      try {
-        const modelOutput = execSync('ollama list').toString();
-        if (!modelOutput.includes('gemma:2b')) {
-          console.log('ℹ️ Required model (gemma:2b) not found. You may need to run:');
-          console.log('   ollama pull gemma:2b');
-        }
-      } catch (error) {
-        console.log('⚠️ Could not check for Ollama models');
+      // Wait for Ollama to start (up to 30 seconds)
+      console.log('Waiting for Ollama to start...');
+      let attempts = 0;
+      while (!isOllamaRunning() && attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+        process.stdout.write('.');
       }
+      console.log('');
       
-      return true;
-    } else {
-      console.error('❌ Failed to start Ollama within timeout');
+      if (isOllamaRunning()) {
+        console.log('✅ Ollama is now running');
+        return true;
+      } else {
+        console.error('❌ Failed to start Ollama within timeout');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Failed to start Ollama:', error.message);
       return false;
     }
   }
@@ -173,26 +171,32 @@ const startOllama = () => {
 };
 
 // Start MongoDB if needed
-const startMongoDB = () => {
+const startMongoDB = async () => {
   if (!isMongoDBRunning()) {
     console.log('🍃 MongoDB is not running. Starting MongoDB...');
-    runCommand('brew services start mongodb-community 2>/dev/null || mongod --dbpath ~/data/db --fork --logpath /dev/null');
-    
-    // Wait for MongoDB to start (up to 10 seconds)
-    console.log('Waiting for MongoDB to start...');
-    let attempts = 0;
-    while (!isMongoDBRunning() && attempts < 10) {
-      execSync('sleep 1');
-      attempts++;
-      process.stdout.write('.');
-    }
-    console.log('');
-    
-    if (isMongoDBRunning()) {
-      console.log('✅ MongoDB is now running');
-      return true;
-    } else {
-      console.error('❌ Failed to start MongoDB within timeout');
+    try {
+      // Start MongoDB
+      runCommand('brew services start mongodb-community');
+      
+      // Wait for MongoDB to start (up to 30 seconds)
+      console.log('Waiting for MongoDB to start...');
+      let attempts = 0;
+      while (!isMongoDBRunning() && attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+        process.stdout.write('.');
+      }
+      console.log('');
+      
+      if (isMongoDBRunning()) {
+        console.log('✅ MongoDB is now running');
+        return true;
+      } else {
+        console.error('❌ Failed to start MongoDB within timeout');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Failed to start MongoDB:', error.message);
       return false;
     }
   }
@@ -215,25 +219,37 @@ const setDefaultEnvVars = () => {
 
 // Main startup function
 const startup = async () => {
-  console.log('🚀 Starting InfoCloud development environment...');
-  
-  // Start services in order
-  const dockerStarted = startDocker();
-  if (!dockerStarted) {
-    console.error('⛔ Cannot continue without Docker. Please start Docker manually.');
-    process.exit(1);
-  }
-  
-  const minifluxStarted = startMiniflux();
-  const ollamaStarted = startOllama();
-  const mongoStarted = startMongoDB();
-  
-  setDefaultEnvVars();
-  
-  console.log('\n🎉 InfoCloud environment is ready!');
-  
-  if (!minifluxStarted || !ollamaStarted || !mongoStarted) {
-    console.warn('⚠️ Some services failed to start. Check the logs above.');
+  try {
+    console.log('🚀 Starting InfoCloud development environment...');
+    
+    // 1. Start Docker and ensure it's running
+    if (!await startDocker()) {
+      throw new Error('Failed to start Docker');
+    }
+    
+    // 2. Start Miniflux container
+    if (!await startMiniflux()) {
+      throw new Error('Failed to start Miniflux');
+    }
+    
+    // 3. Start MongoDB
+    if (!await startMongoDB()) {
+      throw new Error('Failed to start MongoDB');
+    }
+    
+    // 4. Start Ollama
+    if (!await startOllama()) {
+      console.warn('⚠️ Ollama service not available. Some features may be limited.');
+    }
+    
+    // 5. Set default environment variables
+    setDefaultEnvVars();
+    
+    console.log('✅ All services started successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to start services:', error.message);
+    return false;
   }
 };
 
