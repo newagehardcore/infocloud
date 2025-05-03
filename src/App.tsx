@@ -152,23 +152,31 @@ const App: React.FC = () => {
       setAllTagCloudWords([]);
 
       const params: Record<string, any> = {
-        limit: 1000,
+        limit: 1000, // Fetch a large number, let backend filter/paginate if needed
         category: selectedCategory,
+        // Add timeFilter param only if use24HourFilter is true
+        ...(use24HourFilter && { timeFilter: '24h' })
       };
 
       try {
-        console.log('Fetching news from:', `${API_BASE_URL}/api/news`);
+        console.log('Fetching news from:', `${API_BASE_URL}/api/news`, 'with params:', params);
         const response = await axios.get(`${API_BASE_URL}/api/news`, { params });
         console.log('Received response:', response.data);
 
         if (response.data && response.data.data) {
           console.log(`Received ${response.data.data.length} news items`);
-          setUnfilteredNewsItems(response.data.data);
+          setUnfilteredNewsItems(response.data.data); // Store all fetched items
+          
+          // Filter BY BIAS on the client side (keep this)
           const biasFiltered = filterNewsByBias(response.data.data, enabledBiases);
           console.log(`After bias filtering: ${biasFiltered.length} items`);
-          const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
-          console.log(`After time filtering: ${timeFiltered.length} items`);
-          setNewsItems(timeFiltered);
+
+          // ** REMOVE client-side time filtering - backend handles this now **
+          // const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
+          // console.log(`After time filtering: ${timeFiltered.length} items`);
+          
+          // Set newsItems directly from the bias-filtered list
+          setNewsItems(biasFiltered);
 
           // Use processed words directly from API response
           if (response.data.words) {
@@ -225,8 +233,16 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // Prepare parameters, including timeFilter if needed
+      const params: Record<string, any> = {
+        keyword: word.text,
+        ...(use24HourFilter && { timeFilter: '24h' })
+      };
+      
+      console.log('Fetching related news with params:', params); 
+      
       const response = await axios.get<NewsItem[]>(`${API_BASE_URL}/api/news/related`, {
-        params: { keyword: word.text },
+        params: params, // Pass the constructed params object
         timeout: 15000
       });
       if (response.data && response.data.length > 0) {

@@ -52,37 +52,29 @@ async function loadBiasMapping() {
   }
 }
 
-// Get unread entries
-async function getUnreadEntries(limit = 100) {
+// Get RECENT entries (modified from unread)
+async function getRecentEntries(limit = 100, daysAgo = 7) { // Renamed & added daysAgo
   try {
+    // Calculate date for X days ago
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - daysAgo);
+    const afterTimestamp = Math.floor(pastDate.getTime() / 1000); // Miniflux uses Unix timestamp
+
+    console.log(`Fetching all entries since ${pastDate.toISOString()} (last ${daysAgo} days).`);
+
     const response = await client.get('/v1/entries', {
       params: {
-        status: 'unread',
+        // status: 'unread', // REMOVED: Don't filter by Miniflux status
         limit: limit,
-        direction: 'desc'
+        direction: 'desc',
+        after: afterTimestamp // ADDED: Filter by time instead
       }
     });
     
     return response.data.entries || [];
   } catch (error) {
-    logApiError(error, 'fetching unread entries');
+    logApiError(error, 'fetching recent entries');
     return [];
-  }
-}
-
-// Mark entries as read
-async function markEntriesAsRead(entryIds) {
-  if (!entryIds.length) return true;
-  
-  try {
-    await client.put('/v1/entries', {
-      entry_ids: entryIds,
-      status: 'read'
-    });
-    return true;
-  } catch (error) {
-    logApiError(error, 'marking entries as read');
-    return false;
   }
 }
 
@@ -156,90 +148,61 @@ async function fetchNews() {
   const db = getDB();
   const newsCollection = db.collection('newsitems');
   
-  // Get unread entries from Miniflux
-  console.log('Fetching unread entries...');
-  const entries = await getUnreadEntries(200);
-  console.log(`Found ${entries.length} unread entries`);
+  // Get RECENT entries from Miniflux
+  console.log('Fetching recent entries...');
+  const entries = await getRecentEntries(1000, 7); // Fetch last 7 days, increased limit
+  console.log(`Found ${entries.length} entries from Miniflux in the time window.`);
   
   // Process entries
-  console.log('Processing entries...');
-  const mappedItems = [];
-  const entryIds = [];
+  console.log('Processing and checking for existing entries...');
+  const itemsToInsert = [];
+  const allFetchedItems = []; // <-- Store ALL valid items found
+  let checkedCount = 0;
+  let existCount = 0;
   
   for (const entry of entries) {
     const newsItem = await mapEntryToNewsItem(entry, biasMap, feedIdMap);
     if (newsItem) {
-      mappedItems.push(newsItem);
-      entryIds.push(entry.id);
-    }
-  }
-  
-  // Process keywords for all news items at once if we have any
-  let newsItems = [];
-  if (mappedItems.length > 0) {
-    console.log(`Processing keywords for ${mappedItems.length} news items...`);
-    try {
-      // Extract keywords using the existing word processing service
-      const itemsWithKeywords = await processNewsKeywords(mappedItems);
-      
-      // Ensure we preserve bias information and original data structure
-      if (Array.isArray(itemsWithKeywords)) {
-        newsItems = itemsWithKeywords.map((processedItem, index) => {
-          const originalItem = mappedItems[index];
-          
-          // If the processed item is valid, merge it with the original item
-          // ensuring that bias and source information is preserved
-          if (processedItem) {
-            return {
-              ...originalItem,
-              keywords: processedItem.keywords || [],
-              // Make sure bias is preserved
-              source: {
-                ...originalItem.source,
-                bias: originalItem.source?.bias || 'Unknown'
-              }
-            };
-          }
-          return originalItem;
-        });
+      allFetchedItems.push(newsItem); // <-- Add to the list of all items
+      checkedCount++;
+      // Check if item already exists in DB by its unique ID
+      const existingItem = await newsCollection.findOne({ id: newsItem.id });
+      if (!existingItem) {
+        itemsToInsert.push(newsItem);
       } else {
-        // Fallback to original items if processing returned invalid format
-        newsItems = mappedItems;
-        console.error('Keyword processing returned unexpected format');
+        existCount++;
       }
-      
-      console.log(`Successfully processed keywords for ${newsItems.length} items`);
-    } catch (error) {
-      console.error(`Error processing keywords: ${error.message}`);
-      // Fallback to the mapped items without keywords
-      newsItems = mappedItems;
     }
   }
+  console.log(`Checked ${checkedCount} valid entries. ${existCount} already exist in DB. ${itemsToInsert.length} are new.`);
   
-  // Save news items to database
-  if (newsItems.length > 0) {
+  // Save ONLY NEW news items to database
+  if (itemsToInsert.length > 0) {
     try {
-      const result = await newsCollection.insertMany(newsItems);
-      console.log(`Successfully inserted ${result.insertedCount} news items into database`);
+      const result = await newsCollection.insertMany(itemsToInsert);
+      console.log(`Successfully inserted ${result.insertedCount} NEW news items into database`);
     } catch (error) {
       console.error(`Error inserting news items: ${error.message}`);
     }
   } else {
-    console.log('No valid news items to insert');
+    console.log('No new news items to insert');
   }
   
-  // Mark entries as read
+  // REMOVED: Don't mark entries as read in Miniflux
+  /*
   if (entryIds.length > 0) {
     console.log(`Marking ${entryIds.length} entries as read`);
     await markEntriesAsRead(entryIds);
   }
+  */
   
   console.log('\n========== FETCH SUMMARY ==========');
-  console.log(`Total entries processed: ${entries.length}`);
-  console.log(`Valid news items created: ${newsItems.length}`);
+  console.log(`Total entries fetched from time window: ${entries.length}`);
+  console.log(`New news items inserted: ${itemsToInsert.length}`);
   console.log('===================================');
   
-  return newsItems;
+  // Return ALL valid fetched items so cron can process them all
+  return allFetchedItems; 
 }
 
 // If this file is run directly
@@ -253,6 +216,7 @@ if (require.main === module) {
 module.exports = {
   fetchNews,
   loadBiasMapping,
-  getUnreadEntries,
-  markEntriesAsRead
+  // getUnreadEntries, // Removed export
+  // markEntriesAsRead // Removed export
+  getRecentEntries // Export new function if needed elsewhere
 };

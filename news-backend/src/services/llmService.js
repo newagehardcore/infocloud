@@ -17,74 +17,81 @@ const cache = new LRUCache({
  * Create hash for cache keys
  */
 function createHash(text) {
-  return crypto.createHash('md5').update(text).digest('hex');
+  // Normalize before hashing: lowercase and remove punctuation/excess whitespace
+  const normalizedText = text.toLowerCase().replace(/[.,\/#!$%^&*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ").trim();
+  return crypto.createHash('md5').update(normalizedText).digest('hex');
 }
 
 /**
- * Process an article with LLM to extract both bias and keywords at once
+ * Process an article headline and first sentence with LLM
  * Uses a single API call to improve efficiency
  * 
- * @param {string} text - The article text to analyze
+ * @param {string} title - The article title
+ * @param {string} firstSentence - The first sentence of the article description (optional)
  * @returns {Promise<Object>} - Object with bias and keywords
  */
-async function processArticle(text) {
-  // Skip empty text
-  if (!text || text.trim().length === 0) {
+async function processArticle(title, firstSentence = '') { // Accept title and firstSentence
+  // Skip empty title
+  if (!title || title.trim().length === 0) {
     return {
       bias: PoliticalBias.Unknown,
       keywords: []
     };
   }
+  
+  // Combine title and sentence for processing and caching
+  const inputText = `${title}${firstSentence ? '. ' + firstSentence : ''}`;
 
-  const cacheKey = `article-${createHash(text)}`;
+  // Cache key based on normalized combined input
+  const cacheKey = `article-combo-${createHash(inputText)}`; 
   if (cache.has(cacheKey)) return cache.get(cacheKey);
   
   try {
     const response = await axios.post('http://localhost:11434/api/generate', {
-      model: 'gemma:2b', // Fast, efficient model
-      prompt: `You are an expert news analyst specialized in extracting narrative-focused phrases that tell the story of a news article. Your task is to identify the most meaningful multi-word phrases that capture the essence of the news.
+      model: 'llama3:8b', // Switch back to Llama 3 8B for quality
+      format: "json", // Enforce JSON output format
+      prompt: `You are a highly efficient news headline analyst. Extract political bias and 3-5 key narrative phrases from the provided headline and optional first sentence. ONLY extract the most informative phrases DIRECTLY from the text, prioritizing proper nouns, verbs, and action phrases. Your goal is to select words that tell the complete story at a glance. Respond ONLY with valid JSON.
 
-      Analyze this news article and respond in JSON format with two fields:
-      
-      "bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")
-      "keywords": array of 8-15 descriptive multi-word phrases that:
-      
-      CRITICAL: FAVOR MULTI-WORD PHRASES OVER SINGLE WORDS (at least 2-4 words each)
-      Tell the story of the article through connected phrases
-      Capture what happened, who was involved, and why it matters
-      Create a narrative flow when read as a collection
-      Avoid generic words or common phrases that don't add context
-      Include proper names with their roles/context (e.g., "President Biden's inflation plan")
-      
-      PHRASE QUALITY REQUIREMENTS:
-      
-      1. Use noun phrases with descriptive adjectives or verb phrases showing action
-      2. Include relationship indicators (e.g., "protests against police brutality" not just "protests")
-      3. Capture cause-effect in a single phrase (e.g., "sanctions triggered economic collapse")
-      4. For debates/conflicts, include opposing parties (e.g., "Democrats clash with Republicans over border")
-      5. For policies/legislation, specify impact (e.g., "tax cuts benefit wealthy Americans")
-      6. For events, include location and significance (e.g., "Michigan primary election results")
-      7. For controversies, include the nature of the issue (e.g., "ethical concerns over AI surveillance")
-      8. For financial news, include specific metrics (e.g., "30-year mortgage rates hit 7.2%")
-      9. For political statements, include who and what (e.g., "Netanyahu defends military response")
-      10. For scientific developments, include the breakthrough (e.g., "new cancer treatment shows 70% efficacy")
-      
-      MAKE YOUR PHRASES TELL A STORY:
-      Think of each phrase as a headline or caption that captures a key aspect of the article.
-      Someone reading just your extracted phrases should understand what the article is about.
-      
-      For bias detection:
-      Use the same criteria as before, analyzing:
-      - Language choices (loaded terms, emotional framing)
-      - Balance of perspectives presented
-      - Selection of facts and emphasis
-      - Attribution patterns and narrative framing
-      
-      Article: ${text.substring(0, 1500)} // Limit length for efficiency
+Analyze this input:
+Headline: ${title}
+First Sentence: ${firstSentence}
+
+Respond in JSON format with two fields:
+
+"bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")
+"keywords": array of 3-5 descriptive phrases that:
+
+IMPORTANT GUIDELINES:
+* EXTRACT keywords DIRECTLY from the headline and first sentence text only
+* PRIORITIZE proper nouns (people, organizations, places, products)
+* PRIORITIZE verbs and action phrases that describe what's happening
+* SELECT words that collectively tell the complete story at a glance
+* INCLUDE the most newsworthy elements from the text
+* VARY keyword length from single words to multi-word phrases as needed to capture key concepts
+* MAINTAIN the original capitalization from the source text when possible
+
+**AVOID:**
+* Generic or uninformative words (e.g., "today", "according to")
+* Adding concepts not explicitly mentioned in the text
+* Paraphrasing the original text
+* System messages or technical jargon
+* News source names unless they are the subject
+* HTML code or entities
+* Dates, times, or other temporal markers unless they are central to the story
+* Generic words without context (e.g., "amazing", "statement")
+
+**BIAS CLASSIFICATION GUIDE:**
+* "Left" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism
+* "Liberal" - Progressive-leaning but more moderate, supportive of government programs, social reform
+* "Centrist" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments
+* "Conservative" - Traditional values, limited government, business-friendly, incremental change
+* "Right" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs
+* "Unknown" - No clear political leaning detectable or not applicable to political spectrum
+
       Respond with valid JSON only in this exact format:
       {
         "bias": "[political bias category]",
-        "keywords": ["descriptive phrase 1", "descriptive phrase 2", "descriptive phrase 3"]
+        "keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
       }`,
       stream: false
     });
@@ -98,7 +105,18 @@ async function processArticle(text) {
       result = {
         bias: mapToPoliticalBias(result.bias || ''),
         keywords: Array.isArray(result.keywords) ? 
-          result.keywords.map(k => k.trim()).filter(k => k.length > 0) : []
+          result.keywords
+            .map(k => k.trim().toLowerCase()) // Normalize to lowercase
+            .filter(k => {
+              const words = k.split(' ');
+              // Accept 1-4 word phrases, rejecting empty strings
+              return k.length > 0 && words.length >= 1 && words.length <= 4 && 
+                // Filter out common generic phrases
+                !['news', 'update', 'read more', 'latest', 'breaking'].includes(k) &&
+                // Filter out single prepositions or articles
+                !(words.length === 1 && ['and', 'the', 'of', 'to', 'in', 'for', 'with', 'on', 'by', 'at'].includes(k));
+            })
+          : []
       };
     } catch (e) {
       // Fallback parsing for non-JSON responses
@@ -129,25 +147,26 @@ async function processArticle(text) {
 /**
  * Process article with retry mechanism
  * 
- * @param {string} text - The article text to analyze
+ * @param {string} title - The article title to analyze
+ * @param {string} firstSentence - The first sentence of the article description (optional)
  * @param {number} retries - Number of retry attempts
  * @returns {Promise<Object>} - Object with bias and keywords
  */
-async function processArticleWithRetry(text, retries = 2) {
+async function processArticleWithRetry(title, firstSentence = '', retries = 2) { // Accept title and firstSentence
   try {
-    return await processArticle(text);
+    return await processArticle(title, firstSentence); // Pass title and firstSentence
   } catch (error) {
     // Check if it's a connection error (likely Ollama not running)
     if (error.code === 'ECONNREFUSED' && retries > 0) {
       console.log(`LLM connection failed. Retrying ${retries} more times...`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-      return processArticleWithRetry(text, retries - 1);
+      return processArticleWithRetry(title, firstSentence, retries - 1); // Pass title and firstSentence on retry
     } 
     // Other errors or out of retries
     else if (retries > 0) {
       console.log(`LLM error: ${error.message || 'Unknown error'}. Retrying ${retries} more times...`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-      return processArticleWithRetry(text, retries - 1);
+      return processArticleWithRetry(title, firstSentence, retries - 1); // Pass title and firstSentence on retry
     }
     
     // No more retries left
@@ -166,16 +185,58 @@ async function processArticleWithRetry(text, retries = 2) {
  * @returns {string} - The corresponding PoliticalBias value
  */
 function mapToPoliticalBias(biasString) {
-  const normalized = biasString.toString().toLowerCase();
+  // Ensure biasString is a string and handle null/undefined safely
+  const normalized = typeof biasString === 'string' ? biasString.toLowerCase() : '';
+  
+  // Use strict equality or more specific checks if needed based on PoliticalBias enum structure
+  if (normalized === 'left') return PoliticalBias.Left;
+  if (normalized === 'liberal') return PoliticalBias.Liberal;
+  if (normalized === 'centrist') return PoliticalBias.Centrist;
+  if (normalized === 'conservative') return PoliticalBias.Conservative;
+  if (normalized === 'right') return PoliticalBias.Right;
+
+  // More robust check using includes as a fallback, but prioritize exact matches
   if (normalized.includes('left')) return PoliticalBias.Left;
   if (normalized.includes('liberal')) return PoliticalBias.Liberal;
   if (normalized.includes('centrist')) return PoliticalBias.Centrist;
   if (normalized.includes('conservative')) return PoliticalBias.Conservative;
   if (normalized.includes('right')) return PoliticalBias.Right;
+  
   return PoliticalBias.Unknown;
+}
+
+// Function to get the currently configured model name
+function getCurrentModelName() {
+  // In the future, this could read from config, but for now, reads the hardcoded value
+  // This is a bit brittle, assumes the model line format doesn't change drastically
+  try {
+    const fileContent = require('fs').readFileSync(__filename, 'utf8');
+    const modelLine = fileContent.split('\n').find(line => line.includes('model:'));
+    const match = modelLine.match(/model:\s*'([^\']+)'/);
+    // --- Update Model Name Reading Logic ---
+    // Simple approach: Find the line with `model:` and extract the value.
+    // This might need adjustment if the formatting changes significantly.
+    if (match && match[1]) {
+        return match[1];
+    } else {
+        // Fallback if regex fails
+        const modelSettingLine = fileContent.split('\n').find(line => line.trim().startsWith('model:'));
+        if (modelSettingLine) {
+            const parts = modelSettingLine.split(':');
+            if (parts.length > 1) {
+                return parts[1].trim().replace(/['",]/g, '').split(' ')[0]; // Get model name, remove quotes/commas
+            }
+        }
+        return 'unknown'; // Default if model line not found or parsed
+    }
+  } catch (err) {
+    console.error("Error reading model name from llmService.js:", err);
+    return 'error_reading_model';
+  }
 }
 
 module.exports = {
   processArticle,
-  processArticleWithRetry
+  processArticleWithRetry,
+  getCurrentModelName
 };

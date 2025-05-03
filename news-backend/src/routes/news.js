@@ -16,6 +16,7 @@ const { aggregateKeywordsForCloud } = require('../services/wordProcessingService
 // @query   page?: number - Page number (default: 1)
 // @query   sortBy?: string - Field to sort by (default: publishedAt)
 // @query   sortOrder?: string - Sort order ('asc' or 'desc', default: 'desc')
+// @query   timeFilter?: string - Filter by time ('24h')
 router.get('/', async (req, res) => {
   try {
     const db = getDB();
@@ -39,6 +40,19 @@ router.get('/', async (req, res) => {
       filter.$text = { $search: req.query.q };
     }
 
+    // --- Date Filtering ---
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    if (req.query.timeFilter === '24h') {
+      // Strict 24-hour filter
+      filter.publishedAt = { $gte: twentyFourHoursAgo.toISOString() };
+    } else {
+      // Default: Filter for the last week
+      filter.publishedAt = { $gte: oneWeekAgo.toISOString() };
+    }
+
     // --- Sorting --- 
     const sortBy = req.query.sortBy || 'publishedAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
@@ -49,9 +63,15 @@ router.get('/', async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;   // Default page 1
     const skip = (page - 1) * limit;
 
+    // Add a filter to ensure keywords exist and are not empty for aggregation purposes
+    const aggregationFilter = {
+      ...filter, // Keep existing filters
+      keywords: { $exists: true, $ne: [] } // Ensure keywords field exists and is not an empty array
+    };
+
     // --- Querying News Items --- 
     const news = await newsCollection
-      .find(filter)
+      .find(aggregationFilter)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
@@ -62,7 +82,7 @@ router.get('/', async (req, res) => {
     const wordsForCloud = aggregateKeywordsForCloud(news, 500); // Use the new function, limit to 500 words
 
     // Optional: Get total count for pagination headers/info
-    const totalItems = await newsCollection.countDocuments(filter);
+    const totalItems = await newsCollection.countDocuments(aggregationFilter);
     const totalPages = Math.ceil(totalItems / limit);
 
     res.json({
@@ -85,11 +105,12 @@ router.get('/', async (req, res) => {
 });
 
 // @route   GET api/news/related
-// @desc    Get news items related to a specific keyword
+// @desc    Get news items related to a specific keyword, optionally filtered by time
 // @access  Public
 // @query   keyword: string - The keyword to search for
+// @query   timeFilter?: string - Filter by time ('24h')
 router.get('/related', async (req, res) => {
-  const { keyword } = req.query;
+  const { keyword, timeFilter } = req.query; // Destructure timeFilter as well
 
   if (!keyword) {
     return res.status(400).json({ msg: 'Keyword query parameter is required' });
@@ -99,16 +120,29 @@ router.get('/related', async (req, res) => {
     const db = getDB();
     const newsCollection = db.collection('newsitems');
 
-    // Case-insensitive search for the keyword in title, description, or keywords array
+    // Base query: Case-insensitive search for the keyword
     const query = {
       $or: [
         { title: { $regex: keyword, $options: 'i' } },
         { description: { $regex: keyword, $options: 'i' } },
-        { keywords: { $regex: keyword, $options: 'i' } } // Assumes keywords is an array of strings
+        { keywords: { $regex: keyword, $options: 'i' } } 
       ]
     };
+    
+    // --- Date Filtering (same logic as /api/news) ---
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Find related news, sort by published date descending, limit results (e.g., 50)
+    if (timeFilter === '24h') {
+      // Strict 24-hour filter
+      query.publishedAt = { $gte: twentyFourHoursAgo.toISOString() };
+    } else {
+      // Default: Filter for the last week (to match default behavior of main endpoint)
+      query.publishedAt = { $gte: oneWeekAgo.toISOString() };
+    }
+
+    // Find related news, apply date filter, sort by published date descending, limit results
     const relatedNews = await newsCollection
       .find(query)
       .sort({ publishedAt: -1 })
@@ -192,6 +226,27 @@ router.post('/refresh-feeds', async (req, res) => {
   } catch (err) {
     console.error('[News Route] Error refreshing Miniflux feeds:', err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST /api/purge-database
+// @desc    Delete all news items from the database
+// @access  Public (Caution: No auth! Use with care)
+router.post('/purge-database', async (req, res) => {
+  console.warn('Received request to PURGE database...');
+  try {
+    const db = getDB();
+    const newsCollection = db.collection('newsitems');
+    
+    // Delete all documents in the collection
+    const deleteResult = await newsCollection.deleteMany({});
+    
+    console.log(`Database purge complete. Deleted ${deleteResult.deletedCount} items.`);
+    res.json({ success: true, deletedCount: deleteResult.deletedCount });
+    
+  } catch (err) {
+    console.error('Error purging database:', err.message);
+    res.status(500).json({ success: false, message: 'Server Error during purge.' });
   }
 });
 

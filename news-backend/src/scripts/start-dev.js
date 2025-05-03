@@ -3,6 +3,7 @@
  * Runs the startup checks and then starts the development server
  */
 const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const { startup } = require('./startup');
@@ -61,17 +62,24 @@ const startDev = async () => {
       process.exit(1);
     }
 
-    // Start the development server
-    console.log('🚀 Starting development server...');
-    const server = exec('nodemon src/app.js', { stdio: 'inherit' });
+    // Start the development server using spawn for better I/O handling
+    console.log('🚀 Starting development server using spawn...');
+    const serverProcess = spawn('nodemon', ['src/app.js'], {
+      stdio: 'inherit', // Inherit stdio streams (stdin, stdout, stderr)
+      shell: true // Use shell syntax (useful for finding nodemon in PATH)
+    });
 
     // Wait for server to start and open browser windows
     await checkServerAndOpenBrowsers();
 
-    // Handle server process
-    server.on('close', (code) => {
+    // Handle server process events
+    serverProcess.on('close', (code) => {
       console.log(`Server process exited with code ${code}`);
       process.exit(code);
+    });
+    serverProcess.on('error', (err) => {
+      console.error('❌ Failed to start server process:', err);
+      process.exit(1);
     });
 
   } catch (error) {
