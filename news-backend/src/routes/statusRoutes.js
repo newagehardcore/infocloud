@@ -3,6 +3,8 @@ const { exec } = require('child_process');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const { getDB } = require('../config/db');
+const { getLlmFallbackCount } = require('../services/wordProcessingService');
+const { getCurrentModelName } = require('../services/llmService');
 const router = express.Router();
 
 // Check Docker status
@@ -66,29 +68,36 @@ const checkMiniflux = async () => {
   }
 };
 
-// Check Ollama status
+// Check Ollama status and the currently configured model
 const checkOllama = async () => {
+  const currentModel = getCurrentModelName(); // Get the configured model name
+  let modelAvailable = false;
+  let ollamaStatus = 'offline';
+  let errorMsg = 'Unknown error';
+
   try {
     // Ping Ollama API to check if it's running
     const response = await axios.get('http://localhost:11434/api/tags', { timeout: 3000 });
+    ollamaStatus = 'running';
+    errorMsg = null;
     
-    // Check if the required model is available
-    const modelAvailable = response.data.models && 
-                          response.data.models.some(model => model.name === 'gemma:2b');
+    // Check if the *current* configured model is available
+    if (response.data.models && Array.isArray(response.data.models)) {
+      modelAvailable = response.data.models.some(model => model.name.startsWith(currentModel));
+    }
     
-    return {
-      name: 'Ollama',
-      status: 'running',
-      modelStatus: modelAvailable ? 'gemma:2b available' : 'gemma:2b not found',
-      error: null
-    };
   } catch (error) {
-    return {
-      name: 'Ollama',
-      status: 'offline',
-      error: error.message
-    };
+    errorMsg = error.message;
+    ollamaStatus = 'offline';
   }
+
+  return {
+    name: 'Ollama',
+    status: ollamaStatus,
+    currentModel: currentModel, // Return the configured model name
+    modelAvailable: modelAvailable, // Return if it was found
+    error: errorMsg
+  };
 };
 
 // Enhanced API endpoint for the status dashboard
@@ -98,32 +107,22 @@ router.get('/api', async (req, res) => {
     const dockerStatus = await checkDocker();
     const mongoDBStatus = await checkMongoDB();
     const minifluxStatus = await checkMiniflux();
-    const ollamaStatus = await checkOllama();
+    const ollamaStatus = await checkOllama(); // Contains model info now
+    const llmFallbackCount = getLlmFallbackCount(); // Get the fallback count
     
-    // Get article counts from MongoDB (if connected)
-    let articlesCount = '-';
+    // --- Get DB Item Count ---
+    let dbItemCount = '-'; 
     if (mongoDBStatus.status === 'connected') {
       try {
-        // *** TODO: Refactor this to use the native driver if NewsItem is not a Mongoose model ***
-        // Assuming NewsItem is the model for your articles. If not, this will fail.
-        // For now, keep the Mongoose check, but ideally use db.collection('newsitems').countDocuments()
-        if (mongoose.models.NewsItem) { 
-          articlesCount = await mongoose.models.NewsItem.countDocuments();
-        } else {
-          // Fallback attempt using native driver if Mongoose model not found
-          try {
-            const db = getDB();
-            articlesCount = await db.collection('newsitems').countDocuments();
-          } catch (countError) {
-            console.error('Error getting article count with native driver:', countError);
-            articlesCount = 'Error';
-          }
-        }
-      } catch (e) {
-        console.error('Error getting article count:', e);
-        articlesCount = 'Error';
+        const db = getDB();
+        const newsCollection = db.collection('newsitems');
+        dbItemCount = await newsCollection.countDocuments({});
+      } catch (countError) {
+        console.error('Error getting article count from DB:', countError);
+        dbItemCount = 'Error';
       }
     }
+    // --- End DB Item Count ---
     
     // Get system resource usage
     const osUtil = require('os');
@@ -155,13 +154,20 @@ router.get('/api', async (req, res) => {
       docker: formatStatus(dockerStatus),
       mongodb: formatStatus(mongoDBStatus),
       miniflux: formatStatus(minifluxStatus),
-      ollama: formatStatus(ollamaStatus),
-      llmModel: {
-        status: ollamaStatus.modelStatus?.includes('available') ? 'good' : 'warning',
-        message: ollamaStatus.modelStatus || 'Unknown'
+      ollama: formatStatus(ollamaStatus), // Base Ollama status
+      llmModel: { // Specific check for the configured model
+        status: ollamaStatus.status === 'running' ? (ollamaStatus.modelAvailable ? 'good' : 'warning') : 'bad',
+        message: ollamaStatus.status === 'running' 
+                   ? `${ollamaStatus.currentModel} (${ollamaStatus.modelAvailable ? 'available' : 'NOT FOUND in Ollama'})`
+                   : `Ollama offline - cannot check model ${ollamaStatus.currentModel}`
+      },
+      llmFallback: {
+        status: llmFallbackCount > 0 ? 'warning' : 'good',
+        message: `Fallback to traditional NLP occurred ${llmFallbackCount} times since server start.`
       },
       metrics: {
-        articlesCount,
+        articlesCount: dbItemCount, // Use the fetched count
+        dbItemCount: dbItemCount, // Add explicitly for clarity
         queueSize: 'N/A', // You can implement queue size tracking if needed
         cpuUsage: `${process.cpuUsage().user / 1000000}s`,
         memoryUsage: `${memPercentage}% (${usedMem}GB/${totalMem}GB)`
@@ -182,7 +188,20 @@ router.get('/', async (req, res) => {
     const dockerStatus = await checkDocker();
     const mongoDBStatus = await checkMongoDB();
     const minifluxStatus = await checkMiniflux();
-    const ollamaStatus = await checkOllama();
+    const ollamaStatus = await checkOllama(); // Contains model info now
+    const llmFallbackCount = getLlmFallbackCount(); // Get the fallback count here as well
+
+    // Determine fallback status class and message
+    const fallbackStatus = llmFallbackCount > 0 ? 'warning' : 'good';
+    const fallbackMessage = `Fallback to traditional NLP occurred ${llmFallbackCount} times since server start.`;
+
+    // Determine LLM model status class and message
+    let modelStatusClass = 'status-offline';
+    let modelStatusMessage = `Ollama offline - cannot check model ${ollamaStatus.currentModel}`;
+    if (ollamaStatus.status === 'running') {
+      modelStatusClass = ollamaStatus.modelAvailable ? 'status-running' : 'status-issue';
+      modelStatusMessage = `${ollamaStatus.currentModel} (${ollamaStatus.modelAvailable ? 'Available' : 'NOT FOUND'})`;
+    }
 
     const statusHTML = `
       <!DOCTYPE html>
@@ -274,66 +293,35 @@ router.get('/', async (req, res) => {
           }
           .model-available { color: #4CAF50; }
           .model-unavailable { color: #F44336; }
+          .status-good { border-left-color: #4CAF50; }
+          .status-warning { border-left-color: #FFC107; }
+          .status-bad { border-left-color: #F44336; }
+          .status-label-good { background-color: #1b5e20; color: white; }
+          .status-label-warning { background-color: #f57f17; color: black; }
+          .status-label-bad { background-color: #b71c1c; color: white; }
         </style>
       </head>
       <body>
         <div class="container">
-          <h1>InfoCloud System Status</h1>
-          <div class="timestamp">Last updated: ${new Date().toLocaleString()}</div>
+          <h1>InfoCloud Backend Status</h1>
           
-          <!-- Docker Status -->
-          <div class="status-card status-${dockerStatus.status === 'running' ? 'running' : 'offline'}">
-            <div>
-              <div class="service-name">Docker</div>
-              ${dockerStatus.error ? `<div class="error-message">${dockerStatus.error}</div>` : ''}
-            </div>
-            <div class="service-status status-label-${dockerStatus.status}">
-              ${dockerStatus.status.toUpperCase()}
-            </div>
+          ${createStatusCard(dockerStatus, 'Docker')}
+          ${createStatusCard(mongoDBStatus, 'MongoDB')}
+          ${createStatusCard(minifluxStatus, 'Miniflux')}
+          ${createStatusCard(ollamaStatus, 'Ollama')} 
+
+          <!-- LLM Model Status Card -->
+          <div class="status-card ${modelStatusClass}">
+            <span class="service-name">LLM Model</span>
+            <span class="service-status status-label-${modelStatusClass.replace('status-', '')}">${modelStatusMessage}</span>
           </div>
-          
-          <!-- MongoDB Status -->
-          <div class="status-card status-${mongoDBStatus.status}">
-            <div>
-              <div class="service-name">MongoDB</div>
-              ${mongoDBStatus.error ? `<div class="error-message">${mongoDBStatus.error}</div>` : ''}
-            </div>
-            <div class="service-status status-label-${mongoDBStatus.status}">
-              ${mongoDBStatus.status.toUpperCase()}
-            </div>
+
+          <!-- LLM Fallback Status Card -->
+          <div class="status-card status-${fallbackStatus}">
+            <span class="service-name">LLM Fallback Usage</span>
+            <span class="service-status status-label-${fallbackStatus}">${fallbackMessage}</span>
           </div>
-          
-          <!-- Miniflux Status -->
-          <div class="status-card status-${minifluxStatus.status === 'running' ? 'running' : 'offline'}">
-            <div>
-              <div class="service-name">Miniflux</div>
-              ${minifluxStatus.error ? `<div class="error-message">${minifluxStatus.error}</div>` : ''}
-            </div>
-            <div class="service-status status-label-${minifluxStatus.status === 'running' ? 'running' : 'offline'}">
-              ${minifluxStatus.status.toUpperCase()}
-            </div>
-          </div>
-          
-          <!-- Ollama Status -->
-          <div class="status-card status-${ollamaStatus.status === 'running' ? 'running' : 'offline'}">
-            <div>
-              <div class="service-name">Ollama</div>
-              ${ollamaStatus.error ? `<div class="error-message">${ollamaStatus.error}</div>` : ''}
-              ${ollamaStatus.modelStatus ? 
-                `<div class="model-status ${ollamaStatus.modelStatus.includes('available') ? 'model-available' : 'model-unavailable'}">
-                  ${ollamaStatus.modelStatus}
-                </div>` : ''}
-            </div>
-            <div class="service-status status-label-${ollamaStatus.status === 'running' ? 'running' : 'offline'}">
-              ${ollamaStatus.status.toUpperCase()}
-            </div>
-          </div>
-          
-          <button class="refresh-button" onclick="window.location.reload()">Refresh Status</button>
-          
-          <footer>
-            InfoCloud System Monitor &copy; ${new Date().getFullYear()}
-          </footer>
+
         </div>
       </body>
       </html>
@@ -345,5 +333,28 @@ router.get('/', async (req, res) => {
     res.status(500).send(`Error generating status page: ${error.message}`);
   }
 });
+
+// Helper function to generate status card HTML
+function createStatusCard(serviceStatus, displayName) {
+  const name = displayName || serviceStatus.name;
+  let statusClass = 'status-offline'; // Default
+  if (serviceStatus.status === 'running' || serviceStatus.status === 'connected') {
+    statusClass = 'status-running';
+  } else if (serviceStatus.status === 'issue detected') {
+    statusClass = 'status-issue';
+  } else if (serviceStatus.status === 'disconnected') {
+    statusClass = 'status-disconnected';
+  }
+  
+  const statusLabel = serviceStatus.status;
+  const errorDetails = serviceStatus.error ? ` - ${serviceStatus.error}` : '';
+
+  return `
+    <div class="status-card ${statusClass}">
+      <span class="service-name">${name}</span>
+      <span class="service-status status-label-${statusClass.replace('status-', '')}">${statusLabel}${errorDetails}</span>
+    </div>
+  `;
+}
 
 module.exports = router;

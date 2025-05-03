@@ -4,7 +4,8 @@ const cors = require('cors'); // Add CORS
 const { connectDB } = require('./config/db');
 const newsRoutes = require('./routes/news');
 const statusRoutes = require('./routes/statusRoutes');
-const { scheduleFeedFetching } = require('./cron'); // Import the scheduler
+// Import the whole module
+const cronService = require('./cron'); 
 
 const app = express();
 
@@ -19,11 +20,12 @@ app.use(cors({
 const PORT = process.env.PORT || 5001; // Use port from env or default to 5001
 
 // Connect to Database and Start Server
+console.log('Attempting to connect to database...');
 connectDB().then(() => {
   console.log('Database connection successful. Starting server...');
   app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-  // Start the cron job scheduler only after DB connection is successful
-  scheduleFeedFetching();
+  // Start the cron job scheduler using the imported module
+  cronService.scheduleFeedFetching(); // Access via property
 }).catch(err => {
   console.error('Failed to connect to database. Server not started.', err);
   process.exit(1);

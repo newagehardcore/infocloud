@@ -124,7 +124,12 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
   // Group news items by source bias
   const biasGroups = useMemo(() => {
     const groups: { [key: string]: NewsItem[] } = {};
-    newsItems.forEach(item => {
+    // Filter items first to ensure they contain the word/phrase (case-insensitive)
+    const filteredItems = newsItems.filter(item =>
+      item.title.toLowerCase().includes(wordData.text.toLowerCase())
+    );
+
+    filteredItems.forEach(item => {
       const bias = item.source.bias;
       if (!groups[bias]) {
         groups[bias] = [];
@@ -136,7 +141,7 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
       group.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     });
     return groups;
-  }, [newsItems]);
+  }, [newsItems, wordData.text]); // Add wordData.text as dependency
 
   const toggleBiasExpand = (bias: PoliticalBias) => {
     setExpandedBiases(prev => ({
@@ -230,10 +235,12 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
                             {items.map((item) => (
                               <li key={item.id} className="news-item">
                                 <a href={item.url} target="_blank" rel="noopener noreferrer" className="news-link">
-                                  <span className="news-title">{item.title}</span>
+                                  <span className="news-title">
+                                    <span>{item.title}</span>
+                                  </span>
                                   <div className="news-meta">
-                                    <span className="source-name">{item.source.name}</span>
-                                    <span className="publish-date">{new Date(item.publishedAt).toLocaleDateString()}</span>
+                                    <span className="source-name" style={{ color: getBiasColor(item.source.bias) }}>{item.source.name}</span>
+                                    <span className="publish-date" style={{ color: getBiasColor(item.source.bias) }}>{new Date(item.publishedAt).toLocaleDateString()}</span>
                                   </div>
                                 </a>
                               </li>

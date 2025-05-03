@@ -87,7 +87,9 @@ async function refreshAllFeeds() {
   console.log('=====================================');
 }
 
-// Run the refresh
-refreshAllFeeds().catch(error => {
-  console.error('Fatal error:', error);
-});
+// REMOVED: Direct call - Function will be called by importer
+// refreshAllFeeds().catch(error => {
+//   console.error('Fatal error:', error);
+// });
+
+module.exports = { refreshAllFeeds }; // Export the function

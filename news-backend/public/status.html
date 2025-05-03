@@ -200,6 +200,10 @@
                 <div class="metric-value" id="llm-queue">-</div>
             </div>
             <div class="metric-card">
+                <h3>Database Items</h3>
+                <div class="metric-value" id="db-item-count">-</div>
+            </div>
+            <div class="metric-card">
                 <h3>CPU Usage</h3>
                 <div class="metric-value" id="cpu-usage">-</div>
             </div>
@@ -213,6 +217,10 @@
         <div class="log-console" id="log-console">
             <div class="log-entry"><span class="timestamp">[00:00:00]</span> Initializing status page...</div>
         </div>
+
+        <h2>Database Actions</h2>
+        <button id="purgeDbButton">Purge News Items</button>
+        <p id="purgeStatus"></p>
     </div>
 
     <script>
@@ -262,6 +270,7 @@
                 document.getElementById('llm-queue').textContent = data.metrics.queueSize;
                 document.getElementById('cpu-usage').textContent = data.metrics.cpuUsage;
                 document.getElementById('memory-usage').textContent = data.metrics.memoryUsage;
+                document.getElementById('db-item-count').textContent = data.metrics.dbItemCount ?? 'N/A';
                 
                 addLogEntry('Status update complete');
             } catch (error) {
@@ -273,6 +282,8 @@
                 updateStatus('mongodb-status', 'unknown', 'MongoDB: Connection error');
                 updateStatus('ollama-status', 'unknown', 'Ollama: Connection error');
                 updateStatus('llm-model-status', 'unknown', 'LLM Model: Connection error');
+                // Also update metrics on error
+                document.getElementById('db-item-count').textContent = 'Error';
             }
         }
 
@@ -284,6 +295,40 @@
         
         // Auto refresh every 30 seconds
         setInterval(fetchStatus, 30000);
+
+        const purgeButton = document.getElementById('purgeDbButton');
+        const purgeStatus = document.getElementById('purgeStatus');
+
+        purgeButton.addEventListener('click', async () => {
+            const confirmed = confirm("Are you SURE you want to delete ALL news items from the database? This cannot be undone.");
+            
+            if (confirmed) {
+                purgeStatus.textContent = 'Purging... please wait.';
+                purgeButton.disabled = true;
+                try {
+                    // Assuming backend is running on the same host, adjust port if necessary
+                    // Use '/api/news/purge-database' as the endpoint
+                    const response = await fetch('/api/news/purge-database', { 
+                        method: 'POST' 
+                    });
+                    
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        purgeStatus.textContent = `Purge successful! ${result.deletedCount} items deleted. Refresh status might be needed.`;
+                    } else {
+                        purgeStatus.textContent = `Purge failed: ${result.message || 'Unknown error'}`;
+                    }
+                } catch (error) {
+                    console.error('Error purging database:', error);
+                    purgeStatus.textContent = `Purge error: ${error.message}`;
+                } finally {
+                    purgeButton.disabled = false;
+                }
+            } else {
+                purgeStatus.textContent = 'Purge cancelled.';
+            }
+        });
     </script>
 </body>
 </html>

@@ -80,9 +80,6 @@ async function mapMinifluxEntryToNewsItem(entry, biasMap) {
       createdAt: new Date()
     };
 
-    // Extract keywords from title and content
-    newsItem.keywords = await processNewsKeywords(newsItem);
-    
     return newsItem;
   } catch (error) {
     console.error(`Error mapping Miniflux entry to NewsItem:`, error);

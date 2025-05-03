@@ -1,9 +1,11 @@
 const cron = require('node-cron');
 const { fetchNews } = require('./miniflux/fetchEntries');
+const { refreshAllFeeds } = require('./miniflux/refreshFeeds');
 const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
 const { processNewsKeywords } = require('./services/wordProcessingService');
+const { getDB } = require('./config/db');
 
 // Path to the refresh feeds script
 const REFRESH_SCRIPT_PATH = path.join(__dirname, 'miniflux/refreshFeeds.js');
@@ -44,21 +46,42 @@ const processingQueue = new Queue(async (batch, cb) => {
 });
 
 // Handle queue events with clean logging
-processingQueue.on('task_finish', (taskId, result) => {
-  // Store or handle the processed articles as needed
-  console.log(`Finished processing batch ${taskId} with ${result.length} articles`);
+processingQueue.on('task_finish', async (taskId, result) => {
+  console.log(`Finished processing batch ${taskId} with ${result.length} articles. Saving to DB...`);
+  try {
+    const db = getDB();
+    const newsCollection = db.collection('newsitems');
+
+    // Prepare bulk update operations
+    const operations = result.map(article => ({
+      updateOne: {
+        filter: { id: article.id }, // Assuming miniflux 'id' is unique and present
+        update: { 
+          $set: { 
+            keywords: article.keywords, 
+            bias: article.bias 
+          }
+        },
+        // upsert: true // Optional: If you want to insert if somehow missing (use with caution)
+      }
+    }));
+
+    if (operations.length > 0) {
+      const bulkResult = await newsCollection.bulkWrite(operations);
+      console.log(`DB Save Complete for batch ${taskId}: Matched ${bulkResult.matchedCount}, Modified ${bulkResult.modifiedCount}`);
+    } else {
+      console.log(`No operations to save for batch ${taskId}.`);
+    }
+
+  } catch (error) {
+    console.error(`Error saving processed batch ${taskId} to DB:`, error);
+  }
 });
 
 // Add error handling for queue errors
 processingQueue.on('task_failed', (taskId, err) => {
-  // Clean error message without full error dump
-  let errorMessage = `Batch ${taskId} processing failed`;
-  if (err.code) {
-    errorMessage += `: ${err.code}`;
-  } else if (err.message) {
-    errorMessage += `: ${err.message}`;
-  }
-  console.error(errorMessage);
+  // Log the full error object for better debugging
+  console.error(`Batch ${taskId} processing failed. Full Error:`, err);
 });
 
 // Add queue error handling
@@ -70,73 +93,52 @@ processingQueue.on('error', (err) => {
 const fetchAllSources = async () => {
   console.log('\n--------------------\nCron Job: Starting Miniflux feed fetch task...');
   const startTime = Date.now();
-  let newsItems = [];
   
-  // Check if there are any cached news items already
-  try {
-    // First try to fetch entries without refreshing to speed up startup
-    console.log('Quick fetch: Getting already cached entries from Miniflux...');
-    newsItems = await fetchNews();
-    console.log(`Found ${newsItems.length} cached news items in Miniflux`);
-  } catch (error) {
-    console.error('Quick fetch failed:', error.message);
-  }
+  // REMOVED: Quick fetch logic - always refresh then fetch
+  // let newsItems = [];
+  // try {
+  //   console.log('Quick fetch: Getting already cached entries from Miniflux...');
+  //   newsItems = await fetchNews();
+  //   console.log(`Found ${newsItems.length} cached news items in Miniflux`);
+  // } catch (error) {
+  //   console.error('Quick fetch failed:', error.message);
+  // }
 
   try {
-    // First refresh feeds in Miniflux to trigger fetching
-    console.log('Refreshing feeds in Miniflux...');
-    
-    // Execute the refresh script using Node.js child_process with a timeout
-    const { exec } = require('child_process');
-    const refreshTimeout = 20000; // 20 seconds timeout
-    
+    // 1. Refresh feeds in Miniflux by calling the imported function
+    console.log('Refreshing feeds in Miniflux via imported function...');
     try {
-      await Promise.race([
-        new Promise((resolve, reject) => {
-          const refreshProcess = exec(`node ${REFRESH_SCRIPT_PATH}`, (error, stdout, stderr) => {
-            if (error && !error.killed) {
-              console.error(`Error refreshing feeds: ${error.message}`);
-              return reject(error);
-            }
-            if (stderr) {
-              console.error(`Refresh stderr: ${stderr}`);
-            }
-            console.log(stdout);
-            resolve();
-          });
-        }),
-        new Promise((resolve) => setTimeout(() => {
-          console.log(`Refresh operation timed out after ${refreshTimeout/1000} seconds. Continuing...`);
-          resolve();
-        }, refreshTimeout))
-      ]);
-    } catch (error) {
-      console.error('Refresh operation failed, but continuing with feed fetch:', error.message);
+      await refreshAllFeeds();
+      console.log('Feed refresh function completed.');
+    } catch (refreshError) {
+      console.error('Error caught during feed refresh function:', refreshError.message);
     }
     
-    // Reduced waiting time for Miniflux to process feeds
-    console.log('Waiting for Miniflux to process feeds...');
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Reduced from 10s to 3s
+    // 2. Wait a moment for Miniflux to potentially process (optional, might remove later)
+    console.log('Waiting a moment after refresh...');
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Shortened wait
     
-    // Fetch news items from Miniflux if we don't already have cached ones
-    if (!newsItems.length) {
-      console.log('Fetching entries from Miniflux...');
-      newsItems = await fetchNews();
-      console.log(`Fetched ${newsItems.length} news items from Miniflux`);
-    } else {
-      console.log('Using cached news items to speed up startup');
-    }
+    // 3. Fetch news items from Miniflux AFTER refreshing
+    console.log('Fetching entries from Miniflux after refresh...');
+    const newsItems = await fetchNews(); // Fetch fresh items
+    console.log(`Fetched ${newsItems.length} news items from Miniflux after refresh`);
+        
+    // --- ADD DEDUPLICATION STEP HERE ---
+    const deduplicatedItems = deduplicateArticles(newsItems);
     
-    // Queue all articles for LLM processing
-    if (newsItems && newsItems.length > 0) {
-      console.log('Queuing articles for LLM processing...');
-      newsItems.forEach(article => {
+    // 4. Queue the *deduplicated* articles for LLM processing
+    if (deduplicatedItems && deduplicatedItems.length > 0) {
+      console.log(`Attempting to queue ${deduplicatedItems.length} deduplicated articles...`);
+      deduplicatedItems.forEach(article => {
+        // Add individual log if needed: console.log(`Pushing article miniflux-${article.id}`);
         processingQueue.push(article);
       });
+      console.log(`Successfully finished queuing ${deduplicatedItems.length} articles.`);
     } else {
-      console.log('No articles to process with LLM');
+      console.log('No articles left after deduplication to process with LLM');
     }
 
+    console.log('fetchAllSources function nearing completion.');
     const duration = (Date.now() - startTime) / 1000;
     console.log(`\nCron Job: Finished Miniflux feed fetch task in ${duration.toFixed(2)} seconds.`);
 
@@ -145,6 +147,61 @@ const fetchAllSources = async () => {
     console.error(`Cron Job: Error during Miniflux feed fetch task after ${duration.toFixed(2)} seconds:`, error);
   }
   console.log('--------------------\n');
+};
+
+/**
+ * Deduplicates articles based on normalized title, keeping the one with the most specific category.
+ * @param {Array<Object>} articles - Array of news item objects.
+ * @returns {Array<Object>} - Deduplicated array of news item objects.
+ */
+const deduplicateArticles = (articles) => {
+  if (!articles || articles.length === 0) {
+    return [];
+  }
+
+  const articleMap = new Map();
+  let duplicateCount = 0;
+  let skippedCount = 0;
+
+  articles.forEach(article => {
+    // Normalize title: lowercase and trim whitespace
+    const normalizedTitle = article.title?.toLowerCase().trim();
+
+    // Skip articles without a valid title
+    if (!normalizedTitle) {
+      console.warn(`Skipping article ID ${article.id} due to missing or empty title.`);
+      skippedCount++;
+      return;
+    }
+    
+    // Use normalized title as the primary identifier
+    const key = normalizedTitle;
+
+    if (articleMap.has(key)) {
+      duplicateCount++;
+      const existingArticle = articleMap.get(key);
+
+      // Determine specificity by splitting category path (assuming 'feed.title' holds the path)
+      // Example: "NYT > Arts > Music"
+      const currentCategory = article.feed?.title || '';
+      const existingCategory = existingArticle.feed?.title || '';
+      
+      const currentSpecificity = currentCategory.split(' > ').length;
+      const existingSpecificity = existingCategory.split(' > ').length;
+
+      // Keep the article with the more specific category path
+      if (currentSpecificity > existingSpecificity) {
+        articleMap.set(key, article);
+      }
+      // If specificities are equal, keep the one already in the map (first encountered)
+    } else {
+      articleMap.set(key, article);
+    }
+  });
+
+  const deduplicatedList = Array.from(articleMap.values());
+  console.log(`Deduplication complete: Input=${articles.length}, Output=${deduplicatedList.length}, Duplicates removed=${duplicateCount}, Skipped (no title)=${skippedCount}`);
+  return deduplicatedList;
 };
 
 // Schedule the task to run every 30 minutes
@@ -164,4 +221,7 @@ const scheduleFeedFetching = () => {
   fetchAllSources();
 };
 
+// Export immediately
 module.exports = { scheduleFeedFetching };
+
+// REMOVED old export line if it existed below
