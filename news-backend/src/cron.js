@@ -1,6 +1,5 @@
 const cron = require('node-cron');
-const { fetchNews } = require('./miniflux/fetchEntries');
-const { refreshAllFeeds } = require('./miniflux/refreshFeeds');
+const { fetchAndProcessMinifluxEntries } = require('./services/rssService');
 const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
@@ -59,7 +58,7 @@ processingQueue.on('task_finish', async (taskId, result) => {
         update: { 
           $set: { 
             keywords: article.keywords, 
-            bias: article.bias 
+            llmBias: article.bias // Save LLM result to llmBias field
           }
         },
         // upsert: true // Optional: If you want to insert if somehow missing (use with caution)
@@ -89,139 +88,102 @@ processingQueue.on('error', (err) => {
   console.error('Queue system error:', err.message || 'Unknown error');
 });
 
-// Define the main fetching task
+// Define the main fetching task (now simplified)
 const fetchAllSources = async () => {
-  console.log('\n--------------------\nCron Job: Starting Miniflux feed fetch task...');
+  console.log('\n--------------------\nCron Job: Starting Miniflux entry processing task...');
   const startTime = Date.now();
   
-  // REMOVED: Quick fetch logic - always refresh then fetch
-  // let newsItems = [];
-  // try {
-  //   console.log('Quick fetch: Getting already cached entries from Miniflux...');
-  //   newsItems = await fetchNews();
-  //   console.log(`Found ${newsItems.length} cached news items in Miniflux`);
-  // } catch (error) {
-  //   console.error('Quick fetch failed:', error.message);
-  // }
-
   try {
-    // 1. Refresh feeds in Miniflux by calling the imported function
-    console.log('Refreshing feeds in Miniflux via imported function...');
-    try {
-      await refreshAllFeeds();
-      console.log('Feed refresh function completed.');
-    } catch (refreshError) {
-      console.error('Error caught during feed refresh function:', refreshError.message);
-    }
-    
-    // 2. Wait a moment for Miniflux to potentially process (optional, might remove later)
-    console.log('Waiting a moment after refresh...');
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Shortened wait
-    
-    // 3. Fetch news items from Miniflux AFTER refreshing
-    console.log('Fetching entries from Miniflux after refresh...');
-    const newsItems = await fetchNews(); // Fetch fresh items
-    console.log(`Fetched ${newsItems.length} news items from Miniflux after refresh`);
-        
-    // --- ADD DEDUPLICATION STEP HERE ---
-    const deduplicatedItems = deduplicateArticles(newsItems);
-    
-    // 4. Queue the *deduplicated* articles for LLM processing
-    if (deduplicatedItems && deduplicatedItems.length > 0) {
-      console.log(`Attempting to queue ${deduplicatedItems.length} deduplicated articles...`);
-      deduplicatedItems.forEach(article => {
-        // Add individual log if needed: console.log(`Pushing article miniflux-${article.id}`);
-        processingQueue.push(article);
-      });
-      console.log(`Successfully finished queuing ${deduplicatedItems.length} articles.`);
-    } else {
-      console.log('No articles left after deduplication to process with LLM');
-    }
+    // Call the consolidated service function
+    await fetchAndProcessMinifluxEntries();
 
-    console.log('fetchAllSources function nearing completion.');
     const duration = (Date.now() - startTime) / 1000;
-    console.log(`\nCron Job: Finished Miniflux feed fetch task in ${duration.toFixed(2)} seconds.`);
+    console.log(`\nCron Job: Finished Miniflux entry processing task in ${duration.toFixed(2)} seconds.`);
 
   } catch (error) {
     const duration = (Date.now() - startTime) / 1000;
-    console.error(`Cron Job: Error during Miniflux feed fetch task after ${duration.toFixed(2)} seconds:`, error);
+    console.error(`Cron Job: Error during Miniflux entry processing task after ${duration.toFixed(2)} seconds:`, error);
   }
   console.log('--------------------\n');
 };
 
-/**
- * Deduplicates articles based on normalized title, keeping the one with the most specific category.
- * @param {Array<Object>} articles - Array of news item objects.
- * @returns {Array<Object>} - Deduplicated array of news item objects.
- */
-const deduplicateArticles = (articles) => {
-  if (!articles || articles.length === 0) {
-    return [];
-  }
+// --- NEW: Function to find and queue articles for LLM processing --- 
+const processQueuedArticles = async () => {
+  console.log('\n~~~~~~~~~~~~~~~~~~~~\nCron Job: Starting LLM processing queue task...');
+  const queueStartTime = Date.now();
+  const MAX_ARTICLES_TO_QUEUE = 200; // Limit articles queued per run
 
-  const articleMap = new Map();
-  let duplicateCount = 0;
-  let skippedCount = 0;
+  try {
+    const db = getDB();
+    const newsCollection = db.collection('newsitems');
 
-  articles.forEach(article => {
-    // Normalize title: lowercase and trim whitespace
-    const normalizedTitle = article.title?.toLowerCase().trim();
-
-    // Skip articles without a valid title
-    if (!normalizedTitle) {
-      console.warn(`Skipping article ID ${article.id} due to missing or empty title.`);
-      skippedCount++;
-      return;
-    }
-    
-    // Use normalized title as the primary identifier
-    const key = normalizedTitle;
-
-    if (articleMap.has(key)) {
-      duplicateCount++;
-      const existingArticle = articleMap.get(key);
-
-      // Determine specificity by splitting category path (assuming 'feed.title' holds the path)
-      // Example: "NYT > Arts > Music"
-      const currentCategory = article.feed?.title || '';
-      const existingCategory = existingArticle.feed?.title || '';
-      
-      const currentSpecificity = currentCategory.split(' > ').length;
-      const existingSpecificity = existingCategory.split(' > ').length;
-
-      // Keep the article with the more specific category path
-      if (currentSpecificity > existingSpecificity) {
-        articleMap.set(key, article);
+    // Find articles that haven't been processed by the LLM yet
+    // Using existence of 'keywords' field as the indicator
+    const articlesToProcess = await newsCollection.find(
+      { keywords: { $exists: false } }, 
+      {
+        limit: MAX_ARTICLES_TO_QUEUE, 
+        projection: { id: 1, title: 1, content: 1, url: 1 } // Only fetch necessary fields
       }
-      // If specificities are equal, keep the one already in the map (first encountered)
-    } else {
-      articleMap.set(key, article);
-    }
-  });
+    ).toArray();
 
-  const deduplicatedList = Array.from(articleMap.values());
-  console.log(`Deduplication complete: Input=${articles.length}, Output=${deduplicatedList.length}, Duplicates removed=${duplicateCount}, Skipped (no title)=${skippedCount}`);
-  return deduplicatedList;
+    if (articlesToProcess && articlesToProcess.length > 0) {
+      console.log(`Found ${articlesToProcess.length} articles needing LLM processing. Queuing...`);
+      articlesToProcess.forEach(article => {
+        // Ensure article has an id, title, and content for processing
+        if (article.id && article.title && article.content) {
+           processingQueue.push(article);
+        } else {
+          console.warn(`Skipping queuing article (ID: ${article._id}) due to missing fields (id, title, or content).`);
+        }
+      });
+      console.log(`Finished queuing ${articlesToProcess.length} articles.`);
+    } else {
+      console.log('No articles found needing LLM processing in this cycle.');
+    }
+
+    const queueDuration = (Date.now() - queueStartTime) / 1000;
+    console.log(`\nCron Job: Finished LLM processing queue task in ${queueDuration.toFixed(2)} seconds.`);
+
+  } catch (error) {
+    const queueDuration = (Date.now() - queueStartTime) / 1000;
+    console.error(`Cron Job: Error during LLM processing queue task after ${queueDuration.toFixed(2)} seconds:`, error);
+  }
+  console.log('~~~~~~~~~~~~~~~~~~~~\n');
 };
 
-// Schedule the task to run every 30 minutes
-// Syntax: second minute hour day-of-month month day-of-week
-// '*/30 * * * *' means "at every 30th minute"
-const scheduleFeedFetching = () => {
-  console.log('Scheduling feed fetching cron job (every 30 minutes).');
-  cron.schedule('*/30 * * * *', () => {
+// --- RENAMED and UPDATED Scheduling function ---
+// Schedule the tasks
+const scheduleCronJobs = () => {
+  // Schedule feed fetching (every 15 minutes)
+  console.log('Scheduling feed fetching cron job (every 15 minutes: */15 * * * *).');
+  cron.schedule('*/15 * * * *', () => {
     fetchAllSources();
   }, {
     scheduled: true,
-    timezone: "America/New_York" // Optional: Set timezone
+    timezone: "America/New_York"
   });
 
-  // Optional: Run once immediately on startup
+  // Schedule LLM processing queue job (every 5 minutes)
+  console.log('Scheduling LLM processing queue job (every 5 minutes: */5 * * * *).');
+  cron.schedule('*/5 * * * *', () => {
+    processQueuedArticles();
+  }, {
+    scheduled: true,
+    timezone: "America/New_York"
+  });
+
+  // Optional: Run initial tasks on startup
   console.log('Running initial feed fetch on startup...');
-  fetchAllSources();
+  fetchAllSources(); 
+  // Add a small delay before the first LLM queue run to allow feeds to fetch
+  setTimeout(() => {
+      console.log('Running initial LLM processing queue check on startup...');
+      processQueuedArticles();
+  }, 15000); // Wait 15 seconds after startup
 };
 
-// Export immediately
-module.exports = { scheduleFeedFetching };
+// --- UPDATED Export ---
+module.exports = { scheduleCronJobs };
 
 // REMOVED old export line if it existed below

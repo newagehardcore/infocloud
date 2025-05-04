@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PoliticalBias } from '../types';
+import { PoliticalBias, NewsCategory } from '../types';
 
 // Move the event name constant here and export it
 export const BIAS_UPDATE_EVENT = 'bias-update';
@@ -25,6 +25,10 @@ interface FilterContextType {
   enabledBiases: Set<PoliticalBias>;
   toggleBias: (bias: PoliticalBias) => void;
   isEnabled: (bias: PoliticalBias) => boolean;
+  
+  // Category filter (NEW)
+  selectedCategory: NewsCategory | 'all'; // Can be a specific category or 'all'
+  setSelectedCategory: (category: NewsCategory | 'all') => void;
   
   // API sources
   apiSources: ApiSource[];
@@ -75,6 +79,16 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
       localStorage.setItem('enabled_biases', JSON.stringify(Object.values(PoliticalBias)));
     }
     return initialBiases;
+  });
+
+  // Category filter state (NEW)
+  const [selectedCategory, setSelectedCategoryState] = useState<NewsCategory | 'all'>(() => {
+    const savedCategory = localStorage.getItem('selected_category');
+    // Default to 'all' if nothing is saved or if saved value is invalid
+    if (savedCategory && (Object.values(NewsCategory).includes(savedCategory as NewsCategory) || savedCategory === 'all')) {
+      return savedCategory as NewsCategory | 'all';
+    }
+    return 'all'; // Default to 'all'
   });
 
   // API sources state (keep for potential future use)
@@ -174,6 +188,14 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
   };
 
   const isEnabled = (bias: PoliticalBias) => enabledBiases.has(bias);
+
+  // Set the selected category (NEW wrapper function to save to localStorage)
+  const setSelectedCategory = (category: NewsCategory | 'all') => {
+    setSelectedCategoryState(category);
+    localStorage.setItem('selected_category', category);
+    // Optional: Dispatch an event if other components need to react instantly
+    // window.dispatchEvent(new CustomEvent('category_change', { detail: { category } }));
+  };
 
   // Toggle an API source
   const toggleApiSource = (apiName: string) => {
@@ -281,6 +303,8 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     enabledBiases,
     toggleBias,
     isEnabled,
+    selectedCategory,
+    setSelectedCategory,
     apiSources,
     toggleApiSource,
     rssFeeds,

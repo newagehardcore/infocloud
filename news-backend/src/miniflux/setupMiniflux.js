@@ -25,36 +25,47 @@ const minifluxClient = axios.create({
   }
 });
 
-// Function to authenticate and get API key if not provided
-async function getAuthToken() {
+// Function to authenticate and set API key if provided
+async function setAuthHeader() {
   if (MINIFLUX_API_KEY) {
     minifluxClient.defaults.headers.common['X-Auth-Token'] = MINIFLUX_API_KEY;
-    return MINIFLUX_API_KEY;
-  }
-
-  try {
-    // Use basic authentication for Miniflux API
-    const authString = Buffer.from(`${MINIFLUX_USERNAME}:${MINIFLUX_PASSWORD}`).toString('base64');
-    minifluxClient.defaults.headers.common['Authorization'] = `Basic ${authString}`;
-    
-    // Try to make a simple API call to verify credentials
-    await minifluxClient.get('/v1/me');
-    
-    return 'using-basic-auth';
-  } catch (error) {
-    console.error('Failed to authenticate with Miniflux:', error.message);
-    throw error;
+    console.log('Using API Key for authentication.');
+  } else {
+    // Basic auth is set by default in axios.create, log if using it
+    console.log('API key not found, using basic authentication.');
   }
 }
 
-// Function to create a category in Miniflux
-async function createCategory(title) {
+// Function to get or create a category in Miniflux
+async function getOrCreateCategory(title, existingCategoriesMap) {
+  const lowerCaseTitle = title.toLowerCase();
+  if (existingCategoriesMap.has(lowerCaseTitle)) {
+    console.log(`→ Using existing category: ${title} (ID: ${existingCategoriesMap.get(lowerCaseTitle).id})`);
+    return existingCategoriesMap.get(lowerCaseTitle).id;
+  }
+
   try {
+    console.log(`Creating category: ${title}`);
     const response = await minifluxClient.post('/v1/categories', { title });
-    return response.data;
+    // Add newly created category to the map to avoid duplicates in this run
+    existingCategoriesMap.set(lowerCaseTitle, response.data);
+    return response.data.id;
   } catch (error) {
-    console.error(`Failed to create category "${title}":`, error.message);
-    throw error;
+    // Handle potential conflict if category was created concurrently (though unlikely in script)
+    if (error.response && error.response.status === 409) {
+       console.warn(`Category "${title}" likely already exists (conflict error). Attempting to refetch.`);
+       // Refetch categories and try to find it
+       const categories = await fetchExistingCategories();
+       const foundCategory = categories.find(cat => cat.title.toLowerCase() === lowerCaseTitle);
+       if (foundCategory) {
+         console.log(`→ Found category after conflict: ${title} (ID: ${foundCategory.id})`);
+         return foundCategory.id;
+       }
+    }
+    console.error(`× Failed to create category "${title}":`, error.message);
+    // Decide if we should throw or return null/undefined
+    // Returning null allows the script to continue with other categories/feeds
+    return null; 
   }
 }
 
@@ -65,112 +76,189 @@ async function addFeed(feedUrl, categoryId, title) {
       feed_url: feedUrl,
       category_id: categoryId,
       title: title,
-      crawler: true,
+      crawler: true, // Ensure crawler is enabled
       user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     });
-    return response.data;
+    console.log(`+ Added feed: ${title} (ID: ${response.data.id})`);
+    return response.data; // Return the created feed object (contains id)
   } catch (error) {
-    console.error(`Failed to add feed "${title}" (${feedUrl}):`, error.message);
-    if (error.response && error.response.data) {
-      console.error('Response data:', error.response.data);
+    // Check for conflict (feed already exists)
+    if (error.response && error.response.status === 409) {
+      console.warn(`-> Feed "${title}" (${feedUrl}) already exists.`);
+      // We need the ID for the bias map, try to discover it
+      try {
+          const feeds = await fetchExistingFeeds();
+          const existingFeed = feeds.find(f => f.feed_url === feedUrl);
+          if (existingFeed) {
+            console.log(`   Found existing feed ID: ${existingFeed.id}`);
+            return existingFeed; // Return the existing feed object
+          }
+      } catch (fetchError) {
+          console.error(`  × Error fetching existing feeds after conflict: ${fetchError.message}`);
+      }
+      return null; // Couldn't determine existing ID
+    }
+
+    // Log other errors
+    console.error(`× Failed to add feed "${title}" (${feedUrl}):`, error.message);
+    if (error.response && error.response.data && error.response.data.error_message) {
+      console.error(`  Miniflux Error: ${error.response.data.error_message}`);
+    } else if (error.response) {
+      console.error(`  Status: ${error.response.status}`);
     }
     return null; // Return null instead of throwing to continue with other feeds
   }
 }
 
-// Function to remove all existing feeds and categories
-async function cleanMiniflux() {
-  try {
-    // Get all feeds
-    const feedsResponse = await minifluxClient.get('/v1/feeds');
-    const feeds = feedsResponse.data;
-
-    // Delete each feed
-    for (const feed of feeds) {
-      console.log(`Deleting feed: ${feed.title}`);
-      await minifluxClient.delete(`/v1/feeds/${feed.id}`);
+// Function to fetch all existing categories
+async function fetchExistingCategories() {
+    try {
+        const response = await minifluxClient.get('/v1/categories');
+        return response.data || [];
+    } catch (error) {
+        console.error('× Failed to fetch existing categories:', error.message);
+        return []; // Return empty array on error
     }
+}
 
-    // Get all categories
-    const categoriesResponse = await minifluxClient.get('/v1/categories');
-    const categories = categoriesResponse.data;
-
-    // Delete each category
-    for (const category of categories) {
-      console.log(`Deleting category: ${category.title}`);
-      await minifluxClient.delete(`/v1/categories/${category.id}`);
+// Function to fetch all existing feeds
+async function fetchExistingFeeds() {
+    try {
+        const response = await minifluxClient.get('/v1/feeds');
+        return response.data || [];
+    } catch (error) {
+        console.error('× Failed to fetch existing feeds:', error.message);
+        return []; // Return empty array on error
     }
-
-    console.log('Successfully removed all feeds and categories from Miniflux');
-  } catch (error) {
-    console.error('Failed to clean Miniflux:', error.message);
-    throw error;
-  }
 }
 
 // Function to save bias mapping to JSON file
 async function saveBiasMapping(biasMap) {
   try {
+    // Ensure directory exists
+    await fs.mkdir(path.dirname(FEEDS_JSON_PATH), { recursive: true });
     await fs.writeFile(FEEDS_JSON_PATH, JSON.stringify(biasMap, null, 2));
     console.log(`Bias mapping saved to ${FEEDS_JSON_PATH}`);
   } catch (error) {
-    console.error('Failed to save bias mapping:', error.message);
-    throw error;
+    console.error('× Failed to save bias mapping:', error.message);
+    throw error; // Propagate error if saving fails
   }
 }
 
-// Main function to set up Miniflux with all feeds
+// Main function to set up Miniflux with all feeds (non-destructive)
 async function setupMiniflux() {
   try {
-    // Authenticate with Miniflux
-    await getAuthToken();
-    console.log('Successfully authenticated with Miniflux');
+    // Set authentication header (Basic or API Key)
+    await setAuthHeader();
+    console.log('✓ Successfully authenticated with Miniflux');
 
-    // Clean existing feeds and categories
-    await cleanMiniflux();
+    // Fetch existing state from Miniflux
+    console.log('Fetching existing categories and feeds from Miniflux...');
+    const existingCategories = await fetchExistingCategories();
+    const existingFeeds = await fetchExistingFeeds();
 
-    // Create categories based on unique topics in rssSources
-    const uniqueCategories = [...new Set(rssSources.map(source => source.category))];
-    const categoryMap = {};
+    // Create maps for quick lookup
+    const existingCategoriesMap = new Map(existingCategories.map(cat => [cat.title.toLowerCase(), cat]));
+    const existingFeedsSet = new Set(existingFeeds.map(feed => feed.feed_url));
+    const existingFeedUrlToIdMap = new Map(existingFeeds.map(feed => [feed.feed_url, feed.id]));
+
+    console.log(`Found ${existingCategoriesMap.size} existing categories.`);
+    console.log(`Found ${existingFeedsSet.size} existing feeds.`);
+
+    // --- This step is removed/commented out to prevent deletion ---
+    // console.log('Skipping clean step (non-destructive mode).');
+    // await cleanMiniflux(); 
+
     const biasMap = {};
+    const feedAddPromises = [];
 
-    for (const category of uniqueCategories) {
-      console.log(`Creating category: ${category}`);
-      const createdCategory = await createCategory(category);
-      categoryMap[category] = createdCategory.id;
+    // Process categories first
+    const uniqueCategoryTitles = [...new Set(rssSources.map(source => source.category))];
+    const categoryTitleToIdMap = {};
+
+    for (const categoryTitle of uniqueCategoryTitles) {
+        const categoryId = await getOrCreateCategory(categoryTitle, existingCategoriesMap);
+        if (categoryId) {
+            categoryTitleToIdMap[categoryTitle] = categoryId;
+        } else {
+            console.error(`! Skipping feeds for category "${categoryTitle}" due to creation failure.`);
+        }
     }
 
-    // Add feeds to Miniflux and maintain bias mapping
+    // Iterate through sources defined in rssService.js
     for (const source of rssSources) {
-      console.log(`Adding feed: ${source.name} (${source.url})`);
-      const categoryId = categoryMap[source.category];
-      const feed = await addFeed(source.url, categoryId, source.name);
-      
-      if (feed) {
-        // Store the feed ID and bias in the mapping
-        biasMap[feed.feed_url] = { 
-          bias: source.bias,
-          id: feed.id,
-          name: source.name
-        };
-        console.log(`Added feed: ${source.name} (ID: ${feed.id})`);
+      // Get category ID (check if creation succeeded)
+      const categoryId = categoryTitleToIdMap[source.category];
+      if (!categoryId) {
+          console.warn(`! Skipping feed "${source.name}" because its category "${source.category}" could not be processed.`);
+          continue; // Skip this feed if category failed
+      }
+
+      // Check if feed already exists by URL
+      if (existingFeedsSet.has(source.url)) {
+        console.log(`→ Feed "${source.name}" (${source.url}) already exists in Miniflux.`);
+        // Get existing ID for bias map
+        const existingFeedId = existingFeedUrlToIdMap.get(source.url);
+        if (existingFeedId) {
+             biasMap[source.url] = { 
+                bias: source.bias,
+                id: existingFeedId, // Use existing ID
+                name: source.name,
+                category: source.category // Store category for reference
+             };
+        } else {
+             console.warn(`  ! Could not find existing ID for feed ${source.url}`);
+        }
+      } else {
+        // Feed doesn't exist, attempt to add it
+        console.log(`Adding feed: ${source.name} (${source.url}) to category ID ${categoryId}`);
+        // Wrap addFeed in a function for Promise.allSettled
+        feedAddPromises.push(async () => {
+            const feed = await addFeed(source.url, categoryId, source.name);
+            if (feed && feed.id) {
+                // Store the feed ID and bias in the mapping
+                biasMap[source.url] = { 
+                    bias: source.bias,
+                    id: feed.id, // Use newly added ID
+                    name: source.name,
+                    category: source.category // Store category for reference
+                };
+            } else {
+                console.warn(`! Feed "${source.name}" added, but ID is missing or addition failed. Not adding to bias map.`);
+            }
+        });
       }
     }
 
-    // Save bias mapping to JSON file
+    // Execute all pending feed additions concurrently (or sequentially if preferred)
+    console.log(`Attempting to add ${feedAddPromises.length} new feeds...`);
+    // Using Promise.allSettled to ensure all attempts complete, even if some fail
+    const results = await Promise.allSettled(feedAddPromises.map(p => p()));
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            // Errors are already logged within addFeed, but we can log index if needed
+            // console.error(`Error adding feed at index ${index}: ${result.reason}`);
+        }
+    });
+
+    // Save the potentially updated bias mapping to JSON file
+    // This map now includes both pre-existing feeds and newly added ones
     await saveBiasMapping(biasMap);
 
-    console.log('Miniflux setup completed successfully');
+    console.log('✓ Miniflux setup/update process completed.');
+
   } catch (error) {
-    console.error('Miniflux setup failed:', error.message);
+    console.error('× Miniflux setup failed:', error.message);
+    if (error.stack) {
+        console.error(error.stack);
+    }
   }
 }
 
 // Export functions for use in other files
 module.exports = {
   setupMiniflux,
-  getAuthToken,
-  minifluxClient,
+  minifluxClient, // Export client if needed elsewhere
 };
 
 // Run the setup function if this file is executed directly
