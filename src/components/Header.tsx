@@ -49,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
             <li key={bias}>
               <button
                 className={`category-button ${enabledBiases.has(bias) ? 'active' : ''}`}
-                onClick={() => toggleBias(bias)}
+                onClick={(e) => toggleBias(bias, e)}
                 style={{
                   color: enabledBiases.has(bias) ? '#000' : getBiasColor(bias),
                   backgroundColor: enabledBiases.has(bias) ? getBiasColor(bias) : 'rgba(0, 0, 0, 0.7)',

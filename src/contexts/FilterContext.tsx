@@ -23,7 +23,7 @@ interface BiasUpdateDetail {
 interface FilterContextType {
   // Bias filters
   enabledBiases: Set<PoliticalBias>;
-  toggleBias: (bias: PoliticalBias) => void;
+  toggleBias: (bias: PoliticalBias, event?: React.MouseEvent<HTMLButtonElement>) => void;
   isEnabled: (bias: PoliticalBias) => boolean;
   
   // Category filter (NEW)
@@ -80,6 +80,9 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     }
     return initialBiases;
   });
+
+  // State to store biases before a solo action
+  const [previousBiasSet, setPreviousBiasSet] = useState<Set<PoliticalBias> | null>(null);
 
   // Category filter state (NEW)
   const [selectedCategory, setSelectedCategoryState] = useState<NewsCategory | 'all'>(() => {
@@ -156,35 +159,89 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Toggle a political bias
-  const toggleBias = (bias: PoliticalBias) => {
+  // Toggle a political bias with modifier key support
+  const toggleBias = (bias: PoliticalBias, event?: React.MouseEvent<HTMLButtonElement>) => {
     if (!Object.values(PoliticalBias).includes(bias)) {
       console.error('Invalid bias value:', bias);
       return;
     }
-    
-    console.log(`Toggling bias: ${bias}, current status: ${enabledBiases.has(bias) ? 'enabled' : 'disabled'}`);
-    
-    const newEnabledBiases = new Set(enabledBiases);
-    const isEnabled = !newEnabledBiases.has(bias);
-    if (isEnabled) {
-      newEnabledBiases.add(bias);
-    } else {
-      newEnabledBiases.delete(bias);
+
+    let newEnabledBiases: Set<PoliticalBias>;
+    let isNowEnabled: boolean | undefined;
+
+    // Command/Ctrl + Click logic
+    if (event && (event.metaKey || event.ctrlKey)) {
+      // Check if the clicked bias is ALREADY the only one selected
+      if (enabledBiases.size === 1 && enabledBiases.has(bias)) {
+        console.log(`Inverting solo for bias: ${bias} (selecting all others)`);
+        // Select all biases EXCEPT the clicked one
+        newEnabledBiases = new Set(Object.values(PoliticalBias));
+        newEnabledBiases.delete(bias);
+        setPreviousBiasSet(null); // Clear previous state as this isn't a reversible solo
+        isNowEnabled = false; // The clicked bias is now disabled
+      } else {
+        // Standard Solo: Select only the clicked bias
+        console.log(`Soloing bias: ${bias}`);
+        // Store current state *only if* not already soloing this specific bias
+        if (enabledBiases.size !== 1 || !enabledBiases.has(bias)) {
+            setPreviousBiasSet(new Set(enabledBiases)); 
+        }
+        newEnabledBiases = new Set([bias]);
+        isNowEnabled = true; // The clicked bias is now enabled
+      }
+    } 
+    // Shift + Click: Reverse solo ONLY if this bias is currently soloed and we have a previous state
+    else if (event && event.shiftKey && enabledBiases.size === 1 && enabledBiases.has(bias) && previousBiasSet) {
+      console.log(`Reversing solo for bias: ${bias}`);
+      newEnabledBiases = new Set(previousBiasSet); // Restore previous set
+      setPreviousBiasSet(null); // Clear the stored set
+      isNowEnabled = newEnabledBiases.has(bias); // Status depends on previous set
+    } 
+    // Normal toggle
+    else {
+      console.log(`Toggling bias: ${bias}, current status: ${enabledBiases.has(bias) ? 'enabled' : 'disabled'}`);
+      newEnabledBiases = new Set(enabledBiases);
+      if (newEnabledBiases.has(bias)) {
+        newEnabledBiases.delete(bias);
+        isNowEnabled = false;
+      } else {
+        newEnabledBiases.add(bias);
+        isNowEnabled = true;
+      }
+       // If a normal toggle happens, clear any previous solo state
+       setPreviousBiasSet(null);
     }
+    
+    // Avoid unnecessary state updates/events if the set didn't actually change
+    if (setsAreEqual(enabledBiases, newEnabledBiases)) {
+        console.log('Bias set unchanged, skipping update.');
+        return;
+    }
+
     setEnabledBiases(newEnabledBiases);
     
     // Save to localStorage
     localStorage.setItem('enabled_biases', JSON.stringify(Array.from(newEnabledBiases)));
     console.log('Saved to localStorage:', JSON.stringify(Array.from(newEnabledBiases)));
     
-    // Dispatch a more specific event with details about which bias changed
+    // Dispatch event (only if state actually changed)
+    const finalEnabledStatus = newEnabledBiases.has(bias);
     window.dispatchEvent(new CustomEvent<BiasUpdateDetail>(BIAS_UPDATE_EVENT, {
       detail: {
         bias,
-        enabled: isEnabled
+        enabled: finalEnabledStatus
       }
     }));
+  };
+
+  // Helper function to compare sets (order doesn't matter)
+  const setsAreEqual = (setA: Set<any>, setB: Set<any>) => {
+      if (setA.size !== setB.size) return false;
+      // Convert setA to an array to iterate safely
+      for (const item of Array.from(setA)) {
+          if (!setB.has(item)) return false;
+      }
+      return true;
   };
 
   const isEnabled = (bias: PoliticalBias) => enabledBiases.has(bias);

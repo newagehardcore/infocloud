@@ -311,6 +311,20 @@ const App: React.FC = () => {
         </div>
         {/* Re-add the vertical category list on the right */}
         <ul className="category-list-vertical-right">
+          {/* Add 'All' button */}
+          <li>
+            <button
+              className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')} // Use context setter with 'all'
+              style={{
+                margin: '2px 0',
+                width: '100%',
+              }}
+            >
+              All
+            </button>
+          </li>
+          {/* Existing category buttons */}
           {categories.map(category => (
             <li key={category}>
               <button

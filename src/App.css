@@ -15,8 +15,8 @@ html, body, #root {
 
 /* Style for the main content area wrapper */
 .main-content-wrapper {
-  position: absolute; /* Position relative to .app */
-  top: 60px; /* Approximate height of fixed header elements */
+  position: absolute;
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
