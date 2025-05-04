@@ -9,40 +9,13 @@
     "minifluxFeedId": 337
   },
   {
-    "id": "1c2e0f9d-1b8d-4f0a-9d6b-2c3e1f9a8b2c",
-    "url": "https://www.newsmax.com/rss/Politics/1/",
-    "alternateUrl": null,
-    "name": "Newsmax",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 417
-  },
-  {
-    "id": "2d3f1aa0-2c9e-4a1b-ae7c-3d4f2aa9c3d3",
-    "url": "https://townhall.com/rss/political-cartoons/",
-    "alternateUrl": null,
-    "name": "Townhall",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 474
-  },
-  {
-    "id": "3e4a2bb1-3da0-4b2c-bf8d-4e5a3bbb04e4",
-    "url": "https://www.redstate.com/feed/",
-    "alternateUrl": null,
-    "name": "RedState",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 442
-  },
-  {
     "id": "4f5b3cc2-4eb1-4c3d-c09e-5f6b4cc05f5f",
     "url": "https://www.theblaze.com/feeds/feed.rss",
     "alternateUrl": null,
     "name": "The Blaze",
     "category": "POLITICS",
     "bias": "RIGHT",
-    "minifluxFeedId": 469
+    "minifluxFeedId": 508
   },
   {
     "id": "5a6c4dd3-5fc2-4d4e-d1af-6a7c5dd16a6a",
@@ -60,43 +33,7 @@
     "name": "AlterNet",
     "category": "POLITICS",
     "bias": "LEFT",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "7c8e6ff5-7be4-4f60-f3c1-8c9e7ff38c8c",
-    "url": "https://www.commondreams.org/rss.xml",
-    "alternateUrl": null,
-    "name": "Common Dreams",
-    "category": "POLITICS",
-    "bias": "LEFT",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "8d9f7aa6-8cf5-4071-04d2-9da08aa49d9d",
-    "url": "https://thebulwark.com/feed/",
-    "alternateUrl": null,
-    "name": "The Bulwark",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 468
-  },
-  {
-    "id": "9e0a8bb7-9df6-4182-15e3-ae0b9bb5aeae",
-    "url": "https://www.washingtonexaminer.com/tag/news.rss",
-    "alternateUrl": null,
-    "name": "Washington Examiner",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 493
-  },
-  {
-    "id": "af1b9cc8-ae07-4293-26f4-bf1cadc6bfbf",
-    "url": "https://thehill.com/rss/syndicator/19109",
-    "alternateUrl": null,
-    "name": "The Hill",
-    "category": "POLITICS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 471
+    "minifluxFeedId": 509
   },
   {
     "id": "b02cabda-bf18-43a4-3705-c02dbe07c0c0",
@@ -117,31 +54,13 @@
     "minifluxFeedId": 440
   },
   {
-    "id": "d24ecfeb-d13a-45c6-5927-e24fdf29e2e2",
-    "url": "https://www.politico.com/rss/politicopicks.xml",
-    "alternateUrl": null,
-    "name": "Politico",
-    "category": "POLITICS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 430
-  },
-  {
-    "id": "e35fd0fc-d24b-46d7-6a38-f350e03a03f3",
-    "url": "https://www.breitbart.com/feed/",
-    "alternateUrl": null,
-    "name": "Breitbart",
-    "category": "POLITICS",
-    "bias": "RIGHT",
-    "minifluxFeedId": 320
-  },
-  {
     "id": "f46ae10d-d35c-47e8-7b49-0461f14a1404",
     "url": "https://talkingpointsmemo.com/feed",
     "alternateUrl": null,
     "name": "Talking Points Memo",
     "category": "POLITICS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 467
+    "minifluxFeedId": 515
   },
   {
     "id": "057bf21e-e46d-48f9-8c5a-1572025b2515",
@@ -159,7 +78,7 @@
     "name": "One America News Network",
     "category": "NEWS",
     "bias": "RIGHT",
-    "minifluxFeedId": null
+    "minifluxFeedId": 516
   },
   {
     "id": "279d1430-068f-4a1b-ae7c-3794247d4737",
@@ -177,7 +96,7 @@
     "name": "Washington Post",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
+    "minifluxFeedId": 517
   },
   {
     "id": "49bf3652-28a1-4c3d-c09e-59b6469f6959",
@@ -186,25 +105,7 @@
     "name": "The Guardian US",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "5ac04763-39b2-4d4e-d1af-6ac757a07a6a",
-    "url": "https://www.reuters.com/rssfeed/topNews",
-    "alternateUrl": null,
-    "name": "Reuters Top News",
-    "category": "NEWS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "6bd15874-4ac3-4e5f-e2b0-7bd868b18b7b",
-    "url": "https://www.npr.org/rss/rss.php?id=1001",
-    "alternateUrl": null,
-    "name": "NPR News",
-    "category": "NEWS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
+    "minifluxFeedId": 518
   },
   {
     "id": "7ce26985-5bd4-4f60-f3c1-8ce979c29c8c",
@@ -222,16 +123,7 @@
     "name": "ABC News",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "9e048ba7-7df6-4182-15e3-ae0b9be4beba",
-    "url": "https://rss.cnn.com/rss/cnn_topstories.rss",
-    "alternateUrl": null,
-    "name": "CNN",
-    "category": "NEWS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
+    "minifluxFeedId": 519
   },
   {
     "id": "af159cb8-8e07-4293-26f4-bf1caef5cfcb",
@@ -252,22 +144,13 @@
     "minifluxFeedId": 388
   },
   {
-    "id": "c137beda-a029-44b5-4816-d13ec117e1e1",
-    "url": "https://www.usatoday.com/rss/",
-    "alternateUrl": null,
-    "name": "USA Today",
-    "category": "NEWS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 479
-  },
-  {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2f2",
     "url": "https://www.space.com/feeds/all",
     "alternateUrl": null,
     "name": "Space.com",
     "category": "SCIENCE",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 520
   },
   {
     "id": "e359d00c-c24b-46d7-6a38-f350e3390303",
@@ -279,15 +162,6 @@
     "minifluxFeedId": 414
   },
   {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1414",
-    "url": "https://www.scientificamerican.com/rss/all/",
-    "alternateUrl": null,
-    "name": "Scientific American",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "057bf22e-e46d-48f9-8c5a-1572055b2525",
     "url": "https://www.universetoday.com/feed/",
     "alternateUrl": null,
@@ -297,15 +171,6 @@
     "minifluxFeedId": 467
   },
   {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3636",
-    "url": "https://www.planetary.org/planetary-radio/mat-kaplan-farewell",
-    "alternateUrl": null,
-    "name": "Planetary Society",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4747",
     "url": "https://www.livescience.com/feeds/all",
     "alternateUrl": null,
@@ -313,15 +178,6 @@
     "category": "SCIENCE",
     "bias": "CENTRIST",
     "minifluxFeedId": 376
-  },
-  {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5858",
-    "url": "https://newscientist.com/feed/home/",
-    "alternateUrl": null,
-    "name": "New Scientist",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
   },
   {
     "id": "49bf3662-28a1-4c3d-c09e-59b6499f6969",
@@ -342,33 +198,6 @@
     "minifluxFeedId": 385
   },
   {
-    "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b8b",
-    "url": "https://science.sciencemag.org/rss/express.xml",
-    "alternateUrl": null,
-    "name": "Science Magazine",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c9c",
-    "url": "https://feeds.feedburner.com/popsci-main",
-    "alternateUrl": null,
-    "name": "Popular Science",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3adaa",
-    "url": "https://discover.lanl.gov/news/rss/rss.xml",
-    "alternateUrl": null,
-    "name": "Los Alamos National Laboratory",
-    "category": "SCIENCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4bebb",
     "url": "https://www.engadget.com/rss.xml",
     "alternateUrl": null,
@@ -384,7 +213,7 @@
     "name": "Mashable",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 523
   },
   {
     "id": "b026adda-9f18-43a4-3705-c02db006d0dd",
@@ -393,16 +222,7 @@
     "name": "Schneier on Security",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "c137beea-a029-44b5-4816-d13ec117e1ee",
-    "url": "https://gizmodo.com/rss",
-    "alternateUrl": null,
-    "name": "Gizmodo",
-    "category": "TECH",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 367
+    "minifluxFeedId": 524
   },
   {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2ff",
@@ -411,7 +231,7 @@
     "name": "Towards Data Science",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 526
   },
   {
     "id": "e359d00c-c24b-46d7-6a38-f350e3390300",
@@ -447,7 +267,7 @@
     "name": "Ars Technica",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 527
   },
   {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4744",
@@ -456,16 +276,7 @@
     "name": "ZDNet",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5855",
-    "url": "https://readwrite.com/feed/",
-    "alternateUrl": null,
-    "name": "ReadWrite",
-    "category": "TECH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 440
+    "minifluxFeedId": 528
   },
   {
     "id": "49bf3662-28a1-4c3d-c09e-59b6499f6966",
@@ -474,7 +285,7 @@
     "name": "CNET",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 529
   },
   {
     "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a77",
@@ -483,7 +294,7 @@
     "name": "VentureBeat",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": 486
+    "minifluxFeedId": 530
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b88",
@@ -492,25 +303,7 @@
     "name": "Above the Law",
     "category": "LAW",
     "bias": "LIBERAL",
-    "minifluxFeedId": 298
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c99",
-    "url": "https://www.scotusblog.com/feed/",
-    "alternateUrl": null,
-    "name": "SCOTUSblog",
-    "category": "LAW",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 447
-  },
-  {
-    "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ada9",
-    "url": "https://www.lawfareblog.com/feed",
-    "alternateUrl": "https://www.lawfareblog.com/rss.xml",
-    "name": "Lawfare",
-    "category": "LAW",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 401
+    "minifluxFeedId": 531
   },
   {
     "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beba",
@@ -522,22 +315,13 @@
     "minifluxFeedId": 499
   },
   {
-    "id": "af159cc8-8e07-4293-26f4-bf1caff5cfca",
-    "url": "https://www.law.com/feed/",
-    "alternateUrl": null,
-    "name": "Law.com",
-    "category": "LAW",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 400
-  },
-  {
     "id": "b026adda-9f18-43a4-3705-c02db006d0db",
     "url": "https://verdict.justia.com/feed",
     "alternateUrl": null,
     "name": "Justia Verdict",
     "category": "LAW",
     "bias": "CENTRIST",
-    "minifluxFeedId": 489
+    "minifluxFeedId": 533
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ec",
@@ -546,25 +330,7 @@
     "name": "Law & Crime",
     "category": "LAW",
     "bias": "CENTRIST",
-    "minifluxFeedId": 402
-  },
-  {
-    "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
-    "url": "https://www.reuters.com/rss/legal",
-    "alternateUrl": null,
-    "name": "Reuters Legal",
-    "category": "LAW",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
-    "url": "https://feeds.findlaw.com/NewsTopHeadlines",
-    "alternateUrl": null,
-    "name": "FindLaw News",
-    "category": "LAW",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 534
   },
   {
     "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
@@ -582,7 +348,7 @@
     "name": "Mongabay",
     "category": "ENVIRONMENT",
     "bias": "CENTRIST",
-    "minifluxFeedId": 411
+    "minifluxFeedId": 564
   },
   {
     "id": "168c033f-f57e-490a-9d6b-2683166c3626",
@@ -591,7 +357,7 @@
     "name": "Carbon Brief",
     "category": "ENVIRONMENT",
     "bias": "CENTRIST",
-    "minifluxFeedId": 326
+    "minifluxFeedId": 614
   },
   {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
@@ -609,43 +375,7 @@
     "name": "Yale Environment 360",
     "category": "ENVIRONMENT",
     "bias": "LIBERAL",
-    "minifluxFeedId": 504
-  },
-  {
-    "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
-    "url": "https://www.treehugger.com/feeds/latest/",
-    "alternateUrl": null,
-    "name": "Treehugger",
-    "category": "ENVIRONMENT",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://www.eenews.net/rss/feed.xml",
-    "alternateUrl": null,
-    "name": "E&E News",
-    "category": "ENVIRONMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
-    "url": "https://www.nationalgeographic.com/environment/rss/all",
-    "alternateUrl": null,
-    "name": "National Geographic Environment",
-    "category": "ENVIRONMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
-    "url": "https://feeds.feedburner.com/EnvironmentalLeader",
-    "alternateUrl": null,
-    "name": "Environmental Leader",
-    "category": "ENVIRONMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 565
   },
   {
     "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
@@ -654,16 +384,7 @@
     "name": "Der Spiegel International",
     "category": "WORLD",
     "bias": "CENTRIST",
-    "minifluxFeedId": 339
-  },
-  {
-    "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
-    "url": "https://www.rappler.com/rss",
-    "alternateUrl": null,
-    "name": "Rappler",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 615
   },
   {
     "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
@@ -672,16 +393,7 @@
     "name": "The Economist",
     "category": "WORLD",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.cbc.ca/rss/world",
-    "alternateUrl": "https://www.cbc.ca/webfeed/rss/rss-world",
-    "name": "CBC News - World",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 567
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
@@ -693,22 +405,13 @@
     "minifluxFeedId": 299
   },
   {
-    "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
-    "url": "https://www3.nhk.or.jp/nhkworld/en/news/all/index.rss",
-    "alternateUrl": null,
-    "name": "NHK World Japan",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
     "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
     "alternateUrl": null,
     "name": "BBC World",
     "category": "WORLD",
     "bias": "CENTRIST",
-    "minifluxFeedId": 314
+    "minifluxFeedId": 568
   },
   {
     "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
@@ -717,25 +420,7 @@
     "name": "France 24",
     "category": "WORLD",
     "bias": "CENTRIST",
-    "minifluxFeedId": 360
-  },
-  {
-    "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
-    "url": "https://www.dw.com/en/top-stories/rss-feed-2/rss.xml",
-    "alternateUrl": null,
-    "name": "Deutsche Welle",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3626",
-    "url": "https://www.thelocal.de/feeds/rss.php",
-    "alternateUrl": null,
-    "name": "The Local - Europe",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 569
   },
   {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
@@ -747,31 +432,13 @@
     "minifluxFeedId": 462
   },
   {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
-    "url": "https://www.nih.gov/rss",
-    "alternateUrl": null,
-    "name": "NIH News & Events",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 419
-  },
-  {
     "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
     "url": "https://jamanetwork.com/rss/site_3/mostReadArticles.xml",
     "alternateUrl": null,
     "name": "JAMA Network",
     "category": "HEALTH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://www.theartnewspaper.com/rss",
-    "alternateUrl": null,
-    "name": "The Art Newspaper",
-    "category": "ARTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 571
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
@@ -819,49 +486,13 @@
     "minifluxFeedId": 305
   },
   {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.vulture.com/tag/art/rss/",
-    "alternateUrl": null,
-    "name": "Vulture - Art",
-    "category": "ARTS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
-    "url": "https://www.apollo-magazine.com/feed/",
-    "alternateUrl": null,
-    "name": "Apollo Magazine",
-    "category": "ARTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
     "url": "https://www.artsjournal.com/feed",
     "alternateUrl": null,
     "name": "ArtsJournal",
     "category": "ARTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
-    "url": "https://frieze.com/feed",
-    "alternateUrl": null,
-    "name": "Frieze",
-    "category": "ARTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 361
-  },
-  {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
-    "url": "https://www.juxtapoz.com/feed/",
-    "alternateUrl": null,
-    "name": "Juxtapoz",
-    "category": "ARTS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 397
+    "minifluxFeedId": 572
   },
   {
     "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
@@ -870,7 +501,7 @@
     "name": "Artforum",
     "category": "ARTS",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
+    "minifluxFeedId": 574
   },
   {
     "id": "168c033f-f57e-490a-9d6b-2683166c3626",
@@ -879,7 +510,7 @@
     "name": "Creative Boom",
     "category": "ARTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 575
   },
   {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
@@ -888,7 +519,7 @@
     "name": "designboom",
     "category": "ARTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 576
   },
   {
     "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
@@ -897,7 +528,7 @@
     "name": "Open Culture",
     "category": "ARTS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 423
+    "minifluxFeedId": 577
   },
   {
     "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
@@ -906,7 +537,7 @@
     "name": "Artists Network",
     "category": "ARTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 578
   },
   {
     "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
@@ -915,7 +546,7 @@
     "name": "My Modern Met",
     "category": "ARTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 413
+    "minifluxFeedId": 535
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
@@ -924,34 +555,7 @@
     "name": "The Lancet",
     "category": "HEALTH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
-    "url": "https://www.healthline.com/rss/health-news",
-    "alternateUrl": null,
-    "name": "Healthline",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 380
-  },
-  {
-    "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
-    "url": "https://www.medicalnewstoday.com/newsfeeds/rss/medical_news_today.xml",
-    "alternateUrl": null,
-    "name": "Medical News Today",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
-    "url": "https://www.webmd.com/rss/news_feeds/1/rss.xml",
-    "alternateUrl": null,
-    "name": "WebMD",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 579
   },
   {
     "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
@@ -960,16 +564,7 @@
     "name": "New England Journal of Medicine",
     "category": "HEALTH",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://feeds.feedburner.com/khn/stories?format=xml",
-    "alternateUrl": null,
-    "name": "Kaiser Health News",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 580
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
@@ -978,7 +573,7 @@
     "name": "Seeking Alpha - Market News",
     "category": "FINANCE",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 582
   },
   {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
@@ -987,25 +582,7 @@
     "name": "Naked Capitalism",
     "category": "FINANCE",
     "bias": "LEFT",
-    "minifluxFeedId": 414
-  },
-  {
-    "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
-    "url": "https://www.marketwatch.com/rss/topstories",
-    "alternateUrl": null,
-    "name": "MarketWatch",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 409
-  },
-  {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
-    "url": "https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_articles",
-    "alternateUrl": null,
-    "name": "Investopedia",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 617
   },
   {
     "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
@@ -1014,52 +591,7 @@
     "name": "CNBC",
     "category": "FINANCE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 329
-  },
-  {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3626",
-    "url": "https://www.ft.com/rss/home/us",
-    "alternateUrl": null,
-    "name": "Financial Times",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 352
-  },
-  {
-    "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
-    "url": "https://www.bloomberg.com/feed/podcast/decrypted",
-    "alternateUrl": null,
-    "name": "Bloomberg",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
-    "url": "https://www.wsj.com/xml/rss/3_7031.xml",
-    "alternateUrl": null,
-    "name": "Wall Street Journal",
-    "category": "FINANCE",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 498
-  },
-  {
-    "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
-    "url": "https://www.barrons.com/feed/rss?id=latest",
-    "alternateUrl": null,
-    "name": "Barrons",
-    "category": "FINANCE",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 312
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://www.fool.com/a/feeds/foolwatch?format=rss2&id=foolwatch",
-    "alternateUrl": null,
-    "name": "Motley Fool",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 410
+    "minifluxFeedId": 618
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
@@ -1107,31 +639,13 @@
     "minifluxFeedId": 393
   },
   {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.consequence.net/feed/",
-    "alternateUrl": null,
-    "name": "Consequence of Sound",
-    "category": "MUSIC",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 334
-  },
-  {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
     "url": "https://www.spin.com/feed/",
     "alternateUrl": null,
     "name": "Spin",
     "category": "MUSIC",
     "bias": "LIBERAL",
-    "minifluxFeedId": 457
-  },
-  {
-    "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
-    "url": "https://www.npr.org/rss/rss.php?id=1039",
-    "alternateUrl": null,
-    "name": "NPR Music",
-    "category": "MUSIC",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 586
   },
   {
     "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
@@ -1140,7 +654,7 @@
     "name": "BrooklynVegan",
     "category": "MUSIC",
     "bias": "CENTRIST",
-    "minifluxFeedId": 321
+    "minifluxFeedId": 619
   },
   {
     "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
@@ -1150,15 +664,6 @@
     "category": "SPORTS",
     "bias": "LIBERAL",
     "minifluxFeedId": 339
-  },
-  {
-    "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
-    "url": "https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU",
-    "alternateUrl": null,
-    "name": "Fox Sports",
-    "category": "SPORTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
   },
   {
     "id": "168c033f-f57e-490a-9d6b-2683166c3626",
@@ -1176,7 +681,7 @@
     "name": "Yahoo Sports",
     "category": "SPORTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 505
+    "minifluxFeedId": 588
   },
   {
     "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
@@ -1194,34 +699,7 @@
     "name": "SB Nation",
     "category": "SPORTS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 446
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://theathletic.com/news/rss/",
-    "alternateUrl": null,
-    "name": "The Athletic",
-    "category": "SPORTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 468
-  },
-  {
-    "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
-    "url": "https://bleacherreport.com/articles/feed",
-    "alternateUrl": null,
-    "name": "Bleacher Report",
-    "category": "SPORTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 316
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
-    "url": "https://www.si.com/rss/si_topstories.rss",
-    "alternateUrl": null,
-    "name": "Sports Illustrated",
-    "category": "SPORTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 620
   },
   {
     "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
@@ -1230,16 +708,7 @@
     "name": "Sporting News",
     "category": "SPORTS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 458
-  },
-  {
-    "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
-    "url": "https://www.highsnobiety.com/feed/",
-    "alternateUrl": null,
-    "name": "Highsnobiety",
-    "category": "FASHION",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 382
+    "minifluxFeedId": 589
   },
   {
     "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
@@ -1251,31 +720,13 @@
     "minifluxFeedId": 468
   },
   {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.elle.com/rss/all.xml/",
-    "alternateUrl": null,
-    "name": "Elle",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
-    "url": "https://www.harpersbazaar.com/rss/all.xml/",
-    "alternateUrl": null,
-    "name": "Harper's Bazaar",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
     "url": "https://www.gq.com/feed/rss",
     "alternateUrl": null,
     "name": "GQ",
     "category": "FASHION",
     "bias": "LIBERAL",
-    "minifluxFeedId": 369
+    "minifluxFeedId": 591
   },
   {
     "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
@@ -1284,7 +735,7 @@
     "name": "Fashionista",
     "category": "FASHION",
     "bias": "CENTRIST",
-    "minifluxFeedId": 349
+    "minifluxFeedId": 592
   },
   {
     "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
@@ -1293,7 +744,7 @@
     "name": "Hypebeast",
     "category": "FASHION",
     "bias": "CENTRIST",
-    "minifluxFeedId": 388
+    "minifluxFeedId": 621
   },
   {
     "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
@@ -1305,49 +756,13 @@
     "minifluxFeedId": 446
   },
   {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3626",
-    "url": "https://www.manrepeller.com/feed",
-    "alternateUrl": null,
-    "name": "Man Repeller",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 408
-  },
-  {
-    "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
-    "url": "https://www.businessoffashion.com/feed",
-    "alternateUrl": null,
-    "name": "Business of Fashion",
-    "category": "FASHION",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
     "url": "https://www.dazeddigital.com/rss",
     "alternateUrl": null,
     "name": "Dazed",
     "category": "FASHION",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
-    "url": "https://www.papermag.com/rss",
-    "alternateUrl": null,
-    "name": "Paper Magazine",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://i-d.vice.com/en_us/rss",
-    "alternateUrl": null,
-    "name": "i-D",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 390
+    "minifluxFeedId": 594
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
@@ -1356,34 +771,7 @@
     "name": "Footwear News",
     "category": "FASHION",
     "bias": "CENTRIST",
-    "minifluxFeedId": 358
-  },
-  {
-    "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
-    "url": "https://stylecaster.com/fashion/feed/",
-    "alternateUrl": null,
-    "name": "StyleCaster Fashion",
-    "category": "FASHION",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
-    "url": "https://www.tmz.com/rss/news-feed/",
-    "alternateUrl": null,
-    "name": "TMZ",
-    "category": "ENTERTAINMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 472
-  },
-  {
-    "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
-    "url": "https://www.ign.com/rss/articles",
-    "alternateUrl": null,
-    "name": "IGN Articles",
-    "category": "ENTERTAINMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 595
   },
   {
     "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
@@ -1392,16 +780,7 @@
     "name": "Entertainment Tonight",
     "category": "ENTERTAINMENT",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.eonline.com/news.rss",
-    "alternateUrl": null,
-    "name": "E! News",
-    "category": "ENTERTAINMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 596
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
@@ -1431,33 +810,6 @@
     "minifluxFeedId": 359
   },
   {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
-    "url": "https://ew.com/feed/",
-    "alternateUrl": null,
-    "name": "Entertainment Weekly",
-    "category": "ENTERTAINMENT",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 345
-  },
-  {
-    "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
-    "url": "https://www.avclub.com/rss",
-    "alternateUrl": null,
-    "name": "AV Club",
-    "category": "ENTERTAINMENT",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 310
-  },
-  {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3626",
-    "url": "https://people.com/feed/",
-    "alternateUrl": null,
-    "name": "People",
-    "category": "ENTERTAINMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 427
-  },
-  {
     "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
     "url": "https://www.forbes.com/real-time/feed2/",
     "alternateUrl": null,
@@ -1467,40 +819,13 @@
     "minifluxFeedId": 345
   },
   {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
-    "url": "https://www.businessinsider.com/rss",
-    "alternateUrl": null,
-    "name": "Business Insider",
-    "category": "BUSINESS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
-    "url": "https://fortune.com/feed/",
-    "alternateUrl": null,
-    "name": "Fortune",
-    "category": "BUSINESS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 355
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://hbr.org/rss/index.xml",
-    "alternateUrl": null,
-    "name": "Harvard Business Review",
-    "category": "BUSINESS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 374
-  },
-  {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
     "url": "https://www.inc.com/rss/",
     "alternateUrl": null,
     "name": "Inc.",
     "category": "BUSINESS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 389
+    "minifluxFeedId": 599
   },
   {
     "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
@@ -1509,7 +834,7 @@
     "name": "Fast Company",
     "category": "BUSINESS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 348
+    "minifluxFeedId": 623
   },
   {
     "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
@@ -1518,25 +843,7 @@
     "name": "Entrepreneur",
     "category": "BUSINESS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 344
-  },
-  {
-    "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
-    "url": "https://www.bizjournals.com/bizjournals/feed/feed.json",
-    "alternateUrl": null,
-    "name": "Bizjournals",
-    "category": "BUSINESS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
-    "url": "https://qz.com/feed",
-    "alternateUrl": null,
-    "name": "Quartz",
-    "category": "BUSINESS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 439
+    "minifluxFeedId": 600
   },
   {
     "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
@@ -1545,7 +852,7 @@
     "name": "Project Syndicate",
     "category": "ECONOMICS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 436
+    "minifluxFeedId": 538
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
@@ -1554,7 +861,7 @@
     "name": "Economist's View",
     "category": "ECONOMICS",
     "bias": "LIBERAL",
-    "minifluxFeedId": null
+    "minifluxFeedId": 602
   },
   {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
@@ -1563,7 +870,7 @@
     "name": "Marginal Revolution",
     "category": "ECONOMICS",
     "bias": "UNKNOWN",
-    "minifluxFeedId": 407
+    "minifluxFeedId": 603
   },
   {
     "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
@@ -1572,25 +879,7 @@
     "name": "EconLog",
     "category": "ECONOMICS",
     "bias": "UNKNOWN",
-    "minifluxFeedId": 346
-  },
-  {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
-    "url": "https://www.brookings.edu/topics/u-s-economy/feed/",
-    "alternateUrl": null,
-    "name": "Brookings - Economics",
-    "category": "ECONOMICS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
-    "url": "https://cepr.net/feed/",
-    "alternateUrl": null,
-    "name": "Center for Economic and Policy Research",
-    "category": "ECONOMICS",
-    "bias": "LEFT",
-    "minifluxFeedId": 328
+    "minifluxFeedId": 604
   },
   {
     "id": "168c033f-f57e-490a-9d6b-2683166c3626",
@@ -1599,25 +888,7 @@
     "name": "Freakonomics",
     "category": "ECONOMICS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 359
-  },
-  {
-    "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
-    "url": "https://www.imf.org/en/news/rss-feed",
-    "alternateUrl": null,
-    "name": "IMF News",
-    "category": "ECONOMICS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 392
-  },
-  {
-    "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
-    "url": "https://www.nber.org/rss/new.xml",
-    "alternateUrl": null,
-    "name": "NBER Working Papers",
-    "category": "ECONOMICS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 624
   },
   {
     "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
@@ -1635,7 +906,7 @@
     "name": "NASA Spaceflight",
     "category": "SPACE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 415
+    "minifluxFeedId": 539
   },
   {
     "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
@@ -1644,7 +915,7 @@
     "name": "Teslarati",
     "category": "SPACE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 468
+    "minifluxFeedId": 625
   },
   {
     "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
@@ -1653,16 +924,7 @@
     "name": "Ars Technica - Space",
     "category": "SPACE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 303
-  },
-  {
-    "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
-    "url": "https://skyandtelescope.org/feed/",
-    "alternateUrl": null,
-    "name": "Sky & Telescope",
-    "category": "SPACE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 451
+    "minifluxFeedId": 606
   },
   {
     "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
@@ -1671,25 +933,7 @@
     "name": "Astronomy Now",
     "category": "SPACE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 308
-  },
-  {
-    "id": "af159cc8-8e07-4293-26f4-bf1caff5cfab",
-    "url": "https://blogs.nasa.gov/stationreport/feed/",
-    "alternateUrl": null,
-    "name": "NASA ISS Blog",
-    "category": "SPACE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "b026adda-9f18-43a4-3705-c02db006d0dc",
-    "url": "https://www.spaceflightinsider.com/feed/",
-    "alternateUrl": null,
-    "name": "Spaceflight Insider",
-    "category": "SPACE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 456
+    "minifluxFeedId": 626
   },
   {
     "id": "c137beea-a029-44b5-4816-d13ec117e1ed",
@@ -1698,7 +942,7 @@
     "name": "VentureBeat AI",
     "category": "AI",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 608
   },
   {
     "id": "d248cffb-b13a-45c6-5927-e24fd228f2fc",
@@ -1710,24 +954,6 @@
     "minifluxFeedId": 380
   },
   {
-    "id": "e359d00c-c24b-46d7-6a38-f350e33903f3",
-    "url": "https://www.artificialintelligence-news.com/feed/",
-    "alternateUrl": null,
-    "name": "AI News",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 304
-  },
-  {
-    "id": "f46ae11d-d35c-47e8-7b49-0461f44a1404",
-    "url": "https://towardsdatascience.com/feed/tag/artificial-intelligence",
-    "alternateUrl": null,
-    "name": "Towards Data Science - AI",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "057bf22e-e46d-48f9-8c5a-1572055b2515",
     "url": "https://machinelearningmastery.com/feed/",
     "alternateUrl": null,
@@ -1737,58 +963,13 @@
     "minifluxFeedId": 377
   },
   {
-    "id": "168c033f-f57e-490a-9d6b-2683166c3626",
-    "url": "https://www.deeplearning.ai/blog/feed/",
-    "alternateUrl": null,
-    "name": "deeplearning.ai",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "279d1440-068f-4a1b-ae7c-3794277d4737",
-    "url": "https://openai.com/blog/rss/",
-    "alternateUrl": null,
-    "name": "OpenAI Blog",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
     "id": "38ae2551-1790-4b2c-bf8d-48a5388e5848",
     "url": "https://blogs.nvidia.com/blog/category/deep-learning/feed/",
     "alternateUrl": null,
     "name": "NVIDIA AI Blog",
     "category": "AI",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "49bf3662-28a1-4c3d-c09e-59b6499f6959",
-    "url": "https://ai.googleblog.com/feeds/posts/default",
-    "alternateUrl": null,
-    "name": "Google AI Blog",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 370
-  },
-  {
-    "id": "5ac04773-39b2-4d4e-d1af-6ac75aa07a6a",
-    "url": "https://www.fast.ai/atom.xml",
-    "alternateUrl": null,
-    "name": "fast.ai",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
-  },
-  {
-    "id": "6bd15884-4ac3-4e5f-e2b0-7bd86bb18b7b",
-    "url": "https://research.fb.com/feed/",
-    "alternateUrl": null,
-    "name": "Meta AI Research",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 609
   },
   {
     "id": "7ce26995-5bd4-4f60-f3c1-8ce97cc29c8c",
@@ -1797,7 +978,7 @@
     "name": "Hugging Face Blog",
     "category": "AI",
     "bias": "CENTRIST",
-    "minifluxFeedId": 386
+    "minifluxFeedId": 611
   },
   {
     "id": "8df37aa6-6ce5-4071-04d2-9dfa8dd3ad9a",
@@ -1806,7 +987,7 @@
     "name": "Reddit r/artificial",
     "category": "AI",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 612
   },
   {
     "id": "9e048bb7-7df6-4182-15e3-ae0b9ee4beaa",
@@ -1815,7 +996,7 @@
     "name": "Analytics Vidhya",
     "category": "AI",
     "bias": "CENTRIST",
-    "minifluxFeedId": null
+    "minifluxFeedId": 613
   },
   {
     "id": "aa01bbcc-9e18-43a4-3705-c02db117d1dd",
@@ -2070,31 +1251,13 @@
     "minifluxFeedId": 340
   },
   {
-    "id": "661d7788-5bd4-4f60-f3c1-8ce97dd39d99",
-    "url": "https://www.elle.com/rss/all.xml/",
-    "alternateUrl": null,
-    "name": "Latest Content - ELLE",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 341
-  },
-  {
     "id": "771e8899-6ce5-4071-04d2-9dfa8ee4aeaa",
     "url": "https://www.euractiv.com/feed/",
     "alternateUrl": null,
     "name": "EURACTIV",
     "category": "EUROPE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 347
-  },
-  {
-    "id": "881f99aa-7df6-4182-15e3-ae0b9ff5bfbb",
-    "url": "https://www.foreignaffairs.com/feed",
-    "alternateUrl": null,
-    "name": "Foreign Affairs",
-    "category": "FOREIGN AFFAIRS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 353
+    "minifluxFeedId": 540
   },
   {
     "id": "9920aabb-8e07-4293-26f4-bf1ca006c0cc",
@@ -2106,94 +1269,13 @@
     "minifluxFeedId": 350
   },
   {
-    "id": "aa21bbcc-9f18-43a4-3705-c02db117d1dd",
-    "url": "https://www.harpersbazaar.com/rss/all.xml/",
-    "alternateUrl": null,
-    "name": "Harper's BAZAAR",
-    "category": "FASHION",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 357
-  },
-  {
-    "id": "bb22ccdd-a029-44b5-4816-d13ec228e2ee",
-    "url": "https://www.healthaffairs.org/toc/hlthaff/0/0",
-    "alternateUrl": null,
-    "name": "Health Affairs",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 375
-  },
-  {
-    "id": "cc23ddee-b13a-45c6-5927-e24fd339f3ff",
-    "url": "https://www.healthleadersmedia.com/rss",
-    "alternateUrl": null,
-    "name": "HealthLeaders Media",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 378
-  },
-  {
-    "id": "dd24eeff-c24b-46d7-6a38-f350e44a0400",
-    "url": "https://www.healthcareitnews.com/feed",
-    "alternateUrl": null,
-    "name": "Healthcare IT News",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 376
-  },
-  {
-    "id": "ee25ff00-d35c-47e8-7b49-0461f55b1511",
-    "url": "https://www.healthcarefinancenews.com/feed",
-    "alternateUrl": null,
-    "name": "Healthcare Finance News",
-    "category": "FINANCE",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 377
-  },
-  {
-    "id": "ff260011-e46d-48f9-8c5a-1572066c2622",
-    "url": "https://www.healthcareitnews.com/topics/artificial-intelligence/feed",
-    "alternateUrl": null,
-    "name": "Healthcare IT News - AI",
-    "category": "AI",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 379
-  },
-  {
-    "id": "00271122-f57e-490a-9d6b-2683177d3733",
-    "url": "https://www.healthcareitnews.com/topics/cybersecurity/feed",
-    "alternateUrl": null,
-    "name": "Healthcare IT News - Cybersecurity",
-    "category": "SECURITY",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 381
-  },
-  {
-    "id": "11282233-068f-4a1b-ae7c-3794288e4844",
-    "url": "https://www.huffpost.com/section/front-page/feed",
-    "alternateUrl": null,
-    "name": "HuffPost",
-    "category": "NEWS",
-    "bias": "LEFT",
-    "minifluxFeedId": 385
-  },
-  {
     "id": "22293344-1790-4b2c-bf8d-48a5399f5955",
     "url": "https://www.independent.co.uk/rss",
     "alternateUrl": null,
     "name": "The Independent",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 475
-  },
-  {
-    "id": "332a4455-28a1-4c3d-c09e-59b64aa06a66",
-    "url": "https://www.irishtimes.com/cmlink/news-1.1319192",
-    "alternateUrl": null,
-    "name": "The Irish Times",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 476
+    "minifluxFeedId": 542
   },
   {
     "id": "442b5566-39b2-4d4e-d1af-6ac75bb17b77",
@@ -2202,25 +1284,7 @@
     "name": "The Japan Times",
     "category": "WORLD",
     "bias": "CENTRIST",
-    "minifluxFeedId": 477
-  },
-  {
-    "id": "552c6677-4ac3-4e5f-e2b0-7bd86cc28c88",
-    "url": "https://jewishcurrents.org/rss.xml",
-    "alternateUrl": null,
-    "name": "Jewish Currents",
-    "category": "NEWS",
-    "bias": "LEFT",
-    "minifluxFeedId": 395
-  },
-  {
-    "id": "662d7788-5bd4-4f60-f3c1-8ce97dd39d99",
-    "url": "https://www.jpost.com/rss/rssrdr",
-    "alternateUrl": null,
-    "name": "The Jerusalem Post",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 478
+    "minifluxFeedId": 544
   },
   {
     "id": "772e8899-6ce5-4071-04d2-9dfa8ee4aeaa",
@@ -2232,49 +1296,13 @@
     "minifluxFeedId": 487
   },
   {
-    "id": "882f99aa-7df6-4182-15e3-ae0b9ff5bfbb",
-    "url": "https://latimes.com/rss",
-    "alternateUrl": null,
-    "name": "Los Angeles Times",
-    "category": "NEWS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 403
-  },
-  {
-    "id": "9930aabb-8e07-4293-26f4-bf1ca006c0cc",
-    "url": "https://www.medscape.com/rss/emedscape.xml",
-    "alternateUrl": null,
-    "name": "Medscape",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 405
-  },
-  {
-    "id": "aa31bbcc-9f18-43a4-3705-c02db117d1dd",
-    "url": "https://www.modernhealthcare.com/rss",
-    "alternateUrl": null,
-    "name": "Modern Healthcare",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 410
-  },
-  {
-    "id": "bb32ccdd-a029-44b5-4816-d13ec228e2ee",
-    "url": "https://nationalinterest.org/rss.xml",
-    "alternateUrl": null,
-    "name": "The National Interest",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 479
-  },
-  {
     "id": "cc33ddee-b13a-45c6-5927-e24fd339f3ff",
     "url": "https://nationalpost.com/feed/",
     "alternateUrl": null,
     "name": "National Post",
     "category": "NEWS",
     "bias": "CONSERVATIVE",
-    "minifluxFeedId": 413
+    "minifluxFeedId": 545
   },
   {
     "id": "dd34eeff-c24b-46d7-6a38-f350e44a0400",
@@ -2295,31 +1323,13 @@
     "minifluxFeedId": 387
   },
   {
-    "id": "ff360011-e46d-48f9-8c5a-1572066c2622",
-    "url": "https://feeds.nbcnews.com/nbcnews/public/technology",
-    "alternateUrl": null,
-    "name": "NBC News - Technology",
-    "category": "TECH",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 416
-  },
-  {
-    "id": "00371122-f57e-490a-9d6b-2683177d3733",
-    "url": "https://newrepublic.com/feed/main",
-    "alternateUrl": null,
-    "name": "The New Republic",
-    "category": "POLITICS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 480
-  },
-  {
     "id": "11382233-068f-4a1b-ae7c-3794288e4844",
     "url": "https://newyorker.com/feed/news",
     "alternateUrl": null,
     "name": "The New Yorker",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 481
+    "minifluxFeedId": 546
   },
   {
     "id": "22393344-1790-4b2c-bf8d-48a5399f5955",
@@ -2329,24 +1339,6 @@
     "category": "NEWS",
     "bias": "CONSERVATIVE",
     "minifluxFeedId": 398
-  },
-  {
-    "id": "333a4455-28a1-4c3d-c09e-59b64aa06a66",
-    "url": "https://www.npr.org/rss/rss.php?id=1003",
-    "alternateUrl": null,
-    "name": "NPR - Business",
-    "category": "BUSINESS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 421
-  },
-  {
-    "id": "443b5566-39b2-4d4e-d1af-6ac75bb17b77",
-    "url": "https://www.npr.org/rss/rss.php?id=1014",
-    "alternateUrl": null,
-    "name": "NPR - Politics",
-    "category": "POLITICS",
-    "bias": "LIBERAL",
-    "minifluxFeedId": 422
   },
   {
     "id": "553c6677-4ac3-4e5f-e2b0-7bd86cc28c88",
@@ -2367,24 +1359,6 @@
     "minifluxFeedId": 419
   },
   {
-    "id": "773e8899-6ce5-4071-04d2-9dfa8ee4aeaa",
-    "url": "https://www.pubmed.gov/rss/search/1Z9X_1Xh_2W_9_?limit=15&utm_campaign=pubmed-2&fc=202303010900",
-    "alternateUrl": null,
-    "name": "PubMed",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 433
-  },
-  {
-    "id": "883f99aa-7df6-4182-15e3-ae0b9ff5bfbb",
-    "url": "https://www.rawstory.com/feed/",
-    "alternateUrl": null,
-    "name": "Raw Story",
-    "category": "POLITICS",
-    "bias": "LEFT",
-    "minifluxFeedId": 440
-  },
-  {
     "id": "9940aabb-8e07-4293-26f4-bf1ca006c0cc",
     "url": "https://reason.com/feed/",
     "alternateUrl": null,
@@ -2394,40 +1368,13 @@
     "minifluxFeedId": 421
   },
   {
-    "id": "aa41bbcc-9f18-43a4-3705-c02db117d1dd",
-    "url": "https://www.reuters.com/rssfeed/businessNews",
-    "alternateUrl": null,
-    "name": "Reuters - Business",
-    "category": "BUSINESS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 442
-  },
-  {
-    "id": "bb42ccdd-a029-44b5-4816-d13ec228e2ee",
-    "url": "https://www.reuters.com/rssfeed/technologyNews",
-    "alternateUrl": null,
-    "name": "Reuters - Technology",
-    "category": "TECH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 443
-  },
-  {
-    "id": "cc43ddee-b13a-45c6-5927-e24fd339f3ff",
-    "url": "https://www.reuters.com/rssfeed/worldNews",
-    "alternateUrl": null,
-    "name": "Reuters - World",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 444
-  },
-  {
     "id": "dd44eeff-c24b-46d7-6a38-f350e44a0400",
     "url": "https://www.salon.com/feed/",
     "alternateUrl": null,
     "name": "Salon",
     "category": "POLITICS",
     "bias": "LEFT",
-    "minifluxFeedId": 446
+    "minifluxFeedId": 548
   },
   {
     "id": "ee45ff00-d35c-47e8-7b49-0461f55b1511",
@@ -2436,7 +1383,7 @@
     "name": "In the Pipeline",
     "category": "SCIENCE",
     "bias": "CENTRIST",
-    "minifluxFeedId": 449
+    "minifluxFeedId": 549
   },
   {
     "id": "ff460011-e46d-48f9-8c5a-1572066c2622",
@@ -2445,7 +1392,7 @@
     "name": "Sky News",
     "category": "NEWS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 452
+    "minifluxFeedId": 550
   },
   {
     "id": "00471122-f57e-490a-9d6b-2683177d3733",
@@ -2454,7 +1401,7 @@
     "name": "Sky News - Politics",
     "category": "POLITICS",
     "bias": "CENTRIST",
-    "minifluxFeedId": 453
+    "minifluxFeedId": 551
   },
   {
     "id": "11482233-068f-4a1b-ae7c-3794288e4844",
@@ -2466,40 +1413,13 @@
     "minifluxFeedId": 464
   },
   {
-    "id": "22493344-1790-4b2c-bf8d-48a5399f5955",
-    "url": "https://www.spectator.co.uk/feed",
-    "alternateUrl": null,
-    "name": "The Spectator",
-    "category": "POLITICS",
-    "bias": "CONSERVATIVE",
-    "minifluxFeedId": 482
-  },
-  {
-    "id": "334a4455-28a1-4c3d-c09e-59b64aa06a66",
-    "url": "https://www.statista.com/rss/general.rss",
-    "alternateUrl": null,
-    "name": "Statista",
-    "category": "DATA",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 459
-  },
-  {
     "id": "444b5566-39b2-4d4e-d1af-6ac75bb17b77",
     "url": "https://www.statnews.com/category/health-tech/feed/",
     "alternateUrl": null,
     "name": "STAT - Health Tech",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": 460
-  },
-  {
-    "id": "554c6677-4ac3-4e5f-e2b0-7bd86cc28c88",
-    "url": "https://www.statnews.com/category/pharmatherapy/feed/",
-    "alternateUrl": null,
-    "name": "STAT - Pharma/Therapy",
-    "category": "HEALTH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 461
+    "minifluxFeedId": 552
   },
   {
     "id": "664d7788-5bd4-4f60-f3c1-8ce97dd39d99",
@@ -2508,7 +1428,7 @@
     "name": "MIT Technology Review",
     "category": "TECH",
     "bias": "LIBERAL",
-    "minifluxFeedId": 406
+    "minifluxFeedId": 553
   },
   {
     "id": "774e8899-6ce5-4071-04d2-9dfa8ee4aeaa",
@@ -2526,16 +1446,7 @@
     "name": "The Atlantic",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 470
-  },
-  {
-    "id": "9950aabb-8e07-4293-26f4-bf1ca006c0cc",
-    "url": "https://thedailybeast.com/rss",
-    "alternateUrl": null,
-    "name": "The Daily Beast",
-    "category": "NEWS",
-    "bias": "LEFT",
-    "minifluxFeedId": 474
+    "minifluxFeedId": 554
   },
   {
     "id": "aa51bbcc-9f18-43a4-3705-c02db117d1dd",
@@ -2544,7 +1455,7 @@
     "name": "The Drive",
     "category": "AUTO",
     "bias": "CENTRIST",
-    "minifluxFeedId": 475
+    "minifluxFeedId": 555
   },
   {
     "id": "bb52ccdd-a029-44b5-4816-d13ec228e2ee",
@@ -2556,31 +1467,13 @@
     "minifluxFeedId": 455
   },
   {
-    "id": "cc53ddee-b13a-45c6-5927-e24fd339f3ff",
-    "url": "https://themessenger.com/rss",
-    "alternateUrl": null,
-    "name": "The Messenger",
-    "category": "NEWS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 480
-  },
-  {
     "id": "dd54eeff-c24b-46d7-6a38-f350e44a0400",
     "url": "https://www.theregister.com/headlines.atom",
     "alternateUrl": null,
     "name": "The Register",
     "category": "TECH",
     "bias": "CENTRIST",
-    "minifluxFeedId": 482
-  },
-  {
-    "id": "ee55ff00-d35c-47e8-7b49-0461f55b1511",
-    "url": "https://theweek.com/rss",
-    "alternateUrl": null,
-    "name": "The Week",
-    "category": "NEWS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 483
+    "minifluxFeedId": 556
   },
   {
     "id": "ff560011-e46d-48f9-8c5a-1572066c2622",
@@ -2592,67 +1485,13 @@
     "minifluxFeedId": 442
   },
   {
-    "id": "00571122-f57e-490a-9d6b-2683177d3733",
-    "url": "https://www.timesofisrael.com/feed/",
-    "alternateUrl": null,
-    "name": "The Times of Israel",
-    "category": "WORLD",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 484
-  },
-  {
-    "id": "11582233-068f-4a1b-ae7c-3794288e4844",
-    "url": "https://www.usatoday.com/rss/life-entertainthis",
-    "alternateUrl": null,
-    "name": "USA TODAY - Entertainment",
-    "category": "ENTERTAINMENT",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 487
-  },
-  {
-    "id": "22593344-1790-4b2c-bf8d-48a5399f5955",
-    "url": "https://www.usatoday.com/rss/sports",
-    "alternateUrl": null,
-    "name": "USA TODAY - Sports",
-    "category": "SPORTS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 488
-  },
-  {
-    "id": "335a4455-28a1-4c3d-c09e-59b64aa06a66",
-    "url": "https://www.usatoday.com/rss/tech",
-    "alternateUrl": null,
-    "name": "USA TODAY - Tech",
-    "category": "TECH",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 489
-  },
-  {
-    "id": "445b5566-39b2-4d4e-d1af-6ac75bb17b77",
-    "url": "https://www.usnews.com/rss/news",
-    "alternateUrl": null,
-    "name": "US News & World Report",
-    "category": "NEWS",
-    "bias": "CENTRIST",
-    "minifluxFeedId": 485
-  },
-  {
     "id": "555c6677-4ac3-4e5f-e2b0-7bd86cc28c88",
     "url": "https://www.vanityfair.com/feed/rss",
     "alternateUrl": null,
     "name": "Vanity Fair",
     "category": "CULTURE",
     "bias": "LIBERAL",
-    "minifluxFeedId": 486
-  },
-  {
-    "id": "665d7788-5bd4-4f60-f3c1-8ce97dd39d99",
-    "url": "https://www.vice.com/en/rss",
-    "alternateUrl": null,
-    "name": "VICE News",
-    "category": "NEWS",
-    "bias": "LEFT",
-    "minifluxFeedId": 490
+    "minifluxFeedId": 557
   },
   {
     "id": "775e8899-6ce5-4071-04d2-9dfa8ee4aeaa",
@@ -2661,7 +1500,7 @@
     "name": "Washington Post - National",
     "category": "NEWS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 495
+    "minifluxFeedId": 559
   },
   {
     "id": "885f99aa-7df6-4182-15e3-ae0b9ff5bfbb",
@@ -2670,7 +1509,7 @@
     "name": "Washington Post - Politics",
     "category": "POLITICS",
     "bias": "LIBERAL",
-    "minifluxFeedId": 496
+    "minifluxFeedId": 560
   },
   {
     "id": "9960aabb-8e07-4293-26f4-bf1ca006c0cc",
@@ -2679,7 +1518,7 @@
     "name": "Washington Times - Entertainment",
     "category": "ENTERTAINMENT",
     "bias": "CONSERVATIVE",
-    "minifluxFeedId": 499
+    "minifluxFeedId": 561
   },
   {
     "id": "aa61bbcc-9f18-43a4-3705-c02db117d1dd",
@@ -2688,7 +1527,7 @@
     "name": "Washington Times - Sports",
     "category": "SPORTS",
     "bias": "CONSERVATIVE",
-    "minifluxFeedId": 500
+    "minifluxFeedId": 562
   },
   {
     "id": "bb62ccdd-a029-44b5-4816-d13ec228e2ee",
@@ -2706,6 +1545,6 @@
     "name": "ZDNET - Security",
     "category": "SECURITY",
     "bias": "CENTRIST",
-    "minifluxFeedId": 506
+    "minifluxFeedId": 563
   }
 ]
