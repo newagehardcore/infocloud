@@ -248,25 +248,39 @@ const normalizeUrl = (url) => {
  * Logs discrepancies (feeds in Miniflux but not JSON, sources in JSON but not Miniflux).
  */
 const syncWithMinifluxFeeds = async () => {
-    console.log('[Source Sync] Starting reconciliation with Miniflux feeds...');
-    let minifluxFeeds = [];
+    console.log('[Source Sync] Starting full synchronization (JSON -> Miniflux)...');
+    let minifluxFeedsData = [];
     let masterSources = [];
-    let updatedCount = 0;
-    let missingFromMaster = [];
-    let orphansInMaster = [];
+    let updatedIdCount = 0;
+    let addedCount = 0;
+    let failedToAddSources = [];
+    let deletedFromMinifluxCount = 0;
+    let failedToDeleteFromMiniflux = [];
 
-    // 1. Fetch all feeds from Miniflux
+    // --- Step 1: Fetch all feeds from Miniflux and map URL -> ID ---
+    const minifluxUrlToIdMap = new Map();
     try {
         console.log('[Source Sync] Fetching feeds from Miniflux...');
         const response = await minifluxClient.get('/v1/feeds');
-        minifluxFeeds = response.data || [];
-        console.log(`[Source Sync] Fetched ${minifluxFeeds.length} feeds from Miniflux.`);
+        minifluxFeedsData = response.data || [];
+        minifluxFeedsData.forEach(feed => {
+            const normUrl = normalizeUrl(feed.feed_url);
+            if (normUrl) {
+                 // Handle potential duplicate URLs in Miniflux by preferring the first one encountered
+                 if (!minifluxUrlToIdMap.has(normUrl)) { 
+                    minifluxUrlToIdMap.set(normUrl, feed.id);
+                 } else {
+                     console.warn(`[Source Sync] Duplicate URL found in Miniflux fetch: ${normUrl}. Using ID ${minifluxUrlToIdMap.get(normUrl)}.`);
+                 }
+            }
+        });
+        console.log(`[Source Sync] Fetched ${minifluxFeedsData.length} feeds from Miniflux, mapped ${minifluxUrlToIdMap.size} unique normalized URLs.`);
     } catch (error) {
         console.error(`[Source Sync] Failed to fetch feeds from Miniflux: ${error.message}`);
         return; // Cannot proceed
     }
 
-    // 2. Load current master sources
+    // --- Step 2: Load current master sources ---
     try {
         masterSources = await loadSources();
         console.log(`[Source Sync] Loaded ${masterSources.length} sources from master_sources.json.`);
@@ -274,115 +288,157 @@ const syncWithMinifluxFeeds = async () => {
         console.error(`[Source Sync] Failed to load master sources: ${error.message}`);
         return; // Cannot proceed
     }
-
-    // 3. Create lookup maps for master sources
-    const masterSourceMapByUrl = new Map();
-    const masterSourceMapById = new Map();
-    const foundInMiniflux = new Set(); // To track which master sources correspond to a Miniflux feed
-
-    masterSources.forEach(source => {
-        const normUrl = normalizeUrl(source.url);
-        if (normUrl) {
-             masterSourceMapByUrl.set(normUrl, source);
-        }
-         // Also map by existing Miniflux ID if present (for orphan check)
-         if (source.minifluxFeedId) {
-            masterSourceMapById.set(source.minifluxFeedId, source);
-         }
-    });
-
-    // 4. Reconcile: Iterate through Miniflux feeds
-    console.log('[Source Sync] Reconciling Miniflux feeds with master sources...');
-    for (const feed of minifluxFeeds) {
-        const normFeedUrl = normalizeUrl(feed.feed_url);
-        let matchedSource = null;
-
-        // Try matching by URL first
-        if (normFeedUrl && masterSourceMapByUrl.has(normFeedUrl)) {
-            matchedSource = masterSourceMapByUrl.get(normFeedUrl);
-        } 
-        // Optional: Could add fallback matching by feed.id if URL fails?
-        // else if (masterSourceMapById.has(feed.id)) { ... }
-
-        if (matchedSource) {
-            foundInMiniflux.add(matchedSource.id); // Mark master source as found
-
-            // Check if Miniflux ID needs update
-            if (matchedSource.minifluxFeedId !== feed.id) {
-                console.log(`[Source Sync] Updating Miniflux ID for source "${matchedSource.name}" (URL: ${matchedSource.url}) from ${matchedSource.minifluxFeedId} to ${feed.id}`);
-                matchedSource.minifluxFeedId = feed.id;
-                updatedCount++;
-            }
-
-            // Optional: Check for category/name differences (just log for now)
-            if (matchedSource.category !== feed.category?.title) {
-                 // console.log(`[Source Sync] Category mismatch for "${matchedSource.name}": Master="${matchedSource.category}", Miniflux="${feed.category?.title}"`);
-            }
-            if (matchedSource.name !== feed.title) {
-                 // console.log(`[Source Sync] Name mismatch for Feed ID ${feed.id}: Master="${matchedSource.name}", Miniflux="${feed.title}"`);
-            }
-
-        } else {
-            // Feed exists in Miniflux but not in our master list (based on URL)
-            missingFromMaster.push({ 
-                minifluxId: feed.id, 
-                title: feed.title, 
-                url: feed.feed_url, 
-                category: feed.category?.title 
-            });
-        }
-    }
-
-    // 5. Identify orphans in master list
-    masterSources.forEach(source => {
-        if (!foundInMiniflux.has(source.id)) {
-            // Source exists in JSON but wasn't found via URL match with any Miniflux feed
-             orphansInMaster.push({
-                 id: source.id,
-                 name: source.name,
-                 url: source.url,
-                 minifluxFeedId: source.minifluxFeedId
-             });
-        }
-    });
-
-    // 6. Log results
-    console.log('[Source Sync] Reconciliation Summary:');
-    console.log(`- Miniflux Feeds Found: ${minifluxFeeds.length}`);
-    console.log(`- Master Sources Loaded: ${masterSources.length}`);
-    console.log(`- Master Sources Updated (Miniflux ID): ${updatedCount}`);
     
-    if (missingFromMaster.length > 0) {
-        console.warn(`- Feeds Missing from Master List (${missingFromMaster.length}):`);
-        missingFromMaster.forEach(f => console.warn(`  - ID: ${f.minifluxId}, Title: "${f.title}", URL: ${f.url}, Category: ${f.category}`));
-        console.warn('  (These feeds exist in Miniflux but could not be matched by URL to any source in master_sources.json)');
-    } else {
-        console.log('- No feeds found in Miniflux that are missing from the master list.');
-    }
+    const processedMinifluxIds = new Set(); // Track Miniflux IDs corresponding to sources in our JSON
 
-    if (orphansInMaster.length > 0) {
-        console.warn(`- Orphan Sources in Master List (${orphansInMaster.length}):`);
-        orphansInMaster.forEach(s => console.warn(`  - ID: ${s.id}, Name: "${s.name}", URL: ${s.url}, Stored Miniflux ID: ${s.minifluxFeedId}`));
-        console.warn('  (These sources exist in master_sources.json but were not found by URL match in Miniflux)');
-    } else {
-        console.log('- No orphan sources identified in the master list.');
-    }
-
-    // 7. Save updated master sources if changes were made
-    if (updatedCount > 0) {
-        try {
-            console.log('[Source Sync] Saving updated master sources file...');
-            await saveSources(masterSources);
-            console.log('[Source Sync] Successfully saved updates to master_sources.json.');
-        } catch (error) {
-            console.error(`[Source Sync] Failed to save updated master sources: ${error.message}`);
+    // --- Step 3: Iterate through Master Sources, Sync IDs, Add Missing ---
+    console.log('[Source Sync] Processing master sources list...');
+    for (const source of masterSources) {
+        const normSourceUrl = normalizeUrl(source.url);
+        if (!normSourceUrl) {
+            console.warn(`[Source Sync] Skipping source "${source.name}" due to invalid/empty URL.`);
+            continue;
         }
+
+        if (minifluxUrlToIdMap.has(normSourceUrl)) {
+            // Match found by URL
+            const currentMinifluxId = minifluxUrlToIdMap.get(normSourceUrl);
+            processedMinifluxIds.add(currentMinifluxId); // Mark this Miniflux ID as processed
+
+            if (source.minifluxFeedId !== currentMinifluxId) {
+                console.log(`  - Updating ID for "${source.name}" (URL: ${source.url}): ${source.minifluxFeedId} -> ${currentMinifluxId}`);
+                source.minifluxFeedId = currentMinifluxId;
+                updatedIdCount++;
+            }
+        } else {
+            // Source from JSON not found in Miniflux by URL - Attempt to add it
+            console.warn(`  - Source "${source.name}" (URL: ${source.url}) not found in Miniflux by URL. Attempting to add...`);
+            try {
+                const minifluxCategoryId = await ensureMinifluxCategory(source.category);
+                if (!minifluxCategoryId) {
+                    throw new Error(`Could not get or create category ID for '${source.category}'`);
+                }
+                const response = await minifluxClient.post('/v1/feeds', {
+                    feed_url: source.url,
+                    category_id: minifluxCategoryId,
+                });
+                const newMinifluxFeedId = response.data?.id ?? response.data; // Try to get ID
+                if (newMinifluxFeedId === undefined || newMinifluxFeedId === null) {
+                    throw new Error('Miniflux API call succeeded but did not return a valid Feed ID.');
+                }
+                console.log(`    -- Successfully added to Miniflux with new Feed ID: ${newMinifluxFeedId}`);
+                source.minifluxFeedId = newMinifluxFeedId; // Update ID in memory
+                addedCount++;
+                processedMinifluxIds.add(newMinifluxFeedId); // Mark the newly added ID as processed
+            } catch (error) {
+                const errorMessage = error.response?.data?.error_message || error.message;
+                console.error(`    -- Error adding source "${source.name}": ${errorMessage}`);
+                failedToAddSources.push({ name: source.name, url: source.url, error: errorMessage });
+            }
+        }
+    }
+    console.log('[Source Sync] Finished processing master sources list.');
+
+    // --- Step 4: Cleanup Miniflux - Delete feeds not in master list ---
+    const minifluxIdsToDelete = [];
+    minifluxUrlToIdMap.forEach((id, url) => {
+        if (!processedMinifluxIds.has(id)) {
+            minifluxIdsToDelete.push({ id: id, url: url }); // Store ID and URL for logging
+        }
+    });
+
+    if (minifluxIdsToDelete.length > 0) {
+        console.warn(`- Action: Deleting ${minifluxIdsToDelete.length} feeds from Miniflux not found in master_sources.json...`);
+        for (const feedToDelete of minifluxIdsToDelete) {
+            try {
+                console.log(`  - Deleting Miniflux Feed ID: ${feedToDelete.id} (Mapped from URL: ${feedToDelete.url})`);
+                await minifluxClient.delete(`/v1/feeds/${feedToDelete.id}`);
+                console.log(`    -- Successfully deleted Feed ID: ${feedToDelete.id} from Miniflux.`);
+                deletedFromMinifluxCount++;
+            } catch (error) {
+                const errorMessage = error.response?.data?.error_message || error.message;
+                console.error(`    -- Error deleting Feed ID ${feedToDelete.id} from Miniflux: ${errorMessage}`);
+                failedToDeleteFromMiniflux.push({ id: feedToDelete.id, url: feedToDelete.url, error: errorMessage });
+            }
+        }
+        console.warn('  (Miniflux cleanup attempts finished.)');
     } else {
-        console.log('[Source Sync] No Miniflux IDs needed updating in master_sources.json.');
+        console.log('- No feeds found in Miniflux requiring deletion.');
     }
 
-    console.log('[Source Sync] Reconciliation finished.');
+    // --- Step 5: Save Master Sources File ---
+    const changesMade = updatedIdCount > 0 || addedCount > 0; // Only save if IDs were updated or sources added
+    if (changesMade) { 
+         try {
+             console.log('[Source Sync] Saving updated master sources file...');
+             await saveSources(masterSources);
+             console.log('[Source Sync] Successfully saved updates to master_sources.json.');
+         } catch (error) {
+             console.error(`[Source Sync] CRITICAL ERROR: Failed to save updated master sources: ${error.message}`);
+         }
+    } else {
+        console.log('[Source Sync] No changes made to master_sources.json that require saving.');
+    }
+
+    // --- Step 6: Final Report ---
+    console.log('\n[Source Sync] Final Synchronization Report:');
+    console.log(`- Master Sources Processed: ${masterSources.length}`);
+    console.log(`- Miniflux IDs Updated in JSON: ${updatedIdCount}`);
+    console.log(`- Sources Added to Miniflux: ${addedCount}`);
+    console.log(`- Feeds Deleted from Miniflux: ${deletedFromMinifluxCount}`);
+    if (failedToAddSources.length > 0) {
+         console.warn(`- Sources FAILED to Add (${failedToAddSources.length}):`);
+         failedToAddSources.forEach(f => console.warn(`  - Name: \"${f.name}\", URL: ${f.url}, Error: ${f.error}`));
+    } 
+    if (failedToDeleteFromMiniflux.length > 0) {
+         console.warn(`- Feeds FAILED to Delete from Miniflux (${failedToDeleteFromMiniflux.length}):`);
+         failedToDeleteFromMiniflux.forEach(f => console.warn(`  - ID: ${f.id}, URL: ${f.url}, Error: ${f.error}`));
+    }
+
+    console.log('[Source Sync] Synchronization finished.');
 };
+
+// --- NEW: Cleanup Function ---
+
+/**
+ * Removes sources from the master list based on a provided list of URLs.
+ * @param {string[]} urlsToRemove - An array of URLs corresponding to sources to be removed.
+ * @returns {Promise<number>} - The number of sources actually removed.
+ */
+async function removeSourcesByUrl(urlsToRemove) {
+  if (!urlsToRemove || urlsToRemove.length === 0) {
+    console.log('[Cleanup] No URLs provided for removal.');
+    return 0;
+  }
+
+  console.log(`[Cleanup] Attempting to remove ${urlsToRemove.length} sources by URL...`);
+  const masterSources = await loadSources();
+  const originalCount = masterSources.length;
+  const urlsToRemoveSet = new Set(urlsToRemove.map(url => normalizeUrl(url))); // Normalize URLs for matching
+
+  const sourcesToRemove = masterSources.filter(source => urlsToRemoveSet.has(normalizeUrl(source.url)));
+  
+  if (sourcesToRemove.length === 0) {
+      console.log('[Cleanup] No matching sources found in master list for the provided URLs.');
+      return 0;
+  }
+
+  console.warn(`[Cleanup] Sources marked for removal (${sourcesToRemove.length}):`);
+  sourcesToRemove.forEach(s => console.warn(`  - Removing: Name=\"${s.name}\", URL=${s.url}`));
+
+  // Filter out the sources
+  const filteredSources = masterSources.filter(source => !urlsToRemoveSet.has(normalizeUrl(source.url)));
+  const removedCount = originalCount - filteredSources.length;
+
+  try {
+    await saveSources(filteredSources);
+    console.log(`[Cleanup] Successfully removed ${removedCount} sources and saved master_sources.json (${filteredSources.length} remaining).`);
+    return removedCount;
+  } catch (error) {
+    console.error(`[Cleanup] CRITICAL ERROR: Failed to save master_sources.json after attempting removal: ${error.message}`);
+    return 0; // Indicate failure
+  }
+}
 
 // --- Export Functions ---
 module.exports = {
@@ -393,5 +449,6 @@ module.exports = {
     addSource,
     updateSource,
     deleteSource,
-    syncWithMinifluxFeeds // Export the new function
+    syncWithMinifluxFeeds,
+    removeSourcesByUrl // Export the cleanup function
 }; 
