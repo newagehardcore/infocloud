@@ -4,155 +4,90 @@ const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb'); // Needed if querying by MongoDB's default _id
 const { fetchNews } = require('../miniflux/fetchEntries'); // Use new Miniflux integration
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService');
+const { PoliticalBias } = require('../types'); // Assuming types are shared or defined here
+
+// Target number of articles to return
+const TARGET_ARTICLE_COUNT = 1000; 
+
+// Helper function to get all bias values (adjust if PoliticalBias enum location differs)
+const ALL_BIAS_VALUES = Object.values(PoliticalBias);
 
 // @route   GET api/news
-// @desc    Get news items with filtering, sorting, and pagination
+// @desc    Get news items filtered by category, balanced across selected biases, capped at ~1000.
 // @access  Public
-// @query   category?: string - Filter by category
-// @query   source?: string - Filter by source name (e.g., "New York Times")
-// @query   bias?: string - Filter by political bias (e.g., "Centrist")
-// @query   q?: string - Search keywords in title/description (basic text search)
-// @query   limit?: number - Number of items per page (default: 20)
-// @query   page?: number - Page number (default: 1)
-// @query   sortBy?: string - Field to sort by (default: publishedAt)
-// @query   sortOrder?: string - Sort order ('asc' or 'desc', default: 'desc')
-// @query   timeFilter?: string - Filter by time ('24h')
+// @query   category?: string - Filter by category (pass 'all' or omit for no filter)
+// @query   bias?: string - Comma-separated list of biases (e.g., "Liberal,Centrist") or 'all'
+// @query   source?: string - [DEPRECATED] Filter by source name
+// @query   q?: string - [DEPRECATED] Search keywords in title/description
+// @query   limit?: number - [DEPRECATED]
+// @query   page?: number - [DEPRECATED]
+// @query   sortBy?: string - [DEPRECATED - Always sorts by publishedAt desc]
+// @query   sortOrder?: string - [DEPRECATED]
+// @query   timeFilter?: string - [DEPRECATED - Prioritization replaces this]
 router.get('/', async (req, res) => {
   try {
     const db = getDB();
     const newsCollection = db.collection('newsitems');
 
-    // --- Filtering --- 
-    const filter = {};
-    if (req.query.category) {
-      filter.category = req.query.category; 
-    }
-    if (req.query.source) {
-      // Case-insensitive search for source name
-      filter['source.name'] = { $regex: new RegExp(`^${req.query.source}$`, 'i') };
-    }
-    if (req.query.bias) {
-       filter['source.bias'] = req.query.bias;
-    }
-    // Basic text search (requires a text index on title/description in MongoDB for efficiency)
-    // db.collection('newsitems').createIndex({ title: "text", description: "text" })
-    if (req.query.q) {
-      filter.$text = { $search: req.query.q };
-    }
-
-    // --- Date Filtering ---
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    if (req.query.timeFilter === '24h') {
-      // Strict 24-hour filter
-      filter.publishedAt = { $gte: twentyFourHoursAgo.toISOString() };
+    // --- Determine Filters --- 
+    const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all') 
+      ? req.query.category 
+      : null;
+      
+    let selectedBiases = [];
+    if (req.query.bias && req.query.bias.toLowerCase() !== 'all') {
+      selectedBiases = req.query.bias.split(',').filter(b => ALL_BIAS_VALUES.includes(b));
     } else {
-      // Default: Filter for the last week
-      filter.publishedAt = { $gte: oneWeekAgo.toISOString() };
+      selectedBiases = ALL_BIAS_VALUES; // Default to all biases
     }
 
-    // --- Sorting --- 
-    const sortBy = req.query.sortBy || 'publishedAt';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-    const sortOptions = { [sortBy]: sortOrder };
+    const N = selectedBiases.length;
+    if (N === 0) {
+      // If no valid biases are selected (or list was empty), return empty results
+      return res.json({ data: [], words: [] });
+    }
 
-    // --- Pagination --- 
-    const limit = parseInt(req.query.limit, 10) || 20; // Default limit 20
-    const page = parseInt(req.query.page, 10) || 1;   // Default page 1
-    const skip = (page - 1) * limit;
+    const limitPerBias = Math.ceil(TARGET_ARTICLE_COUNT / N);
+    console.log(`Querying for category: ${categoryFilter || 'all'}, biases: ${selectedBiases.join(', ')}, limit/bias: ${limitPerBias}`);
 
-    // Add a filter to ensure keywords exist and are not empty for aggregation purposes
-    const aggregationFilter = {
-      ...filter, // Keep existing filters
-      keywords: { $exists: true, $ne: [] } // Ensure keywords field exists and is not an empty array
-    };
+    // --- Querying News Items (Parallel Queries per Bias) --- 
+    const queryPromises = selectedBiases.map(bias => {
+      const filter = {};
+      if (categoryFilter) {
+        filter.category = categoryFilter;
+      }
+      filter.llmBias = bias; // Filter by the LLM-determined bias
+      
+      return newsCollection
+        .find(filter)
+        .sort({ publishedAt: -1 })
+        .limit(limitPerBias)
+        .toArray();
+    });
 
-    // --- Querying News Items --- 
-    const news = await newsCollection
-      .find(aggregationFilter)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+    const resultsByBias = await Promise.all(queryPromises);
+    const combinedNews = resultsByBias.flat(); // Combine results from all queries
+
+    // Re-sort the combined list by publication date (most recent first)
+    combinedNews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+    // Apply final cap
+    const finalNews = combinedNews.slice(0, TARGET_ARTICLE_COUNT);
+
+    console.log(`Total items fetched: ${combinedNews.length}, returning: ${finalNews.length}`);
 
     // --- Aggregating Keywords for Tag Cloud ---
-    // Aggregate keywords from the fetched news items for this specific request/filter
-    const wordsForCloud = aggregateKeywordsForCloud(news, 500); // Use the new function, limit to 500 words
+    const newsWithKeywords = finalNews.filter(item => item.keywords && item.keywords.length > 0);
+    const wordsForCloud = aggregateKeywordsForCloud(newsWithKeywords, 500); 
 
-    // Optional: Get total count for pagination headers/info
-    const totalItems = await newsCollection.countDocuments(aggregationFilter);
-    const totalPages = Math.ceil(totalItems / limit);
-
+    // Return the balanced, prioritized & capped data
     res.json({
-      data: news,
-      words: wordsForCloud,
-      pagination: {
-        totalItems,
-        totalPages,
-        currentPage: page,
-        pageSize: limit,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-      }
+      data: finalNews, 
+      words: wordsForCloud
     });
 
   } catch (err) {
-    console.error('Error fetching news:', err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/news/related
-// @desc    Get news items related to a specific keyword, optionally filtered by time
-// @access  Public
-// @query   keyword: string - The keyword to search for
-// @query   timeFilter?: string - Filter by time ('24h')
-router.get('/related', async (req, res) => {
-  const { keyword, timeFilter } = req.query; // Destructure timeFilter as well
-
-  if (!keyword) {
-    return res.status(400).json({ msg: 'Keyword query parameter is required' });
-  }
-
-  try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
-
-    // Base query: Case-insensitive search for the keyword
-    const query = {
-      $or: [
-        { title: { $regex: keyword, $options: 'i' } },
-        { description: { $regex: keyword, $options: 'i' } },
-        { keywords: { $regex: keyword, $options: 'i' } } 
-      ]
-    };
-    
-    // --- Date Filtering (same logic as /api/news) ---
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    if (timeFilter === '24h') {
-      // Strict 24-hour filter
-      query.publishedAt = { $gte: twentyFourHoursAgo.toISOString() };
-    } else {
-      // Default: Filter for the last week (to match default behavior of main endpoint)
-      query.publishedAt = { $gte: oneWeekAgo.toISOString() };
-    }
-
-    // Find related news, apply date filter, sort by published date descending, limit results
-    const relatedNews = await newsCollection
-      .find(query)
-      .sort({ publishedAt: -1 })
-      .limit(50) // Limit the number of related articles returned
-      .toArray();
-
-    res.json(relatedNews);
-
-  } catch (err) {
-    console.error('Error fetching related news:', err.message);
+    console.error('Error fetching news:', err.message, err.stack);
     res.status(500).send('Server Error');
   }
 });

@@ -65,8 +65,9 @@
   - Miniflux handles RSS fetching, parsing, and categorization
   - Feeds organized by topics/categories within Miniflux
   - Bias information maintained in the backend
+  - **Miniflux API Interaction**: Programmatic interaction with the Miniflux API (e.g., fetching entries for the backend) should be done via the `miniflux_bridge.py` script located in the project root. This script acts as a local proxy, exposing simplified REST endpoints (on `http://127.0.0.1:5001` by default) that handle communication and authentication with the Miniflux instance. Ensure this script is running (`python miniflux_bridge.py`) when needed.
 - **Data Processing**:
-  - Fetches processed entries from Miniflux API
+  - Fetches processed entries from Miniflux API (via the bridge)
   - Enriches entries with bias information
   - Extracts keywords using NLP techniques (natural and compromise libraries)
   - Analyzes and categorizes media bias using a curated mapping system

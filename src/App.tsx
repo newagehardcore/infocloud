@@ -69,8 +69,12 @@ interface NewsWindow {
 }
 
 const App: React.FC = () => {
-  const { enabledBiases, toggleBias } = useFilters();
-  const [selectedCategory, setSelectedCategory] = useState<NewsCategory>(NewsCategory.News);
+  const { 
+    enabledBiases, 
+    toggleBias,
+    selectedCategory,
+    setSelectedCategory
+  } = useFilters();
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
   const [allTagCloudWords, setAllTagCloudWords] = useState<TagCloudWord[]>([]);
@@ -140,7 +144,7 @@ const App: React.FC = () => {
     };
   }, [unfilteredNewsItems, use24HourFilter]);
 
-  // Update the main news loading effect to respect time filter
+  // Update the main news loading effect
   useEffect(() => {
     const loadNews = async () => {
       console.log(`Starting loadNews for category: ${selectedCategory}`);
@@ -151,48 +155,36 @@ const App: React.FC = () => {
       setUnfilteredNewsItems([]);
       setAllTagCloudWords([]);
 
-      const params: Record<string, any> = {
-        limit: 1000, // Fetch a large number, let backend filter/paginate if needed
-        category: selectedCategory,
-        // Add timeFilter param only if use24HourFilter is true
-        ...(use24HourFilter && { timeFilter: '24h' })
-      };
+      // Construct parameters for the backend API call
+      const params: Record<string, string> = {};
+
+      // Pass category filter ('all' if null or specifically set)
+      params.category = (selectedCategory && selectedCategory.toLowerCase() !== 'all') ? selectedCategory : 'all';
+
+      // Pass bias filter as comma-separated string or 'all'
+      const biasArray = Array.from(enabledBiases);
+      const allBiasValues = Object.values(PoliticalBias); // Get all possible bias values
+      if (biasArray.length === 0 || biasArray.length === allBiasValues.length) {
+        params.bias = 'all'; // Send 'all' if none or all are selected
+      } else {
+        params.bias = biasArray.join(','); // Send comma-separated list
+      }
 
       try {
         console.log('Fetching news from:', `${API_BASE_URL}/api/news`, 'with params:', params);
         const response = await axios.get(`${API_BASE_URL}/api/news`, { params });
-        console.log('Received response:', response.data);
+        console.log('Received response:', response.data); // Keep this for debugging
 
-        if (response.data && response.data.data) {
-          console.log(`Received ${response.data.data.length} news items`);
-          setUnfilteredNewsItems(response.data.data); // Store all fetched items
-          
-          // Filter BY BIAS on the client side (keep this)
-          const biasFiltered = filterNewsByBias(response.data.data, enabledBiases);
-          console.log(`After bias filtering: ${biasFiltered.length} items`);
+        // Assuming the backend response structure is { data: NewsItem[], words: Word[] }
+        const fetchedNews = response.data.data || [];
+        const fetchedWords = response.data.words || [];
 
-          // ** REMOVE client-side time filtering - backend handles this now **
-          // const timeFiltered = use24HourFilter ? filterLast24Hours(biasFiltered) : biasFiltered;
-          // console.log(`After time filtering: ${timeFiltered.length} items`);
-          
-          // Set newsItems directly from the bias-filtered list
-          setNewsItems(biasFiltered);
+        setUnfilteredNewsItems(fetchedNews); // Store all fetched items (now balanced by backend)
+        setAllTagCloudWords(fetchedWords); // Store words from backend
 
-          // Use processed words directly from API response
-          if (response.data.words) {
-            console.log(`Received ${response.data.words.length} processed words from backend.`);
-            setAllTagCloudWords(response.data.words);
-          } else {
-            console.warn('No processed words received from API');
-            setAllTagCloudWords([]);
-          }
-
-        } else {
-          console.warn('No data received from API');
-          setNewsItems([]);
-          setUnfilteredNewsItems([]);
-          setAllTagCloudWords([]); // Ensure words are cleared if no data
-        }
+        // Set newsItems directly - backend handles bias distribution
+        setNewsItems(fetchedNews);
+        
       } catch (err: any) {
         console.error('Error fetching news from backend:', err);
         setError(`Failed to load news data: ${err.message}`);
@@ -204,7 +196,7 @@ const App: React.FC = () => {
     };
 
     loadNews();
-  }, [selectedCategory, enabledBiases, use24HourFilter]);
+  }, [selectedCategory, enabledBiases]);
 
   // Compute displayed words based on enabled biases (fast, in-memory)
   const displayedWords = useMemo(() => {
@@ -213,13 +205,6 @@ const App: React.FC = () => {
     console.log(`Displaying ${filtered.length} words`);
     return filtered;
   }, [allTagCloudWords, enabledBiases]);
-
-  const handleCategoryChange = (category: NewsCategory) => {
-    console.log("Category changed to:", category);
-    setSelectedCategory(category);
-    setSelectedWord(null);
-    setOpenNewsWindows([]);
-  };
 
   const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
     if (!word || !word.text) {
@@ -230,34 +215,30 @@ const App: React.FC = () => {
     if (openNewsWindows.some(w => w.wordData.text === word.text)) {
       return;
     }
-    setLoading(true);
-    setError(null);
-    try {
-      // Prepare parameters, including timeFilter if needed
-      const params: Record<string, any> = {
-        keyword: word.text,
-        ...(use24HourFilter && { timeFilter: '24h' })
-      };
-      
-      console.log('Fetching related news with params:', params); 
-      
-      const response = await axios.get<NewsItem[]>(`${API_BASE_URL}/api/news/related`, {
-        params: params, // Pass the constructed params object
-        timeout: 15000
-      });
-      if (response.data && response.data.length > 0) {
-        setOpenNewsWindows(prev => [
-          ...prev,
-          { wordData: word, newsItems: response.data, position: clickPosition }
-        ]);
-      } else {
-        setError(`No related news found for "${word.text}".`);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to fetch related news');
-    } finally {
-      setLoading(false);
+    
+    console.log(`Finding related articles locally for: "${word.text}"`);
+    setError(null); // Clear previous errors
+
+    // Filter the existing unfiltered news items locally
+    const relatedNews = unfilteredNewsItems.filter(item => 
+      item.keywords && item.keywords.includes(word.text)
+    );
+
+    console.log(`Found ${relatedNews.length} related articles locally.`);
+
+    if (relatedNews.length > 0) {
+      setOpenNewsWindows(prev => [
+        ...prev,
+        // Ensure the structure matches the NewsWindow interface if it changed
+        { wordData: word, newsItems: relatedNews, position: clickPosition }
+      ]);
+    } else {
+      // This case should ideally not happen if words are derived correctly,
+      // but handle it defensively.
+      console.warn(`No related news found locally for tag "${word.text}", though tag was displayed.`);
+      setError(`Internal inconsistency: No related news found for "${word.text}".`);
     }
+    // No separate loading state needed as filtering is synchronous
   };
 
   const handleCloseNewsWindow = (wordText: string) => {
@@ -321,36 +302,36 @@ const App: React.FC = () => {
       <div className="app">
         <LoadingBar progress={loadingProgress} visible={showLoadingBar} />
         <Header 
-          onSelectCategory={handleCategoryChange} 
-          currentCategory={selectedCategory} 
           selectedCategory={selectedCategory} 
+          onSelectCategory={setSelectedCategory}
+          currentCategory={selectedCategory}
         />
-        {/* Top right controls: clock and edit menu */}
         <div className="top-right-controls">
           <EditMenu onClose={() => {}} />
         </div>
-        {/* Right-side vertical category list */}
+        {/* Re-add the vertical category list on the right */}
         <ul className="category-list-vertical-right">
           {categories.map(category => (
             <li key={category}>
               <button
                 className={`category-button ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => handleCategoryChange(category)}
+                onClick={() => setSelectedCategory(category)} // Use context setter
                 style={{
                   margin: '2px 0',
                   width: '100%',
                 }}
               >
-                {category}
+                {category} 
               </button>
             </li>
           ))}
         </ul>
-        <main className={`main-content ${selectedWord ? 'detail-visible' : ''}`}>
+        {/* Wrapper for the main content area */}
+        <div className="main-content-wrapper">
           <ResponsiveContainer
             mobileComponent={<MobileTagCloud />}
             desktopComponent={
-              <>
+              <div style={{ width: '100%', height: '100%' }}>
                 {loading && <div className="loading-indicator">Loading News...</div>}
                 {error && <div className="error-message">Error: {error}</div>}
                 {!loading && displayedWords.length === 0 && !error && (
@@ -362,7 +343,7 @@ const App: React.FC = () => {
                   onWordSelect={handleWordSelect}
                   selectedWord={selectedWord}
                 />
-              </>
+              </div>
             }
           />
           {openNewsWindows.map(win => (
@@ -375,19 +356,17 @@ const App: React.FC = () => {
               onMove={pos => handleMoveNewsWindow(win.wordData.text, pos)}
             />
           ))}
-        </main>
+        </div> {/* End main content wrapper */}
       </div>
     </Router>
   );
 };
 
-// New root component that provides the context
-const AppWithProviders: React.FC = () => {
-  return (
-    <FilterProvider>
-      <App />
-    </FilterProvider>
-  );
-};
+// Wrap App with FilterProvider
+const AppWithProviders: React.FC = () => (
+  <FilterProvider>
+    <App />
+  </FilterProvider>
+);
 
 export default AppWithProviders;

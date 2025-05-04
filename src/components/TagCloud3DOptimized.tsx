@@ -214,6 +214,7 @@ const TagCloud3D: React.FC<{
   
   return (
     <Canvas 
+      style={{ width: '100%', height: '100%', background: 'transparent' }}
       camera={{ 
         position: [0, 0, 60],
         fov: 45,
@@ -256,9 +257,9 @@ const TagCloud3D: React.FC<{
   );
 };
 
-// Container component that manages data and state
+// Container component that might handle loading or context
 const TagCloud3DContainer: React.FC<{
-  category: NewsCategory;
+  category: NewsCategory | 'all'; // Allow 'all' for category prop
   words?: TagCloudWord[];
   onWordSelect?: (word: TagCloudWord, position: { top: number; left: number }) => void;
   selectedWord?: string | null;
@@ -268,59 +269,49 @@ const TagCloud3DContainer: React.FC<{
   onWordSelect,
   selectedWord = null
 }) => {
-  const [newWords, setNewWords] = useState<Set<string>>(new Set());
-  const prevWordsRef = useRef<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // TODO: Handle the 'all' category case if needed for specific logic here
+  // For now, we just accept the type. It might be used for fetching or passed down.
   
-  // Track new words
+  // Use a state for newWords set to track animations
+  const [newWords, setNewWords] = useState<Set<string>>(new Set());
+  const prevWordsRef = useRef<TagCloudWord[]>([]);
+
+  // Detect new words when the words prop changes
   useEffect(() => {
-    setIsLoading(true);
-    
-    const currentWordSet = new Set(words.map(w => w.text));
-    const newWordsSet = new Set<string>();
-    
-    // Find words that weren't in the previous set
-    currentWordSet.forEach(word => {
-      if (!prevWordsRef.current.has(word)) {
-        newWordsSet.add(word);
+    const currentWordTexts = new Set(words.map(w => w.text));
+    const prevWordTexts = new Set(prevWordsRef.current.map(w => w.text));
+    const newlyAdded = new Set<string>();
+
+    currentWordTexts.forEach(text => {
+      if (!prevWordTexts.has(text)) {
+        newlyAdded.add(text);
       }
     });
+
+    setNewWords(newlyAdded);
+    prevWordsRef.current = words; // Update previous words for next comparison
     
-    if (newWordsSet.size > 0) {
-      setNewWords(newWordsSet);
-      
-      // Clear new word status after 5 seconds
-      setTimeout(() => {
-        setNewWords(new Set());
-      }, 5000);
-    }
-    
-    // Update previous words for next comparison
-    prevWordsRef.current = currentWordSet;
-    setIsLoading(false);
-  }, [words]); // Only depend on words changing
+    // Optional: Clear the 'new' status after animation duration (e.g., 1 second)
+    // const timer = setTimeout(() => setNewWords(new Set()), 1000);
+    // return () => clearTimeout(timer);
+
+  }, [words]);
   
-  const handleWordClick = useCallback((word: TagCloudWord, position: { top: number; left: number }) => {
+  // Handle word click event
+  const handleWordClick = (word: TagCloudWord, position: { top: number; left: number }) => {
     if (onWordSelect) {
       onWordSelect(word, position);
     }
-  }, [onWordSelect]);
+  };
   
+  // Render the actual TagCloud3D component, passing down props
   return (
-    <div className="tag-cloud-3d" style={{ background: '#111', minHeight: 400, width: '100%' }}>
-      {isLoading ? (
-        <div className="loading-indicator">Loading visualization...</div>
-      ) : words.length === 0 ? (
-        <div className="no-data-message">No data available for this category.</div>
-      ) : (
-        <TagCloud3D 
-          words={words} 
-          onWordClick={handleWordClick} 
-          selectedWord={selectedWord}
-          newWords={newWords}
-        />
-      )}
-    </div>
+    <TagCloud3D 
+      words={words} 
+      onWordClick={handleWordClick} 
+      selectedWord={selectedWord}
+      newWords={newWords} // Pass the set of new words
+    />
   );
 };
 

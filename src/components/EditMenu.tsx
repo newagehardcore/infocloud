@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PoliticalBias } from '../types';
+import { PoliticalBias, NewsCategory } from '../types';
 import { useFilters } from '../contexts/FilterContext';
 import './EditMenu.css';
 
@@ -8,7 +8,14 @@ interface EditMenuProps {
 }
 
 const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
-  const { enabledBiases, toggleBias, rssFeeds, toggleRssFeed } = useFilters();
+  const { 
+    enabledBiases, 
+    toggleBias, 
+    selectedCategory,
+    setSelectedCategory,
+    rssFeeds, 
+    toggleRssFeed 
+  } = useFilters();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [show24HourFilter, setShow24HourFilter] = useState(() => {
@@ -42,6 +49,10 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
 
   const handleBiasChange = (bias: PoliticalBias) => {
     toggleBias(bias);
+  };
+
+  const handleCategoryChange = (category: NewsCategory | 'all') => {
+    setSelectedCategory(category);
   };
 
   const handle24HourToggle = () => {
@@ -89,6 +100,8 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     [PoliticalBias.Right]: 'Alternative Right',
   };
 
+  const categories: (NewsCategory | 'all')[] = ['all', ...Object.values(NewsCategory)];
+
   return (
     <div className={`edit-menu ${isOpen ? 'open' : ''}`} ref={menuRef}>
       <div className="edit-menu-buttons">
@@ -106,6 +119,22 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
       <div className="edit-menu-content">
         <button className="close-button" onClick={handleClose} aria-label="Close filters menu">✕</button>
         <h3>Filters & Settings</h3>
+        
+        {/* Category Filter */}
+        <div className="menu-section category-filters">
+          <h4>Filter by Category</h4>
+          <div className="button-group">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`category-button ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => handleCategoryChange(cat)}
+              >
+                {cat === 'all' ? 'All Categories' : cat} 
+              </button>
+            ))}
+          </div>
+        </div>
         
         {/* Bias Filters */}
         <div className="menu-section bias-filters">

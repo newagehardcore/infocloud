@@ -4,9 +4,9 @@ import { useFilters } from '../contexts/FilterContext';
 import './Header.css';
 
 interface HeaderProps {
-  selectedCategory: NewsCategory;
-  onSelectCategory: (category: NewsCategory) => void;
-  currentCategory: NewsCategory;
+  selectedCategory: NewsCategory | 'all';
+  onSelectCategory: (category: NewsCategory | 'all') => void;
+  currentCategory: NewsCategory | 'all';
 }
 
 const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) => {

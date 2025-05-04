@@ -1,1061 +1,650 @@
 {
-  "https://abovethelaw.com/feed/": {
-    "bias": "Liberal",
-    "id": 1,
-    "name": "Above the Law",
-    "category": "Law"
-  },
-  "https://www.jurist.org/feed/": {
-    "bias": "Centrist",
-    "name": "Jurist",
-    "category": "Law"
-  },
-  "https://news.justia.com/feed": {
-    "bias": "Centrist",
-    "name": "Justia News",
-    "category": "Law"
-  },
-  "https://www.scotusblog.com/feed/": {
-    "bias": "Centrist",
-    "name": "SCOTUSblog",
-    "category": "Law"
-  },
-  "https://reason.com/volokh/feed/": {
-    "bias": "Conservative",
-    "name": "The Volokh Conspiracy",
-    "category": "Law"
-  },
   "https://abcnews.go.com/abcnews/healthheadlines": {
     "bias": "Liberal",
-    "id": 2,
+    "id": 293,
     "name": "ABC News - Health",
-    "category": "Health"
-  },
-  "http://feeds.bbci.co.uk/news/health/rss.xml": {
-    "bias": "Centrist",
-    "name": "BBC News - Health",
-    "category": "Health"
-  },
-  "https://www.cbsnews.com/latest/rss/health": {
-    "bias": "Liberal",
-    "name": "CBS News - Health",
-    "category": "Health"
-  },
-  "http://rss.cnn.com/rss/cnn_health.rss": {
-    "bias": "Liberal",
-    "name": "CNN - Health",
-    "category": "Health"
-  },
-  "http://feeds.foxnews.com/foxnews/health": {
-    "bias": "Right",
-    "name": "Fox News - Health",
-    "category": "Health"
-  },
-  "https://khn.org/feed/": {
-    "bias": "Centrist",
-    "name": "Kaiser Health News (KHN)",
-    "category": "Health"
-  },
-  "http://feeds.nbcnews.com/nbcnews/public/health": {
-    "bias": "Liberal",
-    "name": "NBC News - Health",
-    "category": "Health"
-  },
-  "https://feeds.npr.org/1007/rss.xml": {
-    "bias": "Liberal",
-    "id": 19,
-    "name": "NPR - Science",
-    "category": "Science"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Health",
-    "category": "Health"
-  },
-  "https://www.statnews.com/feed/": {
-    "bias": "Centrist",
-    "name": "STAT News",
-    "category": "Health"
-  },
-  "https://www.who.int/rss-feeds/news-english.xml": {
-    "bias": "Unknown",
-    "name": "WHO News",
     "category": "Health"
   },
   "https://abcnews.go.com/abcnews/politicsheadlines": {
     "bias": "Liberal",
-    "id": 3,
+    "id": 294,
     "name": "ABC News - Politics",
-    "category": "Politics"
-  },
-  "https://feeds.bloomberg.com/politics/news.rss": {
-    "bias": "Liberal",
-    "name": "Bloomberg News - Politics",
-    "category": "Politics"
-  },
-  "http://rss.cnn.com/rss/cnn_allpolitics.rss": {
-    "bias": "Liberal",
-    "name": "CNN - Politics",
-    "category": "Politics"
-  },
-  "http://feeds.feedburner.com/dailycaller": {
-    "bias": "Right",
-    "name": "Daily Caller",
-    "category": "Politics"
-  },
-  "https://www.dailywire.com/feeds/rss.xml": {
-    "bias": "Right",
-    "name": "Daily Wire",
-    "category": "Politics"
-  },
-  "https://www.democracynow.org/democracynow.rss": {
-    "bias": "Left",
-    "name": "Democracy Now",
-    "category": "Politics"
-  },
-  "http://feeds.foxnews.com/foxnews/politics": {
-    "bias": "Right",
-    "name": "Fox News - Politics",
-    "category": "Politics"
-  },
-  "https://jacobin.com/feed/": {
-    "bias": "Left",
-    "name": "Jacobin",
-    "category": "Politics"
-  },
-  "https://www.motherjones.com/feed/": {
-    "bias": "Left",
-    "name": "Mother Jones",
-    "category": "Politics"
-  },
-  "https://www.nationalreview.com/feed/": {
-    "bias": "Right",
-    "name": "National Review",
-    "category": "Politics"
-  },
-  "http://feeds.nbcnews.com/nbcnews/public/politics": {
-    "bias": "Liberal",
-    "name": "NBC News - Politics",
-    "category": "Politics"
-  },
-  "https://feeds.npr.org/1014/rss.xml": {
-    "bias": "Liberal",
-    "name": "NPR - Politics",
-    "category": "Politics"
-  },
-  "https://nypost.com/opinion/feed/": {
-    "bias": "Right",
-    "name": "NY Post Opinion",
-    "category": "Politics"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Politics",
-    "category": "Politics"
-  },
-  "https://reason.com/feed/": {
-    "bias": "Conservative",
-    "name": "Reason",
-    "category": "Politics"
-  },
-  "https://slate.com/feeds/all.rss": {
-    "bias": "Left",
-    "name": "Slate",
-    "category": "Politics"
-  },
-  "https://www.theamericanconservative.com/feed/": {
-    "bias": "Right",
-    "name": "The American Conservative",
-    "category": "Politics"
-  },
-  "https://spectator.org/feed/": {
-    "bias": "Right",
-    "name": "The American Spectator",
-    "category": "Politics"
-  },
-  "https://www.theblaze.com/feeds/feed.rss": {
-    "bias": "Right",
-    "name": "The Blaze",
-    "category": "Politics"
-  },
-  "https://www.dailysignal.com/feed/": {
-    "bias": "Right",
-    "name": "The Daily Signal",
-    "category": "Politics"
-  },
-  "https://thedispatch.com/feed/": {
-    "bias": "Conservative",
-    "name": "The Dispatch",
-    "category": "Politics"
-  },
-  "http://thefederalist.com/feed/": {
-    "bias": "Right",
-    "name": "The Federalist",
-    "category": "Politics"
-  },
-  "https://thegrayzone.com/feed/": {
-    "bias": "Left",
-    "name": "The Grayzone",
-    "category": "Politics"
-  },
-  "https://thehill.com/rss/syndicator/19109": {
-    "bias": "Centrist",
-    "name": "The Hill",
-    "category": "Politics"
-  },
-  "https://truthout.org/latest/feed/": {
-    "bias": "Left",
-    "name": "Truthout",
-    "category": "Politics"
-  },
-  "https://www.vox.com/rss/index.xml": {
-    "bias": "Left",
-    "name": "Vox",
-    "category": "Politics"
-  },
-  "https://www.washingtonexaminer.com/tag/news.rss": {
-    "bias": "Right",
-    "name": "Washington Examiner",
-    "category": "Politics"
-  },
-  "https://freebeacon.com/feed/": {
-    "bias": "Right",
-    "name": "Washington Free Beacon",
-    "category": "Politics"
-  },
-  "http://feeds.washingtonpost.com/rss/politics": {
-    "bias": "Liberal",
-    "name": "Washington Post",
-    "category": "Politics"
-  },
-  "https://www.wired.com/feed/category/politics/latest/rss": {
-    "bias": "Liberal",
-    "name": "Wired - Politics",
-    "category": "Politics"
-  },
-  "https://www.wsws.org/en/rss.xml": {
-    "bias": "Left",
-    "name": "World Socialist Web Site",
-    "category": "Politics"
-  },
-  "https://feeds.a.dj.com/rss/RSSOpinion.xml": {
-    "bias": "Conservative",
-    "name": "WSJ Opinion",
     "category": "Politics"
   },
   "https://abcnews.go.com/abcnews/technologyheadlines": {
     "bias": "Liberal",
-    "id": 4,
+    "id": 295,
     "name": "ABC News - Technology",
-    "category": "Tech"
-  },
-  "http://feeds.arstechnica.com/arstechnica/index": {
-    "bias": "Centrist",
-    "name": "Ars Technica",
-    "category": "Tech"
-  },
-  "https://api.axios.com/feed/technology": {
-    "bias": "Liberal",
-    "name": "Axios - Technology",
-    "category": "Tech"
-  },
-  "http://feeds.bbci.co.uk/news/technology/rss.xml": {
-    "bias": "Centrist",
-    "name": "BBC News - Technology",
-    "category": "Tech"
-  },
-  "https://feeds.bloomberg.com/technology/news.rss": {
-    "bias": "Liberal",
-    "name": "Bloomberg News - Technology",
-    "category": "Tech"
-  },
-  "https://boingboing.net/feed": {
-    "bias": "Left",
-    "name": "Boing Boing",
-    "category": "Tech"
-  },
-  "https://www.cbsnews.com/latest/rss/technology": {
-    "bias": "Liberal",
-    "name": "CBS News - Tech",
-    "category": "Tech"
-  },
-  "https://www.cnet.com/rss/news/": {
-    "bias": "Liberal",
-    "name": "CNET News",
-    "category": "Tech"
-  },
-  "http://rss.cnn.com/rss/cnn_tech.rss": {
-    "bias": "Liberal",
-    "name": "CNN - Tech",
-    "category": "Tech"
-  },
-  "https://www.engadget.com/rss.xml": {
-    "bias": "Liberal",
-    "name": "Engadget",
-    "category": "Tech"
-  },
-  "https://www.forbes.com/technology/feed/": {
-    "bias": "Centrist",
-    "name": "Forbes - Tech",
-    "category": "Tech"
-  },
-  "http://feeds.foxnews.com/foxnews/tech": {
-    "bias": "Right",
-    "name": "Fox News - Tech",
-    "category": "Tech"
-  },
-  "https://gizmodo.com/rss": {
-    "bias": "Left",
-    "name": "Gizmodo",
-    "category": "Tech"
-  },
-  "https://lifehacker.com/rss": {
-    "bias": "Liberal",
-    "name": "Lifehacker",
-    "category": "Tech"
-  },
-  "https://feeds.npr.org/1019/rss.xml": {
-    "bias": "Liberal",
-    "name": "NPR - Technology",
-    "category": "Tech"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Technology",
-    "category": "Tech"
-  },
-  "https://www.vox.com/rss/recode/index.xml": {
-    "bias": "Left",
-    "name": "Recode",
-    "category": "Tech"
-  },
-  "https://feeds.skynews.com/feeds/rss/technology.xml": {
-    "bias": "Centrist",
-    "name": "Sky News - Tech",
-    "category": "Tech"
-  },
-  "https://techcrunch.com/feed/": {
-    "bias": "Centrist",
-    "name": "TechCrunch",
-    "category": "Tech"
-  },
-  "https://www.techdirt.com/techdirt_rss.xml": {
-    "bias": "Liberal",
-    "name": "Techdirt",
-    "category": "Tech"
-  },
-  "https://www.techmeme.com/feed.xml": {
-    "bias": "Unknown",
-    "name": "Techmeme",
-    "category": "Tech"
-  },
-  "https://www.techradar.com/rss": {
-    "bias": "Centrist",
-    "name": "TechRadar",
-    "category": "Tech"
-  },
-  "https://www.theguardian.com/uk/technology/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - Tech",
-    "category": "Tech"
-  },
-  "https://www.theverge.com/rss/index.xml": {
-    "bias": "Left",
-    "name": "The Verge",
-    "category": "Tech"
-  },
-  "https://www.tomshardware.com/feeds/all": {
-    "bias": "Centrist",
-    "name": "Tom's Hardware",
-    "category": "Tech"
-  },
-  "http://feeds.feedburner.com/venturebeat/main": {
-    "bias": "Centrist",
-    "name": "VentureBeat",
-    "category": "Tech"
-  },
-  "http://feeds.washingtonpost.com/rss/business/technology": {
-    "bias": "Liberal",
-    "name": "Washington Post - Tech",
-    "category": "Tech"
-  },
-  "https://www.wired.com/feed/rss": {
-    "bias": "Liberal",
-    "name": "Wired",
-    "category": "Tech"
-  },
-  "https://www.wired.com/feed/category/security/latest/rss": {
-    "bias": "Liberal",
-    "name": "Wired - Security",
-    "category": "Tech"
-  },
-  "https://feeds.a.dj.com/rss/RSSWSJD.xml": {
-    "bias": "Centrist",
-    "name": "WSJ - Tech",
-    "category": "Tech"
-  },
-  "https://www.zdnet.com/news/rss.xml": {
-    "bias": "Centrist",
-    "name": "ZDNet",
     "category": "Tech"
   },
   "https://abcnews.go.com/abcnews/usheadlines": {
     "bias": "Liberal",
-    "id": 5,
+    "id": 296,
     "name": "ABC News - US",
-    "category": "US"
-  },
-  "http://feeds.nbcnews.com/nbcnews/public/news": {
-    "bias": "Liberal",
-    "name": "NBC News - US",
     "category": "US"
   },
   "https://abcnews.go.com/abcnews/internationalheadlines": {
     "bias": "Liberal",
-    "id": 6,
+    "id": 297,
     "name": "ABC News - World",
     "category": "World"
   },
+  "https://abovethelaw.com/feed/": {
+    "bias": "Liberal",
+    "id": 298,
+    "name": "Above the Law",
+    "category": "Law"
+  },
   "https://www.aljazeera.com/xml/rss/all.xml": {
     "bias": "Liberal",
-    "id": 7,
+    "id": 299,
     "name": "Al Jazeera",
     "category": "World"
   },
-  "http://feeds.bbci.co.uk/news/rss.xml": {
-    "bias": "Centrist",
-    "name": "BBC News",
-    "category": "World"
-  },
-  "http://feeds.nbcnews.com/nbcnews/public/world": {
-    "bias": "Liberal",
-    "name": "NBC News - World",
-    "category": "World"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml": {
-    "bias": "Liberal",
-    "name": "NYT - World",
-    "category": "World"
-  },
-  "https://feeds.skynews.com/feeds/rss/uk.xml": {
-    "bias": "Centrist",
-    "name": "Sky News - UK",
-    "category": "World"
-  },
-  "https://feeds.skynews.com/feeds/rss/world.xml": {
-    "bias": "Centrist",
-    "name": "Sky News - World",
-    "category": "World"
-  },
-  "https://www.theguardian.com/world/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - World",
-    "category": "World"
-  },
-  "https://news.un.org/feed/subscribe/en/news/all/rss.xml": {
-    "bias": "Centrist",
-    "name": "UN News",
-    "category": "World"
-  },
-  "https://www.artificialintelligence-news.com/feed/": {
-    "bias": "Unknown",
-    "id": 8,
-    "name": "AI News",
-    "category": "AI"
-  },
   "https://feeds.feedburner.com/AnalyticsVidhya": {
     "bias": "Unknown",
+    "id": 300,
     "name": "Analytics Vidhya",
     "category": "AI"
   },
-  "https://www.kdnuggets.com/feed": {
-    "bias": "Unknown",
-    "name": "KDnuggets",
-    "category": "AI"
-  },
-  "https://machinelearningmastery.com/feed/": {
-    "bias": "Unknown",
-    "name": "Machine Learning Mastery",
-    "category": "AI"
-  },
-  "https://www.technologyreview.com/topic/artificial-intelligence/feed/": {
+  "http://feeds.arstechnica.com/arstechnica/index": {
     "bias": "Centrist",
-    "name": "MIT Technology Review - AI",
-    "category": "AI"
-  },
-  "https://towardsdatascience.com/feed": {
-    "bias": "Unknown",
-    "name": "Towards Data Science",
-    "category": "AI"
-  },
-  "https://www.wired.com/feed/tag/ai/latest/rss": {
-    "bias": "Liberal",
-    "name": "Wired - AI",
-    "category": "AI"
-  },
-  "https://www.billboard.com/feed": {
-    "bias": "Centrist",
-    "name": "Billboard",
-    "category": "Music"
-  },
-  "https://consequence.net/feed/": {
-    "bias": "Liberal",
-    "name": "Consequence of Sound",
-    "category": "Music"
-  },
-  "https://hypebeast.com/music/feed": {
-    "bias": "Centrist",
-    "name": "Hypebeast Music",
-    "category": "Music"
-  },
-  "https://www.nme.com/feed": {
-    "bias": "Liberal",
-    "name": "NME",
-    "category": "Music"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Music.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Music",
-    "category": "Music"
-  },
-  "https://pitchfork.com/rss/news/": {
-    "bias": "Left",
-    "name": "Pitchfork",
-    "category": "Music"
-  },
-  "https://www.rollingstone.com/music/feed/": {
-    "bias": "Left",
-    "name": "Rolling Stone - Music",
-    "category": "Music"
-  },
-  "https://www.stereogum.com/feed/": {
-    "bias": "Liberal",
-    "name": "Stereogum",
-    "category": "Music"
-  },
-  "https://www.theguardian.com/music/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - Music",
-    "category": "Music"
-  },
-  "https://api.axios.com/feed/": {
-    "bias": "Liberal",
-    "name": "Axios",
-    "category": "News"
-  },
-  "https://www.buzzfeed.com/world.xml": {
-    "bias": "Left",
-    "name": "BuzzFeed News",
-    "category": "News"
-  },
-  "https://www.cbsnews.com/latest/rss/main": {
-    "bias": "Liberal",
-    "name": "CBS News",
-    "category": "News"
-  },
-  "https://rss.csmonitor.com/feeds/usa": {
-    "bias": "Centrist",
-    "name": "Christian Science Monitor",
-    "category": "News"
-  },
-  "http://rss.cnn.com/rss/cnn_topstories.rss": {
-    "bias": "Liberal",
-    "name": "CNN",
-    "category": "News"
-  },
-  "https://www.dailymail.co.uk/news/index.rss": {
-    "bias": "Right",
-    "name": "Daily Mail",
-    "category": "News"
-  },
-  "http://feeds.foxnews.com/foxnews/latest": {
-    "bias": "Right",
-    "name": "Fox News",
-    "category": "News"
-  },
-  "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en": {
-    "bias": "Unknown",
-    "name": "Google News - Top Stories",
-    "category": "News"
-  },
-  "https://www.huffpost.com/section/front-page/feed": {
-    "bias": "Liberal",
-    "name": "HuffPost",
-    "category": "News"
-  },
-  "https://ijr.com/feed/": {
-    "bias": "Right",
-    "name": "IJR (Independent Journal Review)",
-    "category": "News"
-  },
-  "https://justthenews.com/rss.xml": {
-    "bias": "Conservative",
-    "name": "Just the News",
-    "category": "News"
-  },
-  "https://mashable.com/feeds/rss/all": {
-    "bias": "Left",
-    "name": "Mashable",
-    "category": "News"
-  },
-  "http://www.msnbc.com/feeds/latest": {
-    "bias": "Liberal",
-    "name": "MSNBC",
-    "category": "News"
-  },
-  "https://www.newsnationnow.com/feed/": {
-    "bias": "Centrist",
-    "name": "NewsNation",
-    "category": "News"
-  },
-  "https://www.newsweek.com/rss": {
-    "bias": "Centrist",
-    "name": "Newsweek",
-    "category": "News"
-  },
-  "https://feeds.npr.org/1001/rss.xml": {
-    "bias": "Liberal",
-    "name": "NPR",
-    "category": "News"
-  },
-  "https://nypost.com/feed/": {
-    "bias": "Conservative",
-    "name": "NY Post News",
-    "category": "News"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Home Page",
-    "category": "News"
-  },
-  "https://www.pbs.org/newshour/feeds/rss/headlines": {
-    "bias": "Liberal",
-    "name": "PBS NewsHour",
-    "category": "News"
-  },
-  "http://feeds.propublica.org/propublica/main": {
-    "bias": "Liberal",
-    "name": "ProPublica",
-    "category": "News"
-  },
-  "https://straightarrownews.com/feed/": {
-    "bias": "Centrist",
-    "name": "Straight Arrow News",
-    "category": "News"
-  },
-  "https://www.theatlantic.com/feed/channel/news/": {
-    "bias": "Left",
-    "name": "The Atlantic",
-    "category": "News"
-  },
-  "https://www.thefp.com/feed": {
-    "bias": "Conservative",
-    "name": "The Free Press",
-    "category": "News"
-  },
-  "https://theintercept.com/feed/?rss": {
-    "bias": "Left",
-    "name": "The Intercept",
-    "category": "News"
-  },
-  "https://www.newyorker.com/feed/news": {
-    "bias": "Left",
-    "name": "The New Yorker",
-    "category": "News"
-  },
-  "http://feeds.feedburner.com/time/topstories": {
-    "bias": "Liberal",
-    "name": "TIME",
-    "category": "News"
-  },
-  "https://www.vice.com/en/rss": {
-    "bias": "Left",
-    "name": "Vice News",
-    "category": "News"
-  },
-  "https://www.washingtontimes.com/rss/headlines/news/": {
-    "bias": "Right",
-    "name": "Washington Times",
-    "category": "News"
-  },
-  "https://feeds.a.dj.com/rss/RSSWorldNews.xml": {
-    "bias": "Centrist",
-    "name": "WSJ News",
-    "category": "News"
-  },
-  "https://news.yahoo.com/rss/": {
-    "bias": "Liberal",
-    "name": "Yahoo News",
-    "category": "News"
+    "id": 301,
+    "name": "Ars Technica",
+    "category": "Tech"
   },
   "https://feeds.arstechnica.com/arstechnica/science": {
     "bias": "Centrist",
+    "id": 302,
     "name": "Ars Technica - Science",
     "category": "Science"
   },
-  "https://api.axios.com/feed/science": {
-    "bias": "Liberal",
-    "name": "Axios - Science",
-    "category": "Science"
-  },
-  "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml": {
-    "bias": "Centrist",
-    "name": "BBC News - Science & Environment",
-    "category": "Science"
-  },
-  "https://www.cbsnews.com/latest/rss/science": {
-    "bias": "Liberal",
-    "name": "CBS News - Science",
-    "category": "Science"
-  },
-  "http://feeds.foxnews.com/foxnews/science": {
-    "bias": "Right",
-    "name": "Fox News - Science",
-    "category": "Science"
-  },
-  "https://www.livescience.com/feeds/all": {
-    "bias": "Centrist",
-    "name": "Live Science",
-    "category": "Science"
-  },
-  "https://www.nature.com/nature.rss": {
-    "bias": "Unknown",
-    "name": "Nature",
-    "category": "Science"
-  },
-  "https://www.newscientist.com/feed/home/": {
-    "bias": "Centrist",
-    "name": "New Scientist",
-    "category": "Science"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Science",
-    "category": "Science"
-  },
-  "https://phys.org/rss-feed/": {
-    "bias": "Unknown",
-    "name": "Phys.org",
-    "category": "Science"
-  },
-  "https://www.popularmechanics.com/rss/": {
-    "bias": "Centrist",
-    "name": "Popular Mechanics",
-    "category": "Science"
-  },
-  "https://www.popsci.com/feed/": {
-    "bias": "Centrist",
-    "name": "Popular Science",
-    "category": "Science"
-  },
-  "https://api.quantamagazine.org/feed/": {
-    "bias": "Unknown",
-    "name": "Quanta Magazine",
-    "category": "Science"
-  },
-  "https://www.sciencemag.org/rss/news_current.xml": {
-    "bias": "Unknown",
-    "name": "Science Magazine",
-    "category": "Science"
-  },
-  "https://www.sciencedaily.com/rss/all.xml": {
-    "bias": "Unknown",
-    "name": "ScienceDaily",
-    "category": "Science"
-  },
-  "http://rss.sciam.com/ScientificAmerican-Global": {
-    "bias": "Liberal",
-    "name": "Scientific American",
-    "category": "Science"
-  },
-  "https://www.theguardian.com/science/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - Science",
-    "category": "Science"
-  },
-  "https://www.wired.com/feed/category/science/latest/rss": {
-    "bias": "Liberal",
-    "name": "Wired - Science",
-    "category": "Science"
-  },
-  "https://rss.cbssports.com/rss/headlines/": {
-    "bias": "Centrist",
-    "name": "CBS Sports",
-    "category": "Sports"
-  },
-  "https://deadspin.com/rss": {
-    "bias": "Left",
-    "name": "Deadspin",
-    "category": "Sports"
-  },
-  "https://www.espn.com/espn/rss/news": {
-    "bias": "Centrist",
-    "name": "ESPN",
-    "category": "Sports"
-  },
-  "https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU": {
-    "bias": "Conservative",
-    "name": "Fox Sports",
-    "category": "Sports"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Sports",
-    "category": "Sports"
-  },
-  "https://www.skysports.com/rss/12040": {
-    "bias": "Centrist",
-    "name": "Sky Sports News",
-    "category": "Sports"
-  },
-  "https://www.theguardian.com/sport/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - Sports",
-    "category": "Sports"
-  },
   "https://arstechnica.com/science/space/feed/": {
     "bias": "Centrist",
+    "id": 303,
     "name": "Ars Technica - Space",
     "category": "Space"
   },
-  "https://www.nasa.gov/rss/dyn/breaking_news.rss": {
-    "bias": "Unknown",
-    "name": "NASA Breaking News",
-    "category": "Space"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Space.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Space & Cosmos",
-    "category": "Space"
-  },
-  "https://phys.org/rss-feed/space-news/": {
-    "bias": "Unknown",
-    "name": "Phys.org - Space",
-    "category": "Space"
-  },
-  "https://www.space.com/feeds/all": {
-    "bias": "Unknown",
-    "name": "Space.com",
-    "category": "Space"
-  },
-  "https://spacenews.com/feed/": {
-    "bias": "Unknown",
-    "name": "SpaceNews",
-    "category": "Space"
-  },
-  "https://www.universetoday.com/feed/": {
-    "bias": "Unknown",
-    "name": "Universe Today",
-    "category": "Space"
-  },
-  "http://artobserved.com/feed/": {
-    "bias": "Unknown",
-    "name": "Art Observed",
-    "category": "Art"
-  },
   "https://news.artnet.com/feed": {
     "bias": "Unknown",
+    "id": 305,
     "name": "Artnet News",
     "category": "Art"
   },
   "https://www.artnews.com/feed/": {
     "bias": "Unknown",
+    "id": 306,
     "name": "Artnews",
     "category": "Art"
   },
   "https://www.artsy.net/rss/news": {
     "bias": "Unknown",
+    "id": 307,
     "name": "Artsy News",
     "category": "Art"
   },
+  "https://www.astronomy.com/feed/": {
+    "bias": "Unknown",
+    "id": 308,
+    "name": "Astronomy Magazine",
+    "category": "Science"
+  },
+  "https://api.axios.com/feed/": {
+    "bias": "Liberal",
+    "id": 309,
+    "name": "Axios",
+    "category": "News"
+  },
+  "https://api.axios.com/feed/science": {
+    "bias": "Liberal",
+    "id": 310,
+    "name": "Axios - Science",
+    "category": "Science"
+  },
+  "https://api.axios.com/feed/technology": {
+    "bias": "Liberal",
+    "id": 311,
+    "name": "Axios - Technology",
+    "category": "Tech"
+  },
+  "https://feeds.bloomberg.com/politics/news.rss": {
+    "bias": "Liberal",
+    "id": 317,
+    "name": "Bloomberg News - Politics",
+    "category": "Politics"
+  },
+  "https://feeds.bloomberg.com/technology/news.rss": {
+    "bias": "Liberal",
+    "id": 318,
+    "name": "Bloomberg News - Technology",
+    "category": "Tech"
+  },
+  "https://boingboing.net/feed": {
+    "bias": "Left",
+    "id": 319,
+    "name": "Boing Boing",
+    "category": "Tech"
+  },
+  "https://www.buzzfeed.com/world.xml": {
+    "bias": "Left",
+    "id": 321,
+    "name": "BuzzFeed News",
+    "category": "News"
+  },
+  "https://www.cbsnews.com/latest/rss/main": {
+    "bias": "Liberal",
+    "id": 322,
+    "name": "CBS News",
+    "category": "News"
+  },
+  "https://www.cbsnews.com/latest/rss/health": {
+    "bias": "Liberal",
+    "id": 323,
+    "name": "CBS News - Health",
+    "category": "Health"
+  },
+  "https://www.cbsnews.com/latest/rss/science": {
+    "bias": "Liberal",
+    "id": 324,
+    "name": "CBS News - Science",
+    "category": "Science"
+  },
+  "https://www.cbsnews.com/latest/rss/technology": {
+    "bias": "Liberal",
+    "id": 325,
+    "name": "CBS News - Tech",
+    "category": "Tech"
+  },
+  "https://rss.csmonitor.com/feeds/usa": {
+    "bias": "Centrist",
+    "id": 327,
+    "name": "Christian Science Monitor",
+    "category": "News"
+  },
+  "https://www.cnet.com/rss/news/": {
+    "bias": "Liberal",
+    "id": 328,
+    "name": "CNET News",
+    "category": "Tech"
+  },
+  "http://rss.cnn.com/rss/cnn_topstories.rss": {
+    "bias": "Liberal",
+    "id": 329,
+    "name": "CNN",
+    "category": "News"
+  },
+  "http://rss.cnn.com/rss/cnn_health.rss": {
+    "bias": "Liberal",
+    "id": 330,
+    "name": "CNN - Health",
+    "category": "Health"
+  },
+  "http://rss.cnn.com/rss/cnn_allpolitics.rss": {
+    "bias": "Liberal",
+    "id": 331,
+    "name": "CNN - Politics",
+    "category": "Politics"
+  },
+  "http://rss.cnn.com/rss/cnn_tech.rss": {
+    "bias": "Liberal",
+    "id": 332,
+    "name": "CNN - Tech",
+    "category": "Tech"
+  },
   "https://www.thisiscolossal.com/feed/": {
     "bias": "Unknown",
+    "id": 333,
     "name": "Colossal",
     "category": "Art"
   },
-  "https://hyperallergic.com/feed/": {
-    "bias": "Left",
-    "name": "Hyperallergic",
-    "category": "Art"
-  },
-  "https://www.juxtapoz.com/news/?format=feed&type=rss": {
-    "bias": "Unknown",
-    "name": "Juxtapoz",
-    "category": "Art"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml": {
+  "https://consequence.net/feed/": {
     "bias": "Liberal",
-    "name": "NYT - Arts",
-    "category": "Art"
+    "id": 334,
+    "name": "Consequence of Sound",
+    "category": "Music"
   },
-  "https://www.theartnewspaper.com/rss.xml": {
-    "bias": "Unknown",
-    "name": "The Art Newspaper",
-    "category": "Art"
+  "http://feeds.feedburner.com/dailycaller": {
+    "bias": "Right",
+    "id": 335,
+    "name": "Daily Caller",
+    "category": "Politics"
   },
-  "https://www.businessinsider.com/rss": {
-    "bias": "Liberal",
-    "name": "Business Insider",
-    "category": "Finance"
+  "https://www.dailymail.co.uk/news/index.rss": {
+    "bias": "Right",
+    "id": 336,
+    "name": "Daily Mail",
+    "category": "News"
   },
-  "https://www.ft.com/?format=rss": {
-    "bias": "Centrist",
-    "name": "Financial Times",
-    "category": "Finance"
-  },
-  "https://www.forbes.com/real-time/feed2/": {
-    "bias": "Centrist",
-    "name": "Forbes",
-    "category": "Finance"
-  },
-  "http://feeds.foxbusiness.com/foxbusiness/latest": {
-    "bias": "Conservative",
-    "name": "Fox Business",
-    "category": "Finance"
-  },
-  "http://feeds.marketwatch.com/marketwatch/topstories/": {
-    "bias": "Centrist",
-    "name": "MarketWatch",
-    "category": "Finance"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Business",
-    "category": "Finance"
-  },
-  "https://www.economist.com/united-states/rss.xml": {
-    "bias": "Liberal",
-    "name": "The Economist",
-    "category": "Finance"
-  },
-  "https://www.wired.com/feed/category/business/latest/rss": {
-    "bias": "Liberal",
-    "name": "Wired - Business",
-    "category": "Finance"
-  },
-  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml": {
-    "bias": "Centrist",
-    "name": "WSJ - Markets",
-    "category": "Finance"
-  },
-  "https://finance.yahoo.com/rss/topstories": {
-    "bias": "Liberal",
-    "name": "Yahoo Finance",
-    "category": "Finance"
-  },
-  "https://www.elle.com/rss/all.xml/": {
-    "bias": "Liberal",
-    "name": "Elle",
-    "category": "Fashion"
-  },
-  "https://www.harpersbazaar.com/rss/all.xml/": {
-    "bias": "Liberal",
-    "name": "Harper's Bazaar",
-    "category": "Fashion"
-  },
-  "https://www.highsnobiety.com/feed/": {
-    "bias": "Centrist",
-    "name": "Highsnobiety",
-    "category": "Fashion"
-  },
-  "https://hypebeast.com/fashion/feed": {
-    "bias": "Centrist",
-    "name": "Hypebeast Fashion",
-    "category": "Fashion"
-  },
-  "https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml": {
-    "bias": "Liberal",
-    "name": "NYT - Style",
-    "category": "Fashion"
-  },
-  "https://www.refinery29.com/en-us/fashion/rss.xml": {
-    "bias": "Liberal",
-    "name": "Refinery29 - Fashion",
-    "category": "Fashion"
-  },
-  "https://www.vogue.com/feed/rss": {
-    "bias": "Liberal",
-    "name": "Vogue",
-    "category": "Fashion"
-  },
-  "https://wwd.com/feed/": {
-    "bias": "Centrist",
-    "name": "WWD (Women's Wear Daily)",
-    "category": "Fashion"
-  },
-  "https://grist.org/feed/": {
-    "bias": "Left",
-    "name": "Grist",
-    "category": "Environment"
-  },
-  "https://insideclimatenews.org/feed/": {
-    "bias": "Liberal",
-    "name": "InsideClimate News",
-    "category": "Environment"
-  },
-  "https://news.mongabay.com/feed/": {
-    "bias": "Centrist",
-    "name": "Mongabay",
-    "category": "Environment"
-  },
-  "https://www.theguardian.com/environment/rss": {
-    "bias": "Liberal",
-    "name": "The Guardian - Environment",
-    "category": "Environment"
+  "https://www.dailywire.com/feeds/rss.xml": {
+    "bias": "Right",
+    "id": 337,
+    "name": "Daily Wire",
+    "category": "Politics"
   },
   "https://deadline.com/feed/": {
     "bias": "Centrist",
+    "id": 338,
     "name": "Deadline",
     "category": "Entertainment"
   },
+  "https://www.democracynow.org/democracynow.rss": {
+    "bias": "Left",
+    "id": 340,
+    "name": "Democracy Now",
+    "category": "Politics"
+  },
+  "https://www.elle.com/rss/all.xml/": {
+    "bias": "Liberal",
+    "id": 341,
+    "name": "Latest Content - ELLE",
+    "category": "Fashion"
+  },
+  "https://www.engadget.com/rss.xml": {
+    "bias": "Liberal",
+    "id": 342,
+    "name": "Engadget",
+    "category": "Tech"
+  },
+  "https://www.espn.com/espn/rss/news": {
+    "bias": "Centrist",
+    "id": 343,
+    "name": "ESPN",
+    "category": "Sports"
+  },
+  "https://www.forbes.com/real-time/feed2/": {
+    "bias": "Centrist",
+    "id": 345,
+    "name": "Forbes",
+    "category": "Finance"
+  },
+  "https://www.forbes.com/technology/feed/": {
+    "bias": "Centrist",
+    "id": 346,
+    "name": "Forbes - Tech",
+    "category": "Tech"
+  },
+  "http://feeds.foxnews.com/foxnews/tech": {
+    "bias": "Right",
+    "id": 352,
+    "name": "Fox News - Tech",
+    "category": "Tech"
+  },
+  "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en": {
+    "bias": "Unknown",
+    "id": 355,
+    "name": "Google News - Top Stories",
+    "category": "News"
+  },
+  "https://grist.org/feed/": {
+    "bias": "Left",
+    "id": 356,
+    "name": "Grist",
+    "category": "Environment"
+  },
+  "https://www.harpersbazaar.com/rss/all.xml/": {
+    "bias": "Liberal",
+    "id": 357,
+    "name": "Latest Content - Harper's BAZAAR",
+    "category": "Fashion"
+  },
   "https://www.hollywoodreporter.com/feed/": {
     "bias": "Liberal",
+    "id": 359,
     "name": "Hollywood Reporter",
     "category": "Entertainment"
   },
-  "https://feeds.ign.com/ign/all": {
+  "https://hypebeast.com/fashion/feed": {
     "bias": "Centrist",
-    "name": "IGN",
-    "category": "Entertainment"
+    "id": 361,
+    "name": "Hypebeast Fashion",
+    "category": "Fashion"
+  },
+  "https://hypebeast.com/music/feed": {
+    "bias": "Centrist",
+    "id": 362,
+    "name": "Hypebeast Music",
+    "category": "Music"
+  },
+  "https://hyperallergic.com/feed/": {
+    "bias": "Left",
+    "id": 363,
+    "name": "Hyperallergic",
+    "category": "Art"
+  },
+  "https://ijr.com/feed/": {
+    "bias": "Right",
+    "id": 365,
+    "name": "IJR (Independent Journal Review)",
+    "category": "News"
+  },
+  "https://insideclimatenews.org/feed/": {
+    "bias": "Liberal",
+    "id": 366,
+    "name": "InsideClimate News",
+    "category": "Environment"
+  },
+  "https://jacobin.com/feed/": {
+    "bias": "Left",
+    "id": 367,
+    "name": "Jacobin",
+    "category": "Politics"
+  },
+  "https://www.jurist.org/feed/": {
+    "bias": "Centrist",
+    "id": 368,
+    "name": "Jurist",
+    "category": "Law"
+  },
+  "https://justthenews.com/rss.xml": {
+    "bias": "Conservative",
+    "id": 369,
+    "name": "Just the News",
+    "category": "News"
+  },
+  "https://www.juxtapoz.com/news/?format=feed&type=rss": {
+    "bias": "Unknown",
+    "id": 371,
+    "name": "Juxtapoz",
+    "category": "Art"
+  },
+  "https://www.kdnuggets.com/feed": {
+    "bias": "Unknown",
+    "id": 373,
+    "name": "KDnuggets",
+    "category": "AI"
   },
   "https://kotaku.com/rss": {
     "bias": "Left",
+    "id": 374,
     "name": "Kotaku",
     "category": "Entertainment"
   },
+  "https://www.livescience.com/feeds/all": {
+    "bias": "Centrist",
+    "id": 376,
+    "name": "Live Science",
+    "category": "Science"
+  },
+  "https://machinelearningmastery.com/feed/": {
+    "bias": "Unknown",
+    "id": 377,
+    "name": "Machine Learning Mastery",
+    "category": "AI"
+  },
+  "https://mashable.com/feeds/rss/all": {
+    "bias": "Left",
+    "id": 379,
+    "name": "Mashable",
+    "category": "News"
+  },
+  "https://www.technologyreview.com/topic/artificial-intelligence/feed/": {
+    "bias": "Centrist",
+    "id": 380,
+    "name": "MIT Technology Review - AI",
+    "category": "AI"
+  },
+  "https://www.motherjones.com/feed/": {
+    "bias": "Left",
+    "id": 381,
+    "name": "Mother Jones",
+    "category": "Politics"
+  },
+  "https://www.nationalreview.com/feed/": {
+    "bias": "Conservative",
+    "id": 384,
+    "name": "National Review",
+    "category": "Politics"
+  },
+  "https://www.nature.com/nature.rss": {
+    "bias": "Centrist",
+    "id": 385,
+    "name": "Nature",
+    "category": "Science"
+  },
+  "https://www.newscientist.com/feed/home/": {
+    "bias": "Centrist",
+    "id": 390,
+    "name": "New Scientist - Home",
+    "category": "Science"
+  },
+  "https://www.newsnationnow.com/feed/": {
+    "bias": "Centrist",
+    "id": 391,
+    "name": "NewsNation",
+    "category": "News"
+  },
+  "https://www.newsweek.com/rss": {
+    "bias": "Centrist",
+    "id": 392,
+    "name": "Newsweek",
+    "category": "News"
+  },
+  "https://www.nme.com/feed": {
+    "bias": "Centrist",
+    "id": 393,
+    "name": "NME",
+    "category": "Music"
+  },
+  "https://feeds.npr.org/1001/rss.xml": {
+    "bias": "Liberal",
+    "id": 394,
+    "name": "NPR Topics: News",
+    "category": "News"
+  },
+  "https://feeds.npr.org/1007/rss.xml": {
+    "bias": "Liberal",
+    "id": 395,
+    "name": "NPR Topics: Science",
+    "category": "Science"
+  },
+  "https://feeds.npr.org/1014/rss.xml": {
+    "bias": "Liberal",
+    "id": 396,
+    "name": "NPR Topics: Politics",
+    "category": "Politics"
+  },
+  "https://feeds.npr.org/1019/rss.xml": {
+    "bias": "Liberal",
+    "id": 397,
+    "name": "NPR Topics: Technology",
+    "category": "Tech"
+  },
+  "https://nypost.com/feed/": {
+    "bias": "Conservative",
+    "id": 398,
+    "name": "New York Post",
+    "category": "News"
+  },
+  "https://nypost.com/opinion/feed/": {
+    "bias": "Conservative",
+    "id": 399,
+    "name": "Opinion – Latest Op-Eds & News Commentary | New York Post",
+    "category": "Politics"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml": {
+    "bias": "Liberal",
+    "id": 400,
+    "name": "NYT > Arts",
+    "category": "Art"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml": {
+    "bias": "Liberal",
+    "id": 401,
+    "name": "NYT > Business",
+    "category": "Finance"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml": {
+    "bias": "Liberal",
+    "id": 402,
+    "name": "NYT > Health",
+    "category": "Health"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml": {
+    "bias": "Liberal",
+    "id": 403,
+    "name": "NYT > Top Stories",
+    "category": "News"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Music.xml": {
+    "bias": "Liberal",
+    "id": 404,
+    "name": "NYT > Arts > Music",
+    "category": "Music"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml": {
+    "bias": "Liberal",
+    "id": 405,
+    "name": "NYT > U.S. > Politics",
+    "category": "Politics"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml": {
+    "bias": "Liberal",
+    "id": 406,
+    "name": "NYT > Science",
+    "category": "Science"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Space.xml": {
+    "bias": "Liberal",
+    "id": 407,
+    "name": "NYT > Science > Space & Cosmos",
+    "category": "Space"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml": {
+    "bias": "Liberal",
+    "id": 408,
+    "name": "NYT > Sports",
+    "category": "Sports"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml": {
+    "bias": "Liberal",
+    "id": 409,
+    "name": "NYT - Style",
+    "category": "Fashion"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml": {
+    "bias": "Liberal",
+    "id": 410,
+    "name": "NYT > Technology",
+    "category": "Tech"
+  },
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml": {
+    "bias": "Liberal",
+    "id": 411,
+    "name": "NYT > World News",
+    "category": "World"
+  },
+  "https://www.pbs.org/newshour/feeds/rss/headlines": {
+    "bias": "Centrist",
+    "id": 412,
+    "name": "PBS NewsHour - The Latest",
+    "category": "News"
+  },
   "https://www.pcgamer.com/rss/": {
     "bias": "Centrist",
-    "name": "PC Gamer",
+    "id": 413,
+    "name": "PCGamer latest",
     "category": "Entertainment"
+  },
+  "https://phys.org/rss-feed/": {
+    "bias": "Centrist",
+    "id": 414,
+    "name": "Phys.org - latest science and technology news stories",
+    "category": "Science"
+  },
+  "https://phys.org/rss-feed/space-news/": {
+    "bias": "Unknown",
+    "id": 437,
+    "name": "Phys.org - Space",
+    "category": "Space"
   },
   "https://www.polygon.com/rss/index.xml": {
     "bias": "Liberal",
+    "id": 416,
     "name": "Polygon",
     "category": "Entertainment"
   },
-  "https://www.rollingstone.com/feed/": {
-    "bias": "Left",
-    "name": "Rolling Stone",
-    "category": "Entertainment"
-  },
-  "https://www.theonion.com/rss": {
-    "bias": "Left",
-    "name": "The Onion",
-    "category": "Entertainment"
-  },
-  "https://www.tmz.com/rss.xml": {
-    "bias": "Unknown",
-    "name": "TMZ",
-    "category": "Entertainment"
-  },
-  "https://variety.com/feed/": {
+  "https://www.popsci.com/feed/": {
     "bias": "Centrist",
-    "name": "Variety",
-    "category": "Entertainment"
+    "id": 418,
+    "name": "Popular Science",
+    "category": "Science"
   },
-  "https://www.wired.com/feed/category/culture/latest/rss": {
+  "https://reason.com/feed/": {
+    "bias": "Conservative",
+    "id": 421,
+    "name": "Reason.com",
+    "category": "Politics"
+  },
+  "https://www.vox.com/rss/recode/index.xml": {
+    "bias": "Left",
+    "id": 422,
+    "name": "Recode",
+    "category": "Tech"
+  },
+  "https://www.refinery29.com/en-us/fashion/rss.xml": {
     "bias": "Liberal",
-    "name": "Wired - Culture",
-    "category": "Entertainment"
+    "id": 423,
+    "name": "Refinery29 - Fashion",
+    "category": "Fashion"
+  },
+  "https://www.rollingstone.com/feed/": {
+    "bias": "Liberal",
+    "id": 424,
+    "name": "Rolling Stone",
+    "category": "Music"
+  },
+  "https://www.rollingstone.com/music/feed/": {
+    "bias": "Liberal",
+    "id": 425,
+    "name": "Music – Rolling Stone",
+    "category": "Music"
+  },
+  "https://www.cnbc.com/id/10000664/device/rss/rss.html": {
+    "bias": "Centrist",
+    "id": 426,
+    "name": "CNBC",
+    "category": "Finance"
+  },
+  "https://www.digitaltrends.com/feed/": {
+    "bias": "Centrist",
+    "id": 427,
+    "name": "Digital Trends",
+    "category": "Tech"
+  },
+  "https://hackernoon.com/feed": {
+    "bias": "Unknown",
+    "id": 428,
+    "name": "Hacker Noon",
+    "category": "Tech"
+  },
+  "https://feeds.npr.org/500005/podcast.xml": {
+    "bias": "Liberal",
+    "id": 429,
+    "name": "NPR One",
+    "category": "News"
+  },
+  "https://seekingalpha.com/feed.xml": {
+    "bias": "Centrist",
+    "id": 431,
+    "name": "Seeking Alpha",
+    "category": "Finance"
+  },
+  "https://rss.slashdot.org/Slashdot/slashdotMain": {
+    "bias": "Centrist",
+    "id": 432,
+    "name": "Slashdot",
+    "category": "Tech"
+  },
+  "https://www.smithsonianmag.com/rss/latest_articles/": {
+    "bias": "Centrist",
+    "id": 433,
+    "name": "Smithsonian Magazine",
+    "category": "Science"
+  },
+  "https://www.economist.com/finance-and-economics/rss.xml": {
+    "bias": "Centrist",
+    "id": 434,
+    "name": "The Economist",
+    "category": "Finance"
   }
 }

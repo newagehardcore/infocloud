@@ -4,6 +4,7 @@ const cors = require('cors'); // Add CORS
 const { connectDB } = require('./config/db');
 const newsRoutes = require('./routes/news');
 const statusRoutes = require('./routes/statusRoutes');
+const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
 // Import the whole module
 const cronService = require('./cron'); 
 
@@ -25,7 +26,7 @@ connectDB().then(() => {
   console.log('Database connection successful. Starting server...');
   app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
   // Start the cron job scheduler using the imported module
-  cronService.scheduleFeedFetching(); // Access via property
+  cronService.scheduleCronJobs(); // Corrected function name
 }).catch(err => {
   console.error('Failed to connect to database. Server not started.', err);
   process.exit(1);
@@ -41,6 +42,7 @@ app.use(express.static('public'));
 app.get('/', (req, res) => res.send('News Backend Running'));
 app.use('/api/news', newsRoutes);
 app.use('/status', statusRoutes);
+app.use('/api/sources', sourceRoutes); // Mount the source routes
 
 // Basic Error Handling Middleware (can be expanded later)
 app.use((err, req, res, next) => {

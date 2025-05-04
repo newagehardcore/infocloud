@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+  <head>
+    <title>InfoCloud Feeds</title>
+  </head>
+  <body>
+    <outline text="Law">
+      <outline type="rss" xmlUrl="https://abovethelaw.com/feed/" title="Above the Law"/>
+      <outline type="rss" xmlUrl="https://www.jurist.org/feed/" title="Jurist"/>
+      <outline type="rss" xmlUrl="https://news.justia.com/feed" title="Justia News"/>
+      <outline type="rss" xmlUrl="https://www.scotusblog.com/feed/" title="SCOTUSblog"/>
+      <outline type="rss" xmlUrl="https://reason.com/volokh/feed/" title="The Volokh Conspiracy"/>
+    </outline>
+    <outline text="Health">
+      <outline type="rss" xmlUrl="https://abcnews.go.com/abcnews/healthheadlines" title="ABC News - Health"/>
+      <outline type="rss" xmlUrl="http://feeds.bbci.co.uk/news/health/rss.xml" title="BBC News - Health"/>
+      <outline type="rss" xmlUrl="https://www.cbsnews.com/latest/rss/health" title="CBS News - Health"/>
+      <outline type="rss" xmlUrl="http://rss.cnn.com/rss/cnn_health.rss" title="CNN - Health"/>
+      <outline type="rss" xmlUrl="http://feeds.foxnews.com/foxnews/health" title="Fox News - Health"/>
+      <outline type="rss" xmlUrl="https://khn.org/feed/" title="Kaiser Health News (KHN)"/>
+      <outline type="rss" xmlUrl="http://feeds.nbcnews.com/nbcnews/public/health" title="NBC News - Health"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Health.xml" title="NYT - Health"/>
+      <outline type="rss" xmlUrl="https://www.statnews.com/feed/" title="STAT News"/>
+      <outline type="rss" xmlUrl="https://www.who.int/rss-feeds/news-english.xml" title="WHO News"/>
+      <outline type="rss" xmlUrl="https://aapsonline.org/feed/" title="AAPS"/>
+      <outline type="rss" xmlUrl="https://www.medpagetoday.com/rss/headlines.xml" title="MedPage Today"/>
+      <outline type="rss" xmlUrl="https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC" title="WebMD"/>
+      <outline type="rss" xmlUrl="https://www.health.harvard.edu/blog/feed" title="Harvard Health Blog"/>
+      <outline type="rss" xmlUrl="https://www.medicalnewstoday.com/newsfeeds-rss" title="Medical News Today"/>
+      <outline type="rss" xmlUrl="https://www.mayoclinic.org/rss/all-health-information-topics" title="Mayo Clinic"/>
+    </outline>
+    <outline text="Science">
+      <outline type="rss" xmlUrl="https://feeds.npr.org/1007/rss.xml" title="NPR - Science"/>
+      <outline type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/science" title="Ars Technica - Science"/>
+      <outline type="rss" xmlUrl="https://api.axios.com/feed/science" title="Axios - Science"/>
+      <outline type="rss" xmlUrl="http://feeds.bbci.co.uk/news/science_and_environment/rss.xml" title="BBC News - Science &amp; Environment"/>
+      <outline type="rss" xmlUrl="https://www.cbsnews.com/latest/rss/science" title="CBS News - Science"/>
+      <outline type="rss" xmlUrl="http://feeds.foxnews.com/foxnews/science" title="Fox News - Science"/>
+      <outline type="rss" xmlUrl="https://www.livescience.com/feeds/all" title="Live Science"/>
+      <outline type="rss" xmlUrl="https://www.nature.com/nature.rss" title="Nature"/>
+      <outline type="rss" xmlUrl="https://www.newscientist.com/feed/home/" title="New Scientist"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Science.xml" title="NYT - Science"/>
+      <outline type="rss" xmlUrl="https://phys.org/rss-feed/" title="Phys.org"/>
+      <outline type="rss" xmlUrl="https://www.popularmechanics.com/rss/" title="Popular Mechanics"/>
+      <outline type="rss" xmlUrl="https://www.popsci.com/feed/" title="Popular Science"/>
+      <outline type="rss" xmlUrl="https://api.quantamagazine.org/feed/" title="Quanta Magazine"/>
+      <outline type="rss" xmlUrl="https://www.sciencemag.org/rss/news_current.xml" title="Science Magazine"/>
+      <outline type="rss" xmlUrl="https://www.sciencedaily.com/rss/all.xml" title="ScienceDaily"/>
+      <outline type="rss" xmlUrl="http://rss.sciam.com/ScientificAmerican-Global" title="Scientific American"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/science/rss" title="The Guardian - Science"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/category/science/latest/rss" title="Wired - Science"/>
+      <outline type="rss" xmlUrl="https://www.discovery.org/feed/" title="Discovery Institute"/>
+      <outline type="rss" xmlUrl="https://undark.org/feed/" title="Undark Magazine"/>
+      <outline type="rss" xmlUrl="https://www.sciencenews.org/feed" title="Science News"/>
+      <outline type="rss" xmlUrl="https://knowablemagazine.org/feed" title="Knowable Magazine"/>
+      <outline type="rss" xmlUrl="https://www.smithsonianmag.com/rss/latest_articles/" title="Smithsonian Magazine"/>
+      <outline type="rss" xmlUrl="https://www.eurekalert.org/rss/" title="EurekAlert"/>
+      <outline type="rss" xmlUrl="https://www.astronomy.com/feed/" title="Astronomy Magazine"/>
+    </outline>
+    <outline text="Politics">
+      <outline type="rss" xmlUrl="https://abcnews.go.com/abcnews/politicsheadlines" title="ABC News - Politics"/>
+      <outline type="rss" xmlUrl="https://feeds.bloomberg.com/politics/news.rss" title="Bloomberg News - Politics"/>
+      <outline type="rss" xmlUrl="http://rss.cnn.com/rss/cnn_allpolitics.rss" title="CNN - Politics"/>
+      <outline type="rss" xmlUrl="http://feeds.feedburner.com/dailycaller" title="Daily Caller"/>
+      <outline type="rss" xmlUrl="https://www.dailywire.com/feeds/rss.xml" title="Daily Wire"/>
+      <outline type="rss" xmlUrl="https://www.democracynow.org/democracynow.rss" title="Democracy Now"/>
+      <outline type="rss" xmlUrl="http://feeds.foxnews.com/foxnews/politics" title="Fox News - Politics"/>
+      <outline type="rss" xmlUrl="https://jacobin.com/feed/" title="Jacobin"/>
+      <outline type="rss" xmlUrl="https://www.motherjones.com/feed/" title="Mother Jones"/>
+      <outline type="rss" xmlUrl="https://www.nationalreview.com/feed/" title="National Review"/>
+      <outline type="rss" xmlUrl="http://feeds.nbcnews.com/nbcnews/public/politics" title="NBC News - Politics"/>
+      <outline type="rss" xmlUrl="https://feeds.npr.org/1014/rss.xml" title="NPR - Politics"/>
+      <outline type="rss" xmlUrl="https://nypost.com/opinion/feed/" title="NY Post Opinion"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" title="NYT - Politics"/>
+      <outline type="rss" xmlUrl="https://reason.com/feed/" title="Reason"/>
+      <outline type="rss" xmlUrl="https://slate.com/feeds/all.rss" title="Slate"/>
+      <outline type="rss" xmlUrl="https://www.theamericanconservative.com/feed/" title="The American Conservative"/>
+      <outline type="rss" xmlUrl="https://spectator.org/feed/" title="The American Spectator"/>
+      <outline type="rss" xmlUrl="https://www.theblaze.com/feeds/feed.rss" title="The Blaze"/>
+      <outline type="rss" xmlUrl="https://www.dailysignal.com/feed/" title="The Daily Signal"/>
+      <outline type="rss" xmlUrl="https://thedispatch.com/feed/" title="The Dispatch"/>
+      <outline type="rss" xmlUrl="http://thefederalist.com/feed/" title="The Federalist"/>
+      <outline type="rss" xmlUrl="https://thegrayzone.com/feed/" title="The Grayzone"/>
+      <outline type="rss" xmlUrl="https://thehill.com/rss/syndicator/19109" title="The Hill"/>
+      <outline type="rss" xmlUrl="https://truthout.org/latest/feed/" title="Truthout"/>
+      <outline type="rss" xmlUrl="https://www.vox.com/rss/index.xml" title="Vox"/>
+      <outline type="rss" xmlUrl="https://www.washingtonexaminer.com/tag/news.rss" title="Washington Examiner"/>
+      <outline type="rss" xmlUrl="https://freebeacon.com/feed/" title="Washington Free Beacon"/>
+      <outline type="rss" xmlUrl="http://feeds.washingtonpost.com/rss/politics" title="Washington Post"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/category/politics/latest/rss" title="Wired - Politics"/>
+      <outline type="rss" xmlUrl="https://www.wsws.org/en/rss.xml" title="World Socialist Web Site"/>
+      <outline type="rss" xmlUrl="https://feeds.a.dj.com/rss/RSSOpinion.xml" title="WSJ Opinion"/>
+      <outline type="rss" xmlUrl="https://www.thenation.com/feed/" title="The Nation"/>
+      <outline type="rss" xmlUrl="https://www.commondreams.org/rss.xml" title="Common Dreams"/>
+      <outline type="rss" xmlUrl="http://fivethirtyeight.com/politics/feed/" title="FiveThirtyEight"/>
+      <outline type="rss" xmlUrl="https://www.heritage.org/rss" title="The Heritage Foundation"/>
+      <outline type="rss" xmlUrl="https://www.americanprogress.org/feed/" title="Center for American Progress"/>
+      <outline type="rss" xmlUrl="https://www.aei.org/feed/" title="AEI (American Enterprise Institute)"/>
+      <outline type="rss" xmlUrl="https://www.thebulwark.com/feed/" title="The Bulwark"/>
+      <outline type="rss" xmlUrl="https://feeds.feedburner.com/AP/politics" title="Associated Press"/>
+    </outline>
+    <outline text="Tech">
+      <outline type="rss" xmlUrl="https://abcnews.go.com/abcnews/technologyheadlines" title="ABC News - Technology"/>
+      <outline type="rss" xmlUrl="http://feeds.arstechnica.com/arstechnica/index" title="Ars Technica"/>
+      <outline type="rss" xmlUrl="https://api.axios.com/feed/technology" title="Axios - Technology"/>
+      <outline type="rss" xmlUrl="http://feeds.bbci.co.uk/news/technology/rss.xml" title="BBC News - Technology"/>
+      <outline type="rss" xmlUrl="https://feeds.bloomberg.com/technology/news.rss" title="Bloomberg News - Technology"/>
+      <outline type="rss" xmlUrl="https://boingboing.net/feed" title="Boing Boing"/>
+      <outline type="rss" xmlUrl="https://www.cbsnews.com/latest/rss/technology" title="CBS News - Tech"/>
+      <outline type="rss" xmlUrl="https://www.cnet.com/rss/news/" title="CNET News"/>
+      <outline type="rss" xmlUrl="http://rss.cnn.com/rss/cnn_tech.rss" title="CNN - Tech"/>
+      <outline type="rss" xmlUrl="https://www.engadget.com/rss.xml" title="Engadget"/>
+      <outline type="rss" xmlUrl="https://www.forbes.com/technology/feed/" title="Forbes - Tech"/>
+      <outline type="rss" xmlUrl="http://feeds.foxnews.com/foxnews/tech" title="Fox News - Tech"/>
+      <outline type="rss" xmlUrl="https://gizmodo.com/rss" title="Gizmodo"/>
+      <outline type="rss" xmlUrl="https://lifehacker.com/rss" title="Lifehacker"/>
+      <outline type="rss" xmlUrl="https://feeds.npr.org/1019/rss.xml" title="NPR - Technology"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" title="NYT - Technology"/>
+      <outline type="rss" xmlUrl="https://www.vox.com/rss/recode/index.xml" title="Recode"/>
+      <outline type="rss" xmlUrl="https://feeds.skynews.com/feeds/rss/technology.xml" title="Sky News - Tech"/>
+      <outline type="rss" xmlUrl="https://techcrunch.com/feed/" title="TechCrunch"/>
+      <outline type="rss" xmlUrl="https://www.techdirt.com/techdirt_rss.xml" title="Techdirt"/>
+      <outline type="rss" xmlUrl="https://www.techmeme.com/feed.xml" title="Techmeme"/>
+      <outline type="rss" xmlUrl="https://www.techradar.com/rss" title="TechRadar"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/uk/technology/rss" title="The Guardian - Tech"/>
+      <outline type="rss" xmlUrl="https://www.theverge.com/rss/index.xml" title="The Verge"/>
+      <outline type="rss" xmlUrl="https://www.tomshardware.com/feeds/all" title="Tom&apos;s Hardware"/>
+      <outline type="rss" xmlUrl="http://feeds.feedburner.com/venturebeat/main" title="VentureBeat"/>
+      <outline type="rss" xmlUrl="http://feeds.washingtonpost.com/rss/business/technology" title="Washington Post - Tech"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/rss" title="Wired"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/category/security/latest/rss" title="Wired - Security"/>
+      <outline type="rss" xmlUrl="https://feeds.a.dj.com/rss/RSSWSJD.xml" title="WSJ - Tech"/>
+      <outline type="rss" xmlUrl="https://www.zdnet.com/news/rss.xml" title="ZDNet"/>
+      <outline type="rss" xmlUrl="https://feeds.a.dj.com/rss/RSSWSJD_Tech.xml" title="WSJ - Tech"/>
+      <outline type="rss" xmlUrl="https://www.reutersagency.com/feed/?best-topics=tech&amp;post_type=best" title="Reuters - Tech"/>
+      <outline type="rss" xmlUrl="https://theintercept.com/technology/feed/?rss" title="The Intercept - Tech"/>
+      <outline type="rss" xmlUrl="https://krebsonsecurity.com/feed/" title="Krebs on Security"/>
+      <outline type="rss" xmlUrl="https://readwrite.com/feed/" title="ReadWrite"/>
+      <outline type="rss" xmlUrl="https://rss.slashdot.org/Slashdot/slashdotMain" title="Slashdot"/>
+      <outline type="rss" xmlUrl="https://www.digitaltrends.com/feed/" title="Digital Trends"/>
+      <outline type="rss" xmlUrl="https://hackernoon.com/feed" title="Hacker Noon"/>
+    </outline>
+    <outline text="US">
+      <outline type="rss" xmlUrl="https://abcnews.go.com/abcnews/usheadlines" title="ABC News - US"/>
+      <outline type="rss" xmlUrl="http://feeds.nbcnews.com/nbcnews/public/news" title="NBC News - US"/>
+    </outline>
+    <outline text="World">
+      <outline type="rss" xmlUrl="https://abcnews.go.com/abcnews/internationalheadlines" title="ABC News - World"/>
+      <outline type="rss" xmlUrl="https://www.aljazeera.com/xml/rss/all.xml" title="Al Jazeera"/>
+      <outline type="rss" xmlUrl="http://feeds.bbci.co.uk/news/rss.xml" title="BBC News"/>
+      <outline type="rss" xmlUrl="http://feeds.nbcnews.com/nbcnews/public/world" title="NBC News - World"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/World.xml" title="NYT - World"/>
+      <outline type="rss" xmlUrl="https://feeds.skynews.com/feeds/rss/uk.xml" title="Sky News - UK"/>
+      <outline type="rss" xmlUrl="https://feeds.skynews.com/feeds/rss/world.xml" title="Sky News - World"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/world/rss" title="The Guardian - World"/>
+      <outline type="rss" xmlUrl="https://news.un.org/feed/subscribe/en/news/all/rss.xml" title="UN News"/>
+      <outline type="rss" xmlUrl="https://timesofindia.indiatimes.com/rssfeedstopstories.cms" title="Times of India"/>
+      <outline type="rss" xmlUrl="https://www.jpost.com/rss/rssfeedsheadlines.aspx" title="Jerusalem Post"/>
+      <outline type="rss" xmlUrl="http://feeds.reuters.com/Reuters/worldNews" title="Reuters - World News"/>
+      <outline type="rss" xmlUrl="https://foreignpolicy.com/feed/" title="Foreign Policy"/>
+    </outline>
+    <outline text="AI">
+      <outline type="rss" xmlUrl="https://www.artificialintelligence-news.com/feed/" title="AI News"/>
+      <outline type="rss" xmlUrl="https://feeds.feedburner.com/AnalyticsVidhya" title="Analytics Vidhya"/>
+      <outline type="rss" xmlUrl="https://www.kdnuggets.com/feed" title="KDnuggets"/>
+      <outline type="rss" xmlUrl="https://machinelearningmastery.com/feed/" title="Machine Learning Mastery"/>
+      <outline type="rss" xmlUrl="https://www.technologyreview.com/topic/artificial-intelligence/feed/" title="MIT Technology Review - AI"/>
+      <outline type="rss" xmlUrl="https://towardsdatascience.com/feed" title="Towards Data Science"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/tag/ai/latest/rss" title="Wired - AI"/>
+      <outline type="rss" xmlUrl="https://arxiv.org/rss/cs.AI" title="arXiv cs.AI"/>
+    </outline>
+    <outline text="Music">
+      <outline type="rss" xmlUrl="https://www.billboard.com/feed" title="Billboard"/>
+      <outline type="rss" xmlUrl="https://consequence.net/feed/" title="Consequence of Sound"/>
+      <outline type="rss" xmlUrl="https://hypebeast.com/music/feed" title="Hypebeast Music"/>
+      <outline type="rss" xmlUrl="https://www.nme.com/feed" title="NME"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Music.xml" title="NYT - Music"/>
+      <outline type="rss" xmlUrl="https://pitchfork.com/rss/news/" title="Pitchfork"/>
+      <outline type="rss" xmlUrl="https://www.rollingstone.com/music/feed/" title="Rolling Stone - Music"/>
+      <outline type="rss" xmlUrl="https://www.stereogum.com/feed/" title="Stereogum"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/music/rss" title="The Guardian - Music"/>
+    </outline>
+    <outline text="News">
+      <outline type="rss" xmlUrl="https://api.axios.com/feed/" title="Axios"/>
+      <outline type="rss" xmlUrl="https://www.buzzfeed.com/world.xml" title="BuzzFeed News"/>
+      <outline type="rss" xmlUrl="https://www.cbsnews.com/latest/rss/main" title="CBS News"/>
+      <outline type="rss" xmlUrl="https://rss.csmonitor.com/feeds/usa" title="Christian Science Monitor"/>
+      <outline type="rss" xmlUrl="http://rss.cnn.com/rss/cnn_topstories.rss" title="CNN"/>
+      <outline type="rss" xmlUrl="https://www.dailymail.co.uk/news/index.rss" title="Daily Mail"/>
+      <outline type="rss" xmlUrl="http://feeds.foxnews.com/foxnews/latest" title="Fox News"/>
+      <outline type="rss" xmlUrl="https://news.google.com/rss?hl=en-US&amp;gl=US&amp;ceid=US:en" title="Google News - Top Stories"/>
+      <outline type="rss" xmlUrl="https://www.huffpost.com/section/front-page/feed" title="HuffPost"/>
+      <outline type="rss" xmlUrl="https://ijr.com/feed/" title="IJR (Independent Journal Review)"/>
+      <outline type="rss" xmlUrl="https://justthenews.com/rss.xml" title="Just the News"/>
+      <outline type="rss" xmlUrl="https://mashable.com/feeds/rss/all" title="Mashable"/>
+      <outline type="rss" xmlUrl="http://www.msnbc.com/feeds/latest" title="MSNBC"/>
+      <outline type="rss" xmlUrl="https://www.newsnationnow.com/feed/" title="NewsNation"/>
+      <outline type="rss" xmlUrl="https://www.newsweek.com/rss" title="Newsweek"/>
+      <outline type="rss" xmlUrl="https://feeds.npr.org/1001/rss.xml" title="NPR"/>
+      <outline type="rss" xmlUrl="https://nypost.com/feed/" title="NY Post News"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml" title="NYT - Home Page"/>
+      <outline type="rss" xmlUrl="https://www.pbs.org/newshour/feeds/rss/headlines" title="PBS NewsHour"/>
+      <outline type="rss" xmlUrl="http://feeds.propublica.org/propublica/main" title="ProPublica"/>
+      <outline type="rss" xmlUrl="https://straightarrownews.com/feed/" title="Straight Arrow News"/>
+      <outline type="rss" xmlUrl="https://www.theatlantic.com/feed/channel/news/" title="The Atlantic"/>
+      <outline type="rss" xmlUrl="https://www.thefp.com/feed" title="The Free Press"/>
+      <outline type="rss" xmlUrl="https://theintercept.com/feed/?rss" title="The Intercept"/>
+      <outline type="rss" xmlUrl="https://www.newyorker.com/feed/news" title="The New Yorker"/>
+      <outline type="rss" xmlUrl="http://feeds.feedburner.com/time/topstories" title="TIME"/>
+      <outline type="rss" xmlUrl="https://www.vice.com/en/rss" title="Vice News"/>
+      <outline type="rss" xmlUrl="https://www.washingtontimes.com/rss/headlines/news/" title="Washington Times"/>
+      <outline type="rss" xmlUrl="https://feeds.a.dj.com/rss/RSSWorldNews.xml" title="WSJ News"/>
+      <outline type="rss" xmlUrl="https://news.yahoo.com/rss/" title="Yahoo News"/>
+      <outline type="rss" xmlUrl="https://apnews.com/hub/ap-top-news/rss" title="Associated Press"/>
+      <outline type="rss" xmlUrl="https://api.axios.com/feed/" title="Axios"/>
+      <outline type="rss" xmlUrl="https://feeds.thedailybeast.com/summary/latest" title="The Daily Beast"/>
+      <outline type="rss" xmlUrl="https://theconversation.com/us/feed" title="The Conversation"/>
+      <outline type="rss" xmlUrl="https://www.reuters.com/rssfeed/topNews/" title="Reuters"/>
+      <outline type="rss" xmlUrl="https://feeds.npr.org/500005/podcast.xml" title="NPR One"/>
+      <outline type="rss" xmlUrl="https://thehill.com/rss/syndicator/19110" title="The Hill"/>
+    </outline>
+    <outline text="Sports">
+      <outline type="rss" xmlUrl="https://rss.cbssports.com/rss/headlines/" title="CBS Sports"/>
+      <outline type="rss" xmlUrl="https://deadspin.com/rss" title="Deadspin"/>
+      <outline type="rss" xmlUrl="https://www.espn.com/espn/rss/news" title="ESPN"/>
+      <outline type="rss" xmlUrl="https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU" title="Fox Sports"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml" title="NYT - Sports"/>
+      <outline type="rss" xmlUrl="https://www.skysports.com/rss/12040" title="Sky Sports News"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/sport/rss" title="The Guardian - Sports"/>
+      <outline type="rss" xmlUrl="https://www.sbnation.com/rss/current" title="SB Nation"/>
+      <outline type="rss" xmlUrl="https://bleacherreport.com/articles.rss" title="Bleacher Report"/>
+    </outline>
+    <outline text="Space">
+      <outline type="rss" xmlUrl="https://arstechnica.com/science/space/feed/" title="Ars Technica - Space"/>
+      <outline type="rss" xmlUrl="https://www.nasa.gov/rss/dyn/breaking_news.rss" title="NASA Breaking News"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Space.xml" title="NYT - Space &amp; Cosmos"/>
+      <outline type="rss" xmlUrl="https://phys.org/rss-feed/space-news/" title="Phys.org - Space"/>
+      <outline type="rss" xmlUrl="https://www.space.com/feeds/all" title="Space.com"/>
+      <outline type="rss" xmlUrl="https://spacenews.com/feed/" title="SpaceNews"/>
+      <outline type="rss" xmlUrl="https://www.universetoday.com/feed/" title="Universe Today"/>
+    </outline>
+    <outline text="Art">
+      <outline type="rss" xmlUrl="http://artobserved.com/feed/" title="Art Observed"/>
+      <outline type="rss" xmlUrl="https://news.artnet.com/feed" title="Artnet News"/>
+      <outline type="rss" xmlUrl="https://www.artnews.com/feed/" title="Artnews"/>
+      <outline type="rss" xmlUrl="https://www.artsy.net/rss/news" title="Artsy News"/>
+      <outline type="rss" xmlUrl="https://www.thisiscolossal.com/feed/" title="Colossal"/>
+      <outline type="rss" xmlUrl="https://hyperallergic.com/feed/" title="Hyperallergic"/>
+      <outline type="rss" xmlUrl="https://www.juxtapoz.com/news/?format=feed&amp;type=rss" title="Juxtapoz"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml" title="NYT - Arts"/>
+      <outline type="rss" xmlUrl="https://www.theartnewspaper.com/rss.xml" title="The Art Newspaper"/>
+      <outline type="rss" xmlUrl="https://www.artsy.net/rss/news" title="Artsy News"/>
+    </outline>
+    <outline text="Finance">
+      <outline type="rss" xmlUrl="https://www.businessinsider.com/rss" title="Business Insider"/>
+      <outline type="rss" xmlUrl="https://www.ft.com/?format=rss" title="Financial Times"/>
+      <outline type="rss" xmlUrl="https://www.forbes.com/real-time/feed2/" title="Forbes"/>
+      <outline type="rss" xmlUrl="http://feeds.foxbusiness.com/foxbusiness/latest" title="Fox Business"/>
+      <outline type="rss" xmlUrl="http://feeds.marketwatch.com/marketwatch/topstories/" title="MarketWatch"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" title="NYT - Business"/>
+      <outline type="rss" xmlUrl="https://www.economist.com/united-states/rss.xml" title="The Economist"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/category/business/latest/rss" title="Wired - Business"/>
+      <outline type="rss" xmlUrl="https://feeds.a.dj.com/rss/RSSMarketsMain.xml" title="WSJ - Markets"/>
+      <outline type="rss" xmlUrl="https://finance.yahoo.com/rss/topstories" title="Yahoo Finance"/>
+      <outline type="rss" xmlUrl="https://www.economist.com/finance-and-economics/rss.xml" title="The Economist"/>
+      <outline type="rss" xmlUrl="https://www.cnbc.com/id/10000664/device/rss/rss.html" title="CNBC"/>
+      <outline type="rss" xmlUrl="https://seekingalpha.com/feed.xml" title="Seeking Alpha"/>
+      <outline type="rss" xmlUrl="https://www.barrons.com/feed/rssfeeds/barrons-markets" title="Barron's"/>
+    </outline>
+    <outline text="Fashion">
+      <outline type="rss" xmlUrl="https://www.elle.com/rss/all.xml/" title="Elle"/>
+      <outline type="rss" xmlUrl="https://www.harpersbazaar.com/rss/all.xml/" title="Harper&apos;s Bazaar"/>
+      <outline type="rss" xmlUrl="https://www.highsnobiety.com/feed/" title="Highsnobiety"/>
+      <outline type="rss" xmlUrl="https://hypebeast.com/fashion/feed" title="Hypebeast Fashion"/>
+      <outline type="rss" xmlUrl="https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml" title="NYT - Style"/>
+      <outline type="rss" xmlUrl="https://www.refinery29.com/en-us/fashion/rss.xml" title="Refinery29 - Fashion"/>
+      <outline type="rss" xmlUrl="https://www.vogue.com/feed/rss" title="Vogue"/>
+      <outline type="rss" xmlUrl="https://wwd.com/feed/" title="WWD (Women&apos;s Wear Daily)"/>
+    </outline>
+    <outline text="Environment">
+      <outline type="rss" xmlUrl="https://grist.org/feed/" title="Grist"/>
+      <outline type="rss" xmlUrl="https://insideclimatenews.org/feed/" title="InsideClimate News"/>
+      <outline type="rss" xmlUrl="https://news.mongabay.com/feed/" title="Mongabay"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/environment/rss" title="The Guardian - Environment"/>
+      <outline type="rss" xmlUrl="https://earthjustice.org/action/feed" title="Earthjustice"/>
+      <outline type="rss" xmlUrl="https://wattsupwiththat.com/feed/" title="Watts Up With That?"/>
+      <outline type="rss" xmlUrl="https://cei.org/feed/" title="Competitive Enterprise Institute"/>
+      <outline type="rss" xmlUrl="https://e360.yale.edu/feed/" title="Yale Environment 360"/>
+      <outline type="rss" xmlUrl="https://www.ecowatch.com/feeds/articles.rss" title="EcoWatch"/>
+      <outline type="rss" xmlUrl="https://www.theguardian.com/environment/rss" title="The Guardian Environment"/>
+    </outline>
+    <outline text="Entertainment">
+      <outline type="rss" xmlUrl="https://deadline.com/feed/" title="Deadline"/>
+      <outline type="rss" xmlUrl="https://www.hollywoodreporter.com/feed/" title="Hollywood Reporter"/>
+      <outline type="rss" xmlUrl="https://feeds.ign.com/ign/all" title="IGN"/>
+      <outline type="rss" xmlUrl="https://kotaku.com/rss" title="Kotaku"/>
+      <outline type="rss" xmlUrl="https://www.pcgamer.com/rss/" title="PC Gamer"/>
+      <outline type="rss" xmlUrl="https://www.polygon.com/rss/index.xml" title="Polygon"/>
+      <outline type="rss" xmlUrl="https://www.rollingstone.com/feed/" title="Rolling Stone"/>
+      <outline type="rss" xmlUrl="https://www.theonion.com/rss" title="The Onion"/>
+      <outline type="rss" xmlUrl="https://www.tmz.com/rss.xml" title="TMZ"/>
+      <outline type="rss" xmlUrl="https://variety.com/feed/" title="Variety"/>
+      <outline type="rss" xmlUrl="https://www.wired.com/feed/category/culture/latest/rss" title="Wired - Culture"/>
+      <outline type="rss" xmlUrl="https://www.indiewire.com/feed/" title="IndieWire"/>
+      <outline type="rss" xmlUrl="https://www.eater.com/rss/index.xml" title="Eater"/>
+    </outline>
+    <outline text="Economics">
+      <outline type="rss" xmlUrl="https://www.epi.org/feed/" title="Economic Policy Institute"/>
+      <outline type="rss" xmlUrl="https://fee.org/feed/" title="FEE (Foundation for Economic Education)"/>
+      <outline type="rss" xmlUrl="https://www.cato.org/rss/all" title="Cato Institute"/>
+    </outline>
+  </body>
+</opml>
