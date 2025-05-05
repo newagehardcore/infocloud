@@ -5,6 +5,7 @@ const {
     addSource, 
     updateSource, 
     deleteSource,
+    fixUnknownCategoryItems,
 } = require('../services/sourceManagementService'); 
 const { BIAS_CATEGORIES } = require('../utils/constants'); // Import defined bias categories
 const fs = require('fs').promises; // Use promises version of fs
@@ -17,7 +18,12 @@ const SOURCES_FILE_PATH = path.join(__dirname, '..', '..', 'data', 'master_sourc
 router.get('/', async (req, res) => {
     try {
         const sources = await getAllSources();
-        res.json(sources);
+        // Add cache-control headers
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+        res.json(sources); // Send response *after* setting headers
     } catch (error) {
         console.error("Error fetching sources:", error);
         res.status(500).json({ message: "Failed to fetch sources", error: error.message });
@@ -48,6 +54,12 @@ router.get('/config', async (req, res) => {
             console.warn(`[Config] Could not read ${SOURCES_FILE_PATH} to get categories, using default. Error: ${readError.message}`);
         }
 
+        // Add cache-control headers
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+        
         res.json({
             biasCategories: BIAS_CATEGORIES,
             sourceCategories: categories // Add categories to response
@@ -84,28 +96,42 @@ router.post('/', async (req, res) => {
 
 // PUT /api/sources/:id - Update an existing source
 router.put('/:id', async (req, res) => {
+    console.log(`[sourceRoutes] PUT /api/sources/${req.params.id} received.`);
+    console.log(`[sourceRoutes] Request Body:`, req.body);
     try {
         const { id } = req.params;
-        const { name, category, bias } = req.body; // Only allow updating these fields
+        // Expecting body like { name: '...', category: '...', bias: '...' }
+        // Or from inline edit: { category: '...' } or { bias: '...' }
+        const updates = req.body;
 
-        // Basic validation
-        if (!name && !category && !bias) {
-             return res.status(400).json({ message: "No update fields provided (name, category, or bias)." });
+        // --- Validation --- 
+        const allowedFields = ['name', 'category', 'bias'];
+        const receivedFields = Object.keys(updates);
+        const invalidFields = receivedFields.filter(field => !allowedFields.includes(field));
+        
+        if (invalidFields.length > 0) {
+             return res.status(400).json({ message: `Invalid fields provided: ${invalidFields.join(', ')}. Only name, category, bias can be updated.` });
         }
-         if (bias && !BIAS_CATEGORIES.includes(bias)) {
-             return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
+        
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ message: "No update fields provided (name, category, or bias)." });
         }
 
-        const updates = {};
-        if (name) updates.name = name;
-        if (category) updates.category = category;
-        if (bias) updates.bias = bias;
+        // Validate bias if provided
+        if (updates.bias && !BIAS_CATEGORIES.includes(updates.bias)) {
+            return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
+        }
+        
+        // Validate category if provided (Check against config? Or just allow any string?)
+        // For now, allow any string, sourceManagementService can handle validation if needed.
+        // if (updates.category && !allowedCategories.includes(updates.category)) { ... }
+        // --- End Validation ---
         
         const updatedSource = await updateSource(id, updates);
         if (!updatedSource) {
             return res.status(404).json({ message: "Source not found" });
         }
-        res.json(updatedSource);
+        res.json(updatedSource); // Return the full updated source
     } catch (error) {
         console.error(`Error updating source ${req.params.id}:`, error);
         res.status(500).json({ message: "Failed to update source", error: error.message });
@@ -130,5 +156,16 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// NEW: Route to fix items with UNKNOWN category
+router.post('/fix-unknown-categories', async (req, res) => {
+    console.log("Received request to fix items with UNKNOWN category...");
+    try {
+        const updateResult = await fixUnknownCategoryItems();
+        res.json({ message: `Category fix process completed. Updated ${updateResult.modifiedCount} items.`, details: updateResult });
+    } catch (error) {
+        console.error('Error running fix unknown categories:', error);
+        res.status(500).json({ message: "Failed to run category fix process", error: error.message });
+    }
+});
 
 module.exports = router; 

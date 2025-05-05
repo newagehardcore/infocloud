@@ -10,6 +10,7 @@ export interface NewsItem {
   publishedAt: string;
   category: NewsCategory;
   keywords: string[];
+  bias: PoliticalBias;
   createdAt?: string;
 }
 

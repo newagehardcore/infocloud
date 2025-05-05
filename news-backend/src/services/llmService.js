@@ -50,35 +50,35 @@ async function processArticle(title, firstSentence = '') { // Accept title and f
     const response = await axios.post('http://localhost:11434/api/generate', {
       model: 'llama3:8b', // Switch back to Llama 3 8B for quality
       format: "json", // Enforce JSON output format
-      prompt: `You are a highly efficient news headline analyst. Extract political bias and 3-5 key narrative phrases from the provided headline and optional first sentence. ONLY extract the most informative phrases DIRECTLY from the text, prioritizing proper nouns, verbs, and action phrases. Your goal is to select words that tell the complete story at a glance. Respond ONLY with valid JSON.
+      prompt: `You are a highly efficient news headline analyst. Your task is to extract the political bias and the 2-3 most central and distinct keywords or named entities from the provided headline and optional first sentence.
 
 Analyze this input:
 Headline: ${title}
 First Sentence: ${firstSentence}
 
-Respond in JSON format with two fields:
+Respond ONLY with valid JSON containing two fields:
 
 "bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")
-"keywords": array of 3-5 descriptive phrases that:
+"keywords": array of 2-3 UNIQUE and most central keywords/phrases that:
 
-IMPORTANT GUIDELINES:
-* EXTRACT keywords DIRECTLY from the headline and first sentence text only
-* PRIORITIZE proper nouns (people, organizations, places, products)
-* PRIORITIZE verbs and action phrases that describe what's happening
-* SELECT words that collectively tell the complete story at a glance
-* INCLUDE the most newsworthy elements from the text
-* VARY keyword length from single words to multi-word phrases as needed to capture key concepts
-* MAINTAIN the original capitalization from the source text when possible
+IMPORTANT KEYWORD GUIDELINES:
+* SELECT only the 2-3 most critical keywords/named entities that define the CORE SUBJECT or EVENT.
+* PRIORITIZE distinct concepts. AVOID synonyms or minor variations if another keyword captures the main idea.
+* EXTRACT keywords DIRECTLY from the headline/sentence text.
+* FOCUS ON specific proper nouns (people, organizations, places), core actions, or defining topics.
+* VARY length (single words to multi-word phrases) only if necessary to capture a distinct central concept.
+* MAINTAIN original capitalization where possible.
 
 **AVOID:**
-* Generic or uninformative words (e.g., "today", "according to")
-* Adding concepts not explicitly mentioned in the text
-* Paraphrasing the original text
-* System messages or technical jargon
-* News source names unless they are the subject
-* HTML code or entities
-* Dates, times, or other temporal markers unless they are central to the story
-* Generic words without context (e.g., "amazing", "statement")
+* More than 3 keywords.
+* Redundant keywords covering the same core concept.
+* Generic or uninformative words (e.g., "today", "report", "update", "says").
+* Adding concepts not explicitly mentioned.
+* Paraphrasing the original text.
+* News source names unless they are the subject.
+* HTML code or entities.
+* Dates/times unless absolutely central to identifying the event (rare).
+* Generic words without context (e.g., "statement", "issue").
 
 **BIAS CLASSIFICATION GUIDE:**
 * "Left" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism
@@ -91,7 +91,7 @@ IMPORTANT GUIDELINES:
       Respond with valid JSON only in this exact format:
       {
         "bias": "[political bias category]",
-        "keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
+        "keywords": ["central keyword 1", "central keyword 2"] // (or up to 3 if necessary)
       }`,
       stream: false
     });

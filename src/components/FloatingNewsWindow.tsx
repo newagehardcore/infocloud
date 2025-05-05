@@ -130,7 +130,7 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
     );
 
     filteredItems.forEach(item => {
-      const bias = item.source.bias;
+      const bias = item.bias; // Use LLM bias for grouping
       if (!groups[bias]) {
         groups[bias] = [];
       }
@@ -239,8 +239,8 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
                                     <span>{item.title}</span>
                                   </span>
                                   <div className="news-meta">
-                                    <span className="source-name" style={{ color: getBiasColor(item.source.bias) }}>{item.source.name}</span>
-                                    <span className="publish-date" style={{ color: getBiasColor(item.source.bias) }}>{new Date(item.publishedAt).toLocaleDateString()}</span>
+                                    <span className="source-name" style={{ color: getBiasColor(item.bias) }}>{item.source.name}</span>
+                                    <span className="publish-date">{new Date(item.publishedAt).toLocaleDateString()}</span>
                                   </div>
                                 </a>
                               </li>

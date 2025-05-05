@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "node src/scripts/start-dev.js",
+    "start": "node src/scripts/startup.js",
+    "dev": "nodemon src/scripts/start-dev.js",
     "dev:simple": "node clear-db.js && nodemon src/app.js",
     "services:start": "node src/scripts/startup.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:sources": "node src/scripts/migrate-sources-to-db.js",
+    "sync:sources": "node src/scripts/run-sync.js",
+    "find:missing": "node src/scripts/find-missing-sources.js",
+    "add:missing": "node src/scripts/add-missing-sources.js",
+    "import:missing": "node src/scripts/import-missing-sources-directly.js"
   },
   "keywords": [],
   "author": "",
@@ -30,5 +35,12 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
+  },
+  "nodemonConfig": { 
+    "ignore": [
+      "data/*",
+      "node_modules/*",
+      ".git/*"
+    ]
   }
 }

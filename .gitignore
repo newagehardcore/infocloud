@@ -30,3 +30,7 @@ yarn-error.log*
 
 # Backup files
 *.bak
+
+# Log files
+debug.log
+*.log
