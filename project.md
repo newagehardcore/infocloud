@@ -1,281 +1,271 @@
-# Project: News Aggregation App
+# Project: INFOCLOUD - Real-time Interactive News Tag Cloud
 
 ## 1. Project Overview
 
-This project is a full-stack news aggregation application designed to collect, analyze, and display news exclusively from various RSS feeds. The frontend, built with React, features a dynamic 3D tag cloud for exploring topics. The backend, using Node.js and Express, manages RSS feed retrieval, storage, keyword extraction/processing, and serves this processed data to the frontend via RESTful APIs.
+INFOCLOUD is a full-stack application designed to visualize real-time news topics as an interactive 3D tag cloud. It aggregates news from various RSS feeds, processes the content using NLP and LLM techniques to extract keywords and determine characteristics like political leaning, and displays this information dynamically.
 
-**Technologies:**
+**Goal:** Provide a visually engaging and interactive way to explore the current news landscape, highlighting topic frequency and source bias.
 
-*   **Frontend:** React, CSS
-*   **Backend:** Node.js, Express
-*   **Data:** JSON (from RSS feeds)
-*   **APIs:** RSS Feeds
+**Core Technologies:**
 
-**Core Design:**
+*   **Frontend:** React, TypeScript, Three.js (via `@react-three/fiber`, `@react-three/drei`), CSS
+*   **Backend:** Node.js, Express, MongoDB
+*   **Data Aggregation:** Self-hosted Miniflux (managed via API)
+*   **NLP/Analysis:** Local LLM (via Ollama), `compromise` (for lemmatization, phrase extraction)
+*   **Build/Dev:** Craco (for overrides), `react-scripts`, `concurrently`
 
-*   **Modular Backend:** Backend services handle specific tasks (e.g., `rssService`, `wordProcessingService`).
-*   **Data-driven:** News data is the central element.
-*   **Client-Server:** Clear separation between frontend and backend.
+## 2. Core Features
 
-## 2. Directory Structure
-```
-├── CORS_SOLUTION.md          # Documentation for CORS handling
-├── DEPLOYMENT.md            # Deployment instructions
-├── README.md                # General project information
-├── config-overrides.js      # Configuration overrides
-├── debug.log                # Log file for debugging
-├── package-lock.json        # Dependency lock file
-├── package.json             # Project dependencies and scripts
-├── tsconfig.json            # TypeScript configuration
-├── news-backend/            # Backend application
-│   ├── package-lock.json   # Backend dependency lock file
-│   ├── package.json        # Backend dependencies and scripts
-│   └── src/                # Backend source code
-├── public/                  # Frontend static assets
-│   └── fonts/              # Custom font files
-└── src/                     # Frontend source code
-    ├── components/          # Reusable UI components
-    ├── contexts/            # React contexts for state management
-    ├── services/            # Data fetching and processing services
-    ├── types/               # TypeScript type definitions
-    └── utils/               # Utility functions
-```
-**Conventions:**
+*   **3D Tag Cloud Visualization:** Uses Three.js to render news keywords. Word size often corresponds to frequency/importance, and color may indicate source bias or other metadata.
+*   **Real-time Updates:** (Potentially via WebSocket or frequent polling) The tag cloud should update dynamically as new news data is processed.
+*   **Interactive Exploration:** Clicking on words/tags likely triggers actions like showing related articles or details (functionality might be evolving).
+*   **Backend Data Processing:** Handles RSS feed aggregation (via Miniflux API), data enrichment (keywords, bias analysis via LLM), and storage (MongoDB).
+*   **Source Management:** System for managing RSS source URLs, categories, and metadata (stored in MongoDB), synchronizing feeds with Miniflux.
+*   **LLM Integration:** Leverages a local Ollama instance for advanced text analysis (keyword extraction, bias detection, etc.).
+*   **Responsive Design:** Aims to work on both desktop and mobile (potentially with different views).
 
-*   `src/` holds all source code for each project component.
-*   Component-specific styles are located next to component code files.
+## 3. Architecture & Data Flow
 
-## 3. Key Components
+**High-Level:** Client-Server Architecture
 
-### Frontend (`src/`)
-
-*   **`components/`:**
-    *   **`EditMenu.tsx`:** Provides UI controls to edit the state.
-        *   **Purpose:** Manages UI controls for various app settings.
-        *   **Location:** `src/components/EditMenu.tsx`
-        *   **Key Functions:** Renders the configuration options.
-        *   **Dependencies:** `FilterContext`
-    *   **`Header.tsx`:** Top-level navigation and title bar.
-        *   **Purpose:** Displays the main header section of the app.
-        *   **Location:** `src/components/Header.tsx`
-        *   **Key Functions:** Display title and navigation elements.
-        *   **Dependencies:** None.
-    *   **`NewsDetail.tsx`:** Detailed view of a news article.
-        *   **Purpose:** Shows the content of a single news item.
-        *   **Location:** `src/components/NewsDetail.tsx`
-        *   **Key Functions:** `fetchNewsItem()`.
-        *   **Dependencies:** `rssService`
-    *   **`RelatedNewsPanel.tsx`:** Displays articles related to the main news item.
-        *   **Purpose:** Lists related news.
-        *   **Location:** `src/components/RelatedNewsPanel.tsx`
-        *   **Key Functions:** `fetchRelatedNews()`.
-        *   **Dependencies:** `rssService`
-    *   **`TagCloud3DOptimized.tsx`:** 3D interactive tag cloud.
-        *   **Purpose:** Visualizes news keywords as an interactive 3D tag cloud using pre-processed data from the backend.
-        *   **Location:** `src/components/TagCloud3DOptimized.tsx`
-        *   **Key Functions:** Renders words based on input props.
-        *   **Dependencies:** Receives processed words via props.
-    *   **`TimeControls.tsx`:** UI controls for time-based filtering.
-        *   **Purpose:** Handles selection of time frames for news.
-        *   **Location:** `src/components/TimeControls.tsx`
-        *   **Key Functions:** `handleTimeChange()`
-        *   **Dependencies:** `FilterContext`
-*   **`contexts/FilterContext.tsx`:**
-    *   **Purpose:** Manages application-wide filtering state.
-    *   **Location:** `src/contexts/FilterContext.tsx`
-    *   **Key Functions:** `setFilters()`, `getFilters()`.
-    *   **Dependencies:** React Context API.
-*   **`services/`:**
-    *   **`rssService.js`:**
-        *   **Purpose:** Fetches processed news and keyword data from the backend API. _(No longer directly handles RSS parsing on the frontend.)_
-        *   **Location:** `src/services/rssService.js`
-        *   **Key Functions:** `fetchNews()` (or similar function fetching from backend).
-        *   **Dependencies:** Backend API endpoint (`/api/news`).
-*   **`utils/`:** Holds general utility functions for the frontend.
-    *   **(Example files: `performance.ts`, `fonts.ts`)**
-
-### Backend (`news-backend/src/`)
-
-*   **`app.js`:**
-    *   **Purpose:** Main Express application setup, middleware, route mounting.
-    *   **Location:** `news-backend/src/app.js`
-    *   **Key Functions:** Route setup, server initialization, DB connection.
-    *   **Dependencies:** `express`, `routes/news.js`, `routes/statusRoutes.js`, `routes/sourceRoutes.js`, `cron.js`
-*   **`cron.js`:**
-    *   **Purpose:** Schedules periodic tasks: 1) Fetching new entries from Miniflux via `rssService`, processing, and saving to DB. 2) Queueing unprocessed articles for LLM analysis.
-    *   **Location:** `news-backend/src/cron.js`
-    *   **Key Functions:** `scheduleCronJobs()`, `fetchAllSources()`, `processQueuedArticles()`.
-    *   **Dependencies:** `node-cron`, `services/rssService`, `services/llmService`, `config/db.js`
-*   **`config/db.js`:**
-    *   **Purpose:** MongoDB connection configuration and logic.
-    *   **Location:** `news-backend/src/config/db.js`
-    *   **Key Functions:** `connectDB()`, `getDB()`.
-    *   **Dependencies:** `mongodb`
-*   **`models/NewsItem.js`:**
-    *   **Purpose:** MongoDB model schema for news items.
-    *   **Location:** `news-backend/src/models/NewsItem.js`
-    *   **Key Functions:** `NewsItemSchema`.
-    *   **Dependencies:** `mongoose`
-*   **`routes/news.js`:**
-    *   **Purpose:** API routes for serving processed news and keyword data to the frontend.
-    *   **Location:** `news-backend/src/routes/news.js`
-    *   **Key Functions:** `GET /api/news`.
-    *   **Dependencies:** `config/db.js`
-*   **`routes/sourceRoutes.js`:**
-    *   **Purpose:** API routes for managing RSS sources (CRUD operations, configuration).
-    *   **Location:** `news-backend/src/routes/sourceRoutes.js`
-    *   **Key Functions:** `GET /`, `POST /`, `PUT /:id`, `DELETE /:id`, `GET /config`.
-    *   **Dependencies:** `services/sourceManagementService`, `utils/constants.js`
-*   **`routes/statusRoutes.js`:**
-    *   **Purpose:** API route for providing system status (e.g., last fetch time).
-    *   **Location:** `news-backend/src/routes/statusRoutes.js`
-    *   **Key Functions:** `GET /status`.
-    *   **Dependencies:** `config/db.js`
-*   **`services/`:**
-    *   **`sourceManagementService.js`:** _(New)_
-        *   **Purpose:** Manages the master list of RSS sources (`data/master_sources.json`). Provides CRUD operations on this list and synchronizes additions/updates/deletions with the configured Miniflux instance via its API. Also provides source metadata (name, category, bias) to other services.
-        *   **Location:** `news-backend/src/services/sourceManagementService.js`
-        *   **Key Functions:** `loadSources()`, `saveSources()`, `getAllSources()`, `addSource()`, `updateSource()`, `deleteSource()`, `syncWithMinifluxFeeds()`.
-        *   **Dependencies:** `axios` (for Miniflux API), `fs`, `path`, `dotenv`.
-    *   **`rssService.js`:**
-        *   **Purpose:** Fetches new/unread entries directly from the Miniflux API. Enriches these entries with metadata (bias, category, name) from `sourceManagementService`. Performs bulk upsert into MongoDB and marks entries as read in Miniflux. _(No longer parses RSS feeds directly or manages feed lists.)_
-        *   **Location:** `news-backend/src/services/rssService.js`
-        *   **Key Functions:** `fetchAndProcessMinifluxEntries()`.
-        *   **Dependencies:** `axios` (for Miniflux API), `services/sourceManagementService`, `config/db.js`, `models/NewsItem.js`.
-    *   **`wordProcessingService.js`:**
-        *   **Purpose:** Processes text from fetched news items (provided by `cron.js` from DB) to extract and rank keywords/tags, potentially enhanced with LLM analysis.
-        *   **Location:** `news-backend/src/services/wordProcessingService.js`
-        *   **Key Functions:** `processNewsKeywords()`, `aggregateKeywordsForCloud()`.
-        *   **Dependencies:** Input text data, `services/llmService`.
-    *   **`llmService.js`:**
-        *   **Purpose:** Provides LLM capabilities for NLP tasks (keyword extraction, summarization, bias detection) on articles queued by `cron.js`.
-        *   **Location:** `news-backend/src/services/llmService.js`
-        *   **Key Functions:** `processArticle()`, `processArticleWithRetry()`.
-        *   **Dependencies:** `axios`, `lru-cache`, Ollama LLM.
-*   **`utils/constants.js`:** _(New)_
-    *   **Purpose:** Stores shared constant values, such as bias categories.
-    *   **Location:** `news-backend/src/utils/constants.js`
-*   **`data/master_sources.json`:** _(New)_
-    *   **Purpose:** Central JSON file storing the master list of all RSS sources with their URL, name, category, bias, internal ID, and Miniflux feed ID. Managed by `sourceManagementService`.
-    *   **Location:** `news-backend/data/master_sources.json`
-*   **`public/manage-sources.html`:** _(New)_
-    *   **Purpose:** Simple backend-hosted HTML interface for viewing, adding, editing (name, URL, category, bias), and deleting sources from `master_sources.json` via the `/api/sources` endpoints.
-    *   **Location:** `news-backend/public/manage-sources.html`
-*   **`scripts/`:**
-    *   **`run-sync.js`:** _(New - Utility Script)_
-        *   **Purpose:** One-time script to synchronize `master_sources.json` with the feeds currently in the Miniflux instance, updating `minifluxFeedId` fields in the JSON file. Not intended for regular use.
-        *   **Location:** `news-backend/src/scripts/run-sync.js`
-        *   **Dependencies:** `services/sourceManagementService`.
-
-*   **`utils/`:**
-    *   **(Directory no longer exists. Constants moved to `utils/constants.js`. Other utilities integrated.)**
-
-## 4. Data Flow
-
-1.  **Source Management (Manual/UI):**
-    *   User interacts with `manage-sources.html` (`/manage-sources.html`).
-    *   UI calls CRUD API endpoints in `sourceRoutes.js` (`/api/sources`).
-    *   `sourceManagementService.js` updates `data/master_sources.json` and makes corresponding API calls to add/update/delete feeds and categories in the Miniflux instance.
-2.  **Backend Data Fetching & Processing (Automated):**
-    *   `cron.js` schedules `rssService.fetchAndProcessMinifluxEntries()`.
-    *   `rssService.js` fetches *unread* entries from the Miniflux API (`/v1/entries`).
-    *   `rssService.js` calls `sourceManagementService.js` to get the current source list (name, category, bias) based on the Miniflux `feed_id` or URL found in the entry.
-    *   `rssService.js` combines Miniflux entry data with source metadata and performs a bulk upsert into the `newsitems` collection in MongoDB.
-    *   `rssService.js` marks the processed entries as read in Miniflux via the API (`/v1/entries`).
-    *   Separately, `cron.js` schedules `processQueuedArticles()`.
-    *   This task finds articles in MongoDB that haven't been processed by the LLM (`keywords` field doesn't exist).
-    *   It passes these articles (content, title etc.) to `llmService.js` via a queue (`better-queue`).
-    *   `llmService.js` interacts with the Ollama LLM to extract keywords, determine bias, etc.
-    *   The results are updated back into the corresponding MongoDB `newsitems` documents.
+1.  **Source Management (`/admin` page):**
+    *   User interacts with the unified Backend Manager UI (`admin.html`) served statically.
+    *   Frontend JavaScript sends API requests to `news-backend` (`sourceRoutes.js`):
+        *   `GET /api/sources`: Retrieve the current list of sources from the MongoDB `Source` collection.
+        *   `POST /api/sources`: Add a new source to the MongoDB `Source` collection and create the feed in Miniflux.
+        *   `PUT /api/sources/:id`: Update a source's details (name, category, bias) in the MongoDB `Source` collection (and update category in Miniflux if changed).
+        *   `DELETE /api/sources/:id`: Remove a source from the MongoDB `Source` collection and delete the corresponding feed from Miniflux.
+        *   `GET /api/sources/config`: Retrieves configuration like bias categories and dynamically gets existing categories from the `Source` collection.
+    *   Backend service (`sourceManagementService.js`) handles the database interactions (using the `Source` model) and syncs feed creation/deletion/updates with the configured Miniflux instance via its API.
+2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
+    *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API.
+    *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection.
+    *   Enriched data is bulk upserted into the MongoDB `newsitems` collection.
+    *   Processed entries are marked as read in Miniflux via API.
+    *   A separate scheduled job (`processQueuedArticles`) identifies unprocessed articles in MongoDB.
+    *   These articles are sent to `llmService.js` (via `better-queue`).
+    *   `llmService.js` interacts with Ollama for analysis (keywords, bias, etc.).
+    *   Results are updated back into the MongoDB `newsitems` documents.
 3.  **Frontend Data Request:**
-    *   Frontend `rssService.js` sends requests to the backend API (`/api/news`).
-    *   `routes/news.js` queries MongoDB for processed `newsitems` (potentially filtered).
-    *   Data (including keywords and bias from LLM processing) is returned to the frontend.
-4.  **Data Display:**
-    *   Fetched data is used to render frontend components (`TagCloud3DOptimized`, lists, details).
+    *   Frontend (`src/services/api.ts` or similar) requests data from the backend API (`/api/news` or WebSocket).
+    *   Backend route (`news-backend/src/routes/news.js`) queries MongoDB for processed `newsitems`.
+    *   Data (including keywords, bias) is returned to the frontend.
+4.  **Frontend Rendering:**
+    *   React components (`src/components/`) use the fetched data.
+    *   `TagCloud.tsx` (or similar, potentially `TagCloud3DOptimized.tsx` though name might differ) uses the processed keyword data to render the interactive 3D visualization.
+5.  **Backend Status & Actions (`/admin` page):**
+    *   User interacts with the unified Backend Manager UI (`admin.html`).
+    *   Frontend JavaScript periodically fetches status from `GET /status/api`.
+    *   User can trigger database purge via `POST /status/api/admin/purge-db`.
+    *   User can trigger a full data refresh via `POST /status/api/admin/force-refresh`.
+    *   User can trigger category fixing via `POST /api/sources/fix-unknown-categories` (This uses the `Source` collection to map minifluxFeedId to correct category).
+    *   These requests are handled by `statusRoutes.js` and `sourceRoutes.js`.
 
-## 5. External Dependencies
+## 4. Directory Structure
 
-*   **`axios`:** HTTP client for API requests (Miniflux, Ollama).
-*   **`mongodb`:** MongoDB driver (replacing `mongoose`).
-*   **`node-cron`:** Scheduling jobs (Backend).
-*   **`lru-cache`:** Caching mechanism for LLM responses.
-*   **`better-queue`:** Batch processing for LLM operations.
-*   **`he`:** HTML entities library (used in `manage-sources.html`).
-*   **Miniflux:** Self-hosted RSS aggregator (required dependency).
-*   **Ollama:** Local LLM inference engine (required dependency).
-*   **External APIs:** None (direct interaction only with self-hosted Miniflux/Ollama).
+```
+├── .git/
+├── build/                   # Frontend production build output
+├── news-backend/            # Backend application
+│   ├── data/                # Data files (e.g., initial seeds, potentially master_sources.json as backup/seed)
+│   │   └── master_sources.json # (No longer primary source store for running app)
+│   ├── models/              # MongoDB Models (e.g., NewsItem.js, Source.js)
+│   ├── public/              # Static assets served by backend (e.g., admin.html)
+│   ├── routes/              # API route handlers (e.g., news.js, sourceRoutes.js, statusRoutes.js)
+│   ├── services/            # Business logic (e.g., rssService.js, llmService.js, sourceManagementService.js)
+│   ├── config/              # Configuration (e.g., db.js)
+│   ├── scripts/             # Utility scripts (e.g., run-sync.js, migrate-sources-to-db.js)
+│   ├── utils/               # Utility functions (e.g., constants.js)
+│   ├── .env                 # Backend environment variables (GITIGNORED)
+│   ├── app.js               # Express app setup
+│   ├── cron.js              # Scheduled tasks setup
+│   └── package.json         # Backend dependencies
+├── node_modules/            # Project dependencies (Frontend & Backend)
+├── public/                  # Frontend static assets (index.html, fonts/, etc.)
+│   └── fonts/               # Custom font files
+├── scripts/                 # Root-level utility scripts (if any)
+├── src/                     # Frontend source code (React App)
+│   ├── components/          # Reusable UI components (TagCloud, Header, etc.)
+│   ├── contexts/            # React contexts for state management
+│   ├── hooks/               # Custom React hooks
+│   ├── services/            # Frontend data fetching (e.g., api.ts)
+│   ├── types/               # TypeScript type definitions
+│   ├── utils/               # Frontend utility functions
+│   ├── App.css              # Main app styles
+│   ├── App.tsx              # Main application component
+│   ├── index.css            # Global styles
+│   └── index.tsx            # Application entry point
+├── .env                     # Frontend environment variables (GITIGNORED, if used)
+├── .eslint.rc.js            # ESLint configuration
+├── .gitignore               # Git ignore rules
+├── config-overrides.js      # CRACO configuration overrides
+├── CORS_SOLUTION.md         # Documentation for CORS handling
+├── docker-compose.yml       # Docker config for Miniflux/Postgres/MongoDB
+├── DEPLOYMENT.md            # Deployment instructions
+├── infocloud_feeds.opml     # Example OPML file for Miniflux import
+├── miniflux_bridge.py       # Python bridge for Miniflux API (may or may not be currently used)
+├── package-lock.json        # Dependency lock file
+├── package.json             # Project dependencies and scripts (Frontend)
+├── project.md               # THIS FILE - Project overview & technical details
+└── tsconfig.json            # TypeScript configuration
+```
 
-## 6. Critical Functions and Files
+## 5. Key Components & Services
 
-*   **Backend:**
-    *   `news-backend/src/cron.js`: Scheduling for `fetchAndProcessMinifluxEntries` and LLM processing queue.
-    *   `news-backend/src/services/sourceManagementService.js`: Core logic for managing `master_sources.json` and syncing with Miniflux.
-    *   `news-backend/src/services/rssService.js`: `fetchAndProcessMinifluxEntries()` - Core logic for getting entries from Miniflux, enriching, saving to DB, marking read.
-    *   `news-backend/src/services/llmService.js`: `processArticleWithRetry()` - LLM-based analysis.
-    *   `news-backend/data/master_sources.json`: The central source list.
-    *   `news-backend/public/manage-sources.html`: UI for managing sources.
-    *   `news-backend/src/routes/sourceRoutes.js`: API for managing sources.
-    *   `news-backend/src/routes/news.js`: API endpoint for serving processed data to frontend.
-*   **Frontend:**
-    *   `src/services/rssService.js`: `fetchNews()` - Fetches data from `/api/news`.
-    *   `src/components/TagCloud3DOptimized.tsx`: Renders the 3D tag cloud.
+*(Refer to Section 3: Architecture & Data Flow and Section 4: Directory Structure for key file locations and purposes)*
 
-## 7. LLM Integration
+*   **Backend Core:** `news-backend/src/cron.js`, `news-backend/src/services/sourceManagementService.js`, `news-backend/src/services/rssService.js`, `news-backend/src/services/llmService.js`, `news-backend/src/models/Source.js`, `news-backend/src/models/NewsItem.js`.
+*   **Backend API:** `news-backend/src/routes/news.js`, `news-backend/src/routes/sourceRoutes.js`, `news-backend/src/routes/statusRoutes.js`.
+*   **Backend Management UI:** `news-backend/public/admin.html`.
+*   **Frontend Core:** `src/App.tsx`, `src/components/TagCloud.tsx` (or similar), `src/services/api.ts` (or similar data fetching logic).
 
-*   **Architecture:**
-    *   **Local LLM:** Uses Ollama to run open-source language models locally (Gemma 2B recommended).
-    *   **Processing Flow:** All news articles are analyzed by the LLM for keywords and bias detection.
-    *   **Caching:** LRU cache improves performance by storing results for identical content.
-    *   **Queue System:** Articles are processed in batches to optimize throughput.
-    *   **Fallback Mechanisms:** Traditional NLP is used alongside LLM for redundancy.
+## 6. Setup & Running
 
-*   **Key Components:**
-    *   **`llmService.js`:** Central service for all LLM operations with caching and retry capability.
-    *   **Enhanced `wordProcessingService.js`:** Combines traditional NLP with LLM analysis.
-    *   **Processing Queue:** Implemented in `cron.js` to handle article processing efficiently.
-    *   **Documentation:** Detailed in `LLM_INTEGRATION.md`.
+### Prerequisites
 
-*   **Setup Requirements:**
-    *   Ollama must be installed and running (`ollama serve`).
-    *   At least one language model must be pulled (e.g., `ollama pull gemma:2b`).
-    *   MongoDB for storing processed data.
-    *   Miniflux for RSS feed management.
+*   Node.js (v16+ recommended)
+*   npm (v7+ recommended)
+*   Docker & Docker Compose
+*   Ollama installed and running (`ollama serve`)
+    *   A model pulled (e.g., `ollama pull gemma:2b`)
+*   MongoDB running locally or accessible via Docker Compose.
 
-*   **Development Workflow:**
-    *   The `npm run dev` command automatically starts all required services.
-    *   Ollama runs locally with increased concurrency for better performance.
-    *   The backend connects to Miniflux via API key for RSS feed management.
+### Environment Setup
 
-## 8. Development Workflow
+1.  **Miniflux & Database:**
+    *   Start Miniflux, its PostgreSQL database, and MongoDB using Docker:
+        ```bash
+        docker-compose up -d
+        ```
+    *   Access Miniflux UI: `http://localhost:8080` (Default user: `admin`, pass: `adminpass` - check `docker-compose.yml`)
+    *   Import feeds: You might need to import feeds into Miniflux initially. The backend relies on feeds existing in Miniflux.
+2.  **Backend (`news-backend/.env`):**
+    *   Create or update `.env` file in `news-backend`. Key variables:
+        ```dotenv
+        MONGODB_URI=mongodb://localhost:27017/infocloud # Or mongodb://mongodb:27017/infocloud if running backend outside docker but DB inside
+        MINIFLUX_URL=http://localhost:8080
+        MINIFLUX_API_KEY=YOUR_MINIFLUX_API_KEY # Generate this in Miniflux UI (Settings > API Keys)
+        OLLAMA_BASE_URL=http://localhost:11434 # Default Ollama URL
+        # Other potential variables (LLM model name, ports, etc.)
+        ```
+3.  **Frontend (`.env` - Optional):**
+    *   If needed, create `.env` in the root directory.
 
-*   **Frontend:**
-  * `npm start` - Start the frontend application
+### Installation
 
-*   **Backend:**
-  * `npm run dev` - Start all services (Miniflux, Ollama, MongoDB) and backend with auto-reload
-  * `npm run services:start` - Start just the required services without the backend
-  * `npm run dev:simple` - Start backend with minimal setup (legacy mode)
+1.  Clone the repository.
+2.  Install root dependencies (includes frontend): `npm install`
+3.  Install backend dependencies: `cd news-backend && npm install && cd ..`
 
-*   **Root Project:**
-  * `npm run dev` - Start both frontend and backend concurrently
+### Initial Data Migration (First time setup)
 
-## 9. Configuration and Environment
+1.  Ensure Docker services are running (`docker-compose up -d`).
+2.  Run the one-time source migration script (if `master_sources.json` exists and you want to import from it):
+    ```bash
+    cd news-backend
+    npm run migrate:sources
+    cd ..
+    ```
 
-*   **Environment Variables:**
-    *   Backend requires database connection strings. API keys for external news services are no longer needed.
-*   **Configuration Files:**
-    *   `news-backend/src/config/db.js`: Handles database connection details.
-    *   `package.json`: Defines environment variables via scripts.
-*   **Environments:** No clear differentiation between dev/prod in the current setup.
+### Running the Application
 
-## 10. Common Patterns
+Use the concurrent script (if available) or start backend and frontend separately.
 
-*   **Service Layer:** Clear separation of concerns with backend `services/` and frontend `services/`.
-*   **Component-Based:** React components are modular and reusable.
-*   **Utility Functions:** `utils/` directories for shared functionality.
-*   **RESTful APIs:** Backend exposes data via REST.
-* **Data Caching:** The backend database stores fetched and processed news data.
-* **Naming Conventions:** Files and functions are generally named descriptively.
-* **Error Handling:** No explicit pattern, but try-catch blocks are present in API interaction code.
-* **Testing:** There are `test.tsx` files, but no clear testing strategy in place.
+*   **Backend:** `cd news-backend && npm run dev`
+*   **Frontend:** `npm start` (from root)
+
+This typically runs:
+*   Frontend (React App): `http://localhost:3000`
+*   Backend (Node/Express API): `http://localhost:5001` (or configured port)
+*   Admin UI: `http://localhost:5001/admin`
+
+## 7. Development Workflow
+
+*   **Linting/Formatting:** Follow ESLint rules (`.eslintrc.js`).
+*   **Branching:** Use feature branches.
+*   **Backend Changes:** Restart backend server (`npm run dev` in `news-backend` handles this).
+*   **Dependencies:** Add frontend deps via `npm install <package>` in root. Add backend deps via `npm install <package>` in `news-backend`.
+
+## 8. LLM Integration Details
+
+*   **Engine:** Ollama (local inference).
+*   **Tasks:** Keyword extraction, bias detection, potentially summarization.
+*   **Mechanism:** Articles are queued (`better-queue`) by `cron.js` and processed asynchronously by `llmService.js`.
+*   **Caching:** `lru-cache` is used in `llmService.js` to avoid re-processing identical content.
+*   **Dependencies:** Requires Ollama server running and accessible.
+
+## 9. Important Notes for AI Assistant
+
+*   **Primary Source of Truth:** This `project.md` file. Refer to it for architecture, data flow, and key components.
+*   **Verify Assumptions:** The codebase evolves. If instructed changes conflict with this document, verify against the current code (`src/` and `news-backend/src/`) before proceeding. Ask for clarification if discrepancies arise.
+*   **Focus on Backend/Frontend Separation:** Maintain the client-server boundary.
+*   **LLM Usage:** Changes related to text analysis likely involve `news-backend/src/services/llmService.js` and potentially `news-backend/src/services/wordProcessingService.js`.
+*   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection.** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
+*   **State Management (Frontend):** Check `src/contexts/` or `src/hooks/` for primary state management patterns.
+*   **Visualization:** The core 3D cloud is likely rendered by a component in `src/components/` using data passed as props.
+
+## Project Structure
+
+*   `/news-backend`: Node.js/Express backend application.
+    *   `/src`:
+        *   `/config`: Database (Mongoose), Miniflux client setup.
+        *   `/models`: Mongoose schemas (`NewsItem.js`, `Source.js`).
+        *   `/routes`: Express route definitions (`news.js`, `sources.js`, `statusRoutes.js`).
+        *   `/services`: Core logic (`rssService.js`, `llmService.js`, `wordProcessingService.js`, `cron.js`, `sourceManagementService.js`).
+        *   `/scripts`: Utility/startup/migration scripts (`startup.js`, `start-dev.js`, `migrate-sources-to-db.js`, etc.).
+        *   `/types`: Shared TypeScript type definitions (Enums for `PoliticalBias`, `NewsCategory`).
+        *   `app.js`: Express application entry point.
+    *   `/public`: Static files (`admin.html`).
+    *   `.env`: Environment variables.
+    *   `package.json`: Dependencies and scripts.
+    *   `Dockerfile`: Container definition.
+*   `/news-frontend`: React frontend application (details TBD).
+*   `docker-compose.yml`: Docker Compose configuration.
+*   `project.md`: This file.
+*   `docs/architecture.md`: System architecture details.
+
+## Getting Started
+
+1.  **Prerequisites:** Docker, Node.js, npm.
+2.  **Environment Setup:**
+    *   Copy `.env.example` to `.env` in `news-backend`.
+    *   Fill in Miniflux API key/URL, adjust MongoDB URI if needed.
+    *   (Optional) Configure Ollama endpoint.
+3.  **Build & Run (Docker Compose):**
+    ```bash
+    docker-compose up --build -d
+    ```
+4.  **Running Locally (Development):**
+    *   `cd news-backend && npm install && cd ..`
+    *   `npm install` (in root)
+    *   Ensure dependencies running (e.g., `docker-compose up -d miniflux mongodb ollama`)
+    *   Run migration (first time): `cd news-backend && npm run migrate:sources && cd ..`
+    *   Run backend dev server: `cd news-backend && npm run dev`
+    *   Run frontend dev server (if separate): `npm start` (from root)
+    *   Access admin UI: `http://localhost:5001/admin`
+
+## Key Technologies & Patterns
+
+*   **Backend:** Node.js, Express.js
+*   **Database:** MongoDB with Mongoose ODM (`NewsItem` and `Source` collections).
+*   **RSS Aggregation:** Miniflux (via `axios` API client).
+*   **LLM Integration:** Ollama (via `axios`). `llm-utils/llmService.js` abstracts interaction.
+*   **Keyword/Bias Extraction:** Local LLM prompted for JSON output. Fallback NLP via `compromise`, `natural`.
+*   **Background Tasks:** `node-cron` for scheduling, `better-queue` for LLM queue.
+*   **Configuration:** `dotenv`.
+*   **Source Management:** Sources (feeds) are stored in the MongoDB `Source` collection and synced with Miniflux using its API. Includes category and bias metadata.
+*   **Admin Interface:** Static HTML page (`news-backend/public/admin.html`) served by Express for status, DB actions, and source management (CRUD via API calls to backend).
+*   **Error Handling:** Basic.
+*   **Logging:** Basic `console.log`/`console.error`.
+
+## Development Workflow
+
+1.  Run `npm run dev` in `news-backend` (and `npm start` in root if frontend is separate).
+2.  Make code changes. `nodemon` restarts backend.
+3.  Access backend API at `http://localhost:5001`.
+4.  Access admin page at `http://localhost:5001/admin`.
+5.  Access Miniflux at `http://localhost:8080`.
+
+## Deployment
+
+(Details TBD - likely involves building Docker images and deploying via Docker Compose or orchestrator).

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../config/db');
-const { ObjectId } = require('mongodb'); // Needed if querying by MongoDB's default _id
-const { fetchNews } = require('../miniflux/fetchEntries'); // Use new Miniflux integration
+const { ObjectId } = require('mongodb'); // May still be needed if manipulating _id directly elsewhere, but likely not for queries now.
+const { fetchNews } = require('../miniflux/fetchEntries');
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService');
-const { PoliticalBias } = require('../types'); // Assuming types are shared or defined here
+const { PoliticalBias } = require('../types');
+const NewsItem = require('../models/NewsItem'); // Import the Mongoose model
 
 // Target number of articles to return
 const TARGET_ARTICLE_COUNT = 1000; 
@@ -26,9 +26,6 @@ const ALL_BIAS_VALUES = Object.values(PoliticalBias);
 // @query   timeFilter?: string - [DEPRECATED - Prioritization replaces this]
 router.get('/', async (req, res) => {
   try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
-
     // --- Determine Filters --- 
     const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all') 
       ? req.query.category 
@@ -54,15 +51,15 @@ router.get('/', async (req, res) => {
     const queryPromises = selectedBiases.map(bias => {
       const filter = {};
       if (categoryFilter) {
-        filter.category = categoryFilter;
+        filter['source.category'] = categoryFilter.toUpperCase();
       }
-      filter.llmBias = bias; // Filter by the LLM-determined bias
+      filter.bias = bias; // Filter by the LLM-determined bias
       
-      return newsCollection
+      return NewsItem
         .find(filter)
         .sort({ publishedAt: -1 })
         .limit(limitPerBias)
-        .toArray();
+        .exec();
     });
 
     const resultsByBias = await Promise.all(queryPromises);
@@ -97,11 +94,9 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
-    
-    // The `id` we created is based on url+timestamp, not MongoDB's ObjectId
-    const newsItem = await newsCollection.findOne({ id: req.params.id }); 
+    // Use Mongoose Model findOne() - assuming 'id' is a field in your schema, not MongoDB's _id
+    // If :id refers to the MongoDB _id, use findById(req.params.id) instead.
+    const newsItem = await NewsItem.findOne({ id: req.params.id }).exec(); // Use the unique 'id' field
 
     if (!newsItem) {
       return res.status(404).json({ msg: 'News item not found' });
@@ -170,11 +165,8 @@ router.post('/refresh-feeds', async (req, res) => {
 router.post('/purge-database', async (req, res) => {
   console.warn('Received request to PURGE database...');
   try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
-    
-    // Delete all documents in the collection
-    const deleteResult = await newsCollection.deleteMany({});
+    // Use Mongoose Model deleteMany()
+    const deleteResult = await NewsItem.deleteMany({});
     
     console.log(`Database purge complete. Deleted ${deleteResult.deletedCount} items.`);
     res.json({ success: true, deletedCount: deleteResult.deletedCount });

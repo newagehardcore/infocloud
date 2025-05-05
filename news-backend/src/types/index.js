@@ -10,8 +10,22 @@ const PoliticalBias = {
   Right: 'Right'
 };
 
+// Define constants for NewsCategory
+const NewsCategory = {
+    POLITICS: 'POLITICS',
+    NEWS: 'NEWS',
+    SCIENCE: 'SCIENCE',
+    TECH: 'TECH',
+    BUSINESS: 'BUSINESS', // Added based on potential needs
+    SPORTS: 'SPORTS',     // Added based on potential needs
+    WORLD: 'WORLD',       // Added based on potential needs
+    UNKNOWN: 'UNKNOWN'    // Added for fallback
+    // Add other categories as needed
+};
+
 // Add other shared backend types/enums here as needed
 
 module.exports = {
-  PoliticalBias
+  PoliticalBias,
+  NewsCategory // Export NewsCategory
 }; 

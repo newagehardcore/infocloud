@@ -7,6 +7,7 @@ const statusRoutes = require('./routes/statusRoutes');
 const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
 // Import the whole module
 const cronService = require('./cron'); 
+const path = require('path'); 
 
 const app = express();
 
@@ -43,6 +44,11 @@ app.get('/', (req, res) => res.send('News Backend Running'));
 app.use('/api/news', newsRoutes);
 app.use('/status', statusRoutes);
 app.use('/api/sources', sourceRoutes); // Mount the source routes
+
+// Serve the new admin.html at the /admin route
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 // Basic Error Handling Middleware (can be expanded later)
 app.use((err, req, res, next) => {

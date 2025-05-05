@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoCloud Backend Manager</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #e0e0e0;
+            --border-color: #282828; /* Slightly lighter border */
+            --accent-color: #39d353; /* Brighter Green */
+            --warning-color: #FFC107; /* Amber */
+            --error-color: #F44336; /* Red */
+            --button-bg: #222;
+            --button-hover-bg: #333;
+            --input-bg: #111;
+            --accordion-header-bg: #1a1a1a;
+            --status-panel-bg: #111;
+            --tight-padding: 5px;
+            --normal-padding: 10px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: var(--normal-padding); /* Padding on body instead of container */
+            font-size: 14px;
+        }
+
+        .manager-container {
+            /* Removed max-width */
+            margin: 0 auto;
+            padding: var(--normal-padding);
+            background-color: #181818; /* Slightly darker container */
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        h1, h2 {
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: var(--tight-padding);
+            margin-top: 0;
+            margin-bottom: var(--normal-padding);
+            font-weight: 500;
+        }
+        
+        h1 {
+           font-size: 1.5em;
+        }
+
+        h2 {
+            font-size: 1.1em;
+            margin-top: var(--normal-padding);
+        }
+
+        /* --- Top Section (Status + Actions) --- */
+        .top-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--normal-padding);
+            align-items: flex-start;
+            margin-bottom: var(--normal-padding);
+             padding: var(--normal-padding);
+             background-color: var(--status-panel-bg);
+             border: 1px solid var(--border-color);
+             border-radius: 5px;
+        }
+
+        #status-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--tight-padding);
+            flex-grow: 1; /* Takes available space */
+        }
+
+        .status-item {
+            flex: 1 1 180px; /* Allow items to grow/shrink, base width */
+            padding: var(--tight-padding) var(--normal-padding);
+            border-radius: 3px;
+            font-size: 0.95em;
+            border: 1px solid var(--border-color);
+            background-color: var(--accordion-header-bg);
+            display: flex; /* Use flex to align light and text */
+            align-items: center;
+            gap: var(--tight-padding);
+        }
+        
+        .status-light {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: var(--tight-padding);
+            background-color: #666; /* Default unknown */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .status-light.status-good { background-color: var(--accent-color); }
+        .status-light.status-warning { background-color: var(--warning-color); }
+        .status-light.status-bad { background-color: var(--error-color); }
+        
+        /* Remove background colors from status-item itself */
+        /* .status-good { background-color: #1b5e20; border-color: #4CAF50; } */
+        /* .status-warning { background-color: #f57f17; border-color: #FFC107; color: #000; } */
+        /* .status-bad { background-color: #b71c1c; border-color: #F44336; } */
+        /* .status-unknown { background-color: #444; border-color: #666;} */
+        
+        #db-actions-container {
+            display: flex;
+            flex-direction: column; /* Stack buttons and status */
+            gap: var(--tight-padding);
+            padding: var(--tight-padding);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            background-color: var(--accordion-header-bg);
+            flex-shrink: 0; /* Prevent shrinking */
+            min-width: 200px; /* Ensure it has some width */
+        }
+        
+        #db-actions-container h3 {
+            margin: 0 0 var(--tight-padding) 0;
+            padding: 0;
+            font-size: 1em;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        #db-actions-container button {
+            width: 100%;
+            margin: 0;
+            text-align: center;
+        }
+        
+        #db-actions-container p {
+             margin: 4px 0 0 0;
+        }
+        
+        #lastUpdated {
+            font-size: 0.8em; 
+            color: #888; 
+            text-align: right; 
+            margin-top: -5px; /* Pull closer to status panel */
+            margin-bottom: var(--normal-padding);
+        }
+
+        /* --- Accordions --- */
+        .accordion-section {
+            margin-bottom: var(--tight-padding);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        .accordion-header {
+            background-color: var(--accordion-header-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            padding: var(--tight-padding) var(--normal-padding);
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1.1em;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align items to the top for better wrapping */
+            font-weight: 500;
+            white-space: normal; /* Allow header text to wrap */
+            line-height: 1.3; /* Adjust line height for wrapped text */
+        }
+        
+        .accordion-header:hover {
+            background-color: #2a2a2a;
+        }
+        
+        .accordion-header .arrow {
+           font-size: 0.8em;
+           margin-left: var(--tight-padding);
+           transition: transform 0.2s ease-in-out;
+        }
+        
+        .accordion-header.active .arrow {
+            transform: rotate(90deg);
+        }
+
+        .accordion-content {
+            padding: 0 var(--normal-padding) var(--normal-padding) var(--normal-padding); /* No top padding */
+            background-color: #111; /* Match container bg */
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out; /* Only transition max-height */
+        }
+        
+        .accordion-content.active {
+             max-height: 1000px; /* Adjust as needed, large enough for content */
+             padding-top: var(--normal-padding); /* Add top padding when open */
+        }
+
+        /* --- Forms & Tables --- */
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="url"], select {
+            width: calc(100% - 16px); /* Account for padding */
+            padding: var(--tight-padding);
+            margin-bottom: var(--normal-padding);
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 3px;
+            font-size: 1em;
+        }
+        
+        button {
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: var(--tight-padding) var(--normal-padding);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+            margin-right: var(--tight-padding);
+        }
+
+        button:hover {
+            background-color: var(--button-hover-bg);
+        }
+        
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        button.delete-button {
+            background-color: #442222; /* Dark red tint */
+            border-color: var(--error-color);
+            padding: 4px 8px; /* Smaller delete buttons */
+            font-size: 0.9em;
+        }
+        
+         button.delete-button:hover {
+            background-color: var(--error-color);
+            color: #000;
+        }
+
+        #actionStatus, #sourceActionStatus {
+            margin-top: var(--tight-padding);
+            font-style: italic;
+            min-height: 1.2em; /* Prevent layout shifts */
+            color: #aaa;
+        }
+        
+        #actionStatus.success, #sourceActionStatus.success { color: var(--accent-color); }
+        #actionStatus.error, #sourceActionStatus.error { color: var(--error-color); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--normal-padding);
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: var(--tight-padding);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--accordion-header-bg);
+        }
+        
+        #sourcesTableContainer {
+             margin-top: var(--normal-padding);
+        }
+
+        /* --- Add Source Form Layout --- */
+        #addSourceForm label, 
+        #addSourceForm input, 
+        #addSourceForm select,
+        #addSourceForm button {
+            display: inline-block; /* Display elements inline */
+            vertical-align: middle; /* Align them vertically */
+            margin-bottom: var(--tight-padding); /* Reduce bottom margin */
+            margin-right: var(--tight-padding); /* Add spacing between elements */
+        }
+        
+        #addSourceForm label {
+            width: auto; /* Let label take natural width */
+            margin-right: 4px;
+        }
+
+        #addSourceForm input, 
+        #addSourceForm select {
+            width: 150px; /* Adjust width as needed */
+             /* Resetting width calc from general input style */
+        }
+        
+        #addSourceForm button {
+            width: auto; /* Let button take natural width */
+        }
+        
+        #addSourceForm p#sourceActionStatus {
+             display: block; /* Status message below */
+             width: 100%;
+             margin-top: var(--tight-padding);
+             margin-left: 0;
+        }
+
+        /* --- Sortable Table Header --- */
+        th button.sort-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: inherit; /* Match table header font size */
+            padding: 0;
+            margin: 0;
+            text-align: left;
+            width: 100%;
+        }
+        th button.sort-button:hover {
+            color: var(--accent-color);
+        }
+        th button.sort-button .sort-arrow {
+             display: inline-block;
+             margin-left: 5px;
+             opacity: 0.6;
+        }
+        th button.sort-button.asc .sort-arrow::after { content: " ▲"; }
+        th button.sort-button.desc .sort-arrow::after { content: " ▼"; }
+        
+        /* --- Inline Selects in Table --- */
+        td select {
+             width: calc(100% - 10px); /* Slightly less than cell width */
+             padding: 4px;
+             margin: 0;
+             background-color: var(--input-bg);
+             border: 1px solid var(--border-color);
+             color: var(--text-color);
+             border-radius: 3px;
+             font-size: 0.95em;
+             box-sizing: border-box; /* Include padding/border in width */
+        }
+
+        /* --- Styles for Tag Stats Table --- */
+        .stats-table { /* Apply basic styling to new tables */
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--normal-padding);
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--border-color);
+            padding: var(--tight-padding);
+            text-align: left;
+        }
+        .stats-table th {
+            background-color: var(--accordion-header-bg);
+            font-weight: 500;
+        }
+        .stats-table tfoot td {
+            font-weight: bold;
+            border-top: 2px solid var(--border-color);
+        }
+        #tag-stats-content h4 {
+             margin-top: var(--normal-padding);
+             margin-bottom: var(--tight-padding);
+             font-weight: 500;
+             color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="manager-container">
+        <h1>InfoCloud Backend Manager</h1>
+
+        <!-- Top Section Container -->
+        <div class="top-section">
+            <!-- Status Panel -->
+            <div id="status-panel">
+                <!-- Status items will be injected here by JS -->
+                <div class="status-item status-unknown">
+                     <span class="status-light"></span>
+                    <span>Loading Status...</span>
+                </div>
+            </div>
+            
+            <!-- DB Actions Container -->
+            <div id="db-actions-container">
+                 <h3>Database Actions</h3>
+                 <button id="purgeDbButton">Purge News Items</button>
+                 <button id="forceRefreshButton">Force Refresh Data</button>
+                 <button id="fixCategoriesButton">Fix Unknown Categories</button>
+                 <p id="actionStatus"></p>
+            </div>
+        </div>
+        <p id="lastUpdated">Last Updated: Never</p>
+
+
+        <!-- Accordion Container (keeping name for now) -->
+        <div class="accordion-container">
+
+            <!-- Source Management Section - NO LONGER AN ACCORDION -->
+            <!-- Removed accordion-section div -->
+            <!-- Removed accordion-header button -->
+            <!-- Removed accordion-content div -->
+            
+             <div> <!-- Added simple div wrapper for structure -->
+                    <h2>Add New Source</h2>
+                    <form id="addSourceForm">
+                        <label for="sourceName">Name:</label>
+                        <input type="text" id="sourceName" name="name" required placeholder="e.g., Example News">
+
+                        <label for="sourceUrl">RSS Feed URL:</label>
+                        <input type="url" id="sourceUrl" name="url" required placeholder="https://www.example.com/rss">
+
+                        <label for="sourceCategory">Category:</label>
+                        <select id="sourceCategory" name="category" required>
+                             <option value="" disabled selected>Select Category...</option> <!-- Default blank -->
+                             <!-- Options loaded by JS -->
+                        </select>
+
+                        <label for="sourceBias">Political Bias:</label>
+                        <select id="sourceBias" name="bias" required>
+                             <option value="" disabled selected>Select Bias...</option> <!-- Default blank -->
+                            <!-- Options loaded by JS -->
+                        </select>
+
+                        <button type="submit" id="addSourceButton">Add Source</button>
+                        <p id="sourceActionStatus"></p>
+                    </form>
+
+                    <!-- REORDERED: Tag Statistics Section NOW FIRST -->
+                    <div class="accordion-section">
+                        <button class="accordion-header">
+                            Tag Statistics
+                            <span class="arrow">▶</span>
+                        </button>
+                        <div class="accordion-content">
+                            <!-- This div now correctly has the ID -->
+                            <div id="tagStatsContainer">
+                                <p>Loading statistics...</p> 
+                            </div>
+                    </div>
+             </div>
+
+                    <!-- REORDERED: Existing Sources Section NOW SECOND -->
+                    <div class="accordion-section">
+                        <button class="accordion-header">
+                            Existing Sources (<span id="sourceCount">0</span>)
+                            <span class="arrow">▶</span>
+                        </button>
+                        <div class="accordion-content">
+                             <div style="margin-bottom: 10px;">
+                                 <input type="text" id="sourceSearch" placeholder="Search sources..." style="width: calc(50% - 12px);">
+                             </div>
+                            <table id="sourcesTable">
+                                <thead>
+                                    <tr>
+                                        <th><button class="sort-button" data-sort-key="name">Name <span class="sort-arrow"></span></button></th>
+                                        <th><button class="sort-button" data-sort-key="category">Category <span class="sort-arrow"></span></button></th>
+                                        <th><button class="sort-button" data-sort-key="bias">Bias <span class="sort-arrow"></span></button></th>
+                                        <th><button class="sort-button" data-sort-key="url">Feed URL <span class="sort-arrow"></span></button></th>
+                                        <th><button class="sort-button" data-sort-key="site_url">Site URL <span class="sort-arrow"></span></button></th>
+                                        <th><button class="sort-button" data-sort-key="miniflux_feed_id">Miniflux ID <span class="sort-arrow"></span></button></th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sourcesList">
+                                    <!-- Sources will be loaded here -->
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+             </div> <!-- End of simple div wrapper -->
+
+             <!-- REMOVED Database Actions Section -->
+           
+        </div> <!-- End accordion-container -->
+
+        <!-- Debug Tools -->
+        <div class="accordion-section">
+            <button class="accordion-header">
+                Debug Tools
+                <span class="arrow">▶</span>
+            </button>
+            <div class="accordion-content">
+                <h3>Source Update Debugging</h3>
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="debugSourceId" placeholder="Source ID" style="width: 150px;">
+                    <select id="debugField" style="width: 150px;">
+                        <option value="category">Category</option>
+                        <option value="bias">Bias</option>
+                    </select>
+                    <input type="text" id="debugValue" placeholder="New value" style="width: 150px;">
+                    <button id="debugUpdateBtn">Update Source</button>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <button id="debugGetSourceBtn">Get Source by ID</button>
+                    <button id="debugReloadBtn">Force Reload All Sources</button>
+                </div>
+                <div id="debugOutput" style="background-color: #111; padding: 10px; border: 1px solid var(--border-color); max-height: 300px; overflow: auto; font-family: monospace;"></div>
+            </div>
+        </div>
+    </div> <!-- End manager-container -->
+
+    <script>
+        const API_BASE_URL = ''; // Assuming API is served from the same origin
+
+        // --- Accordion Logic ---
+        document.querySelectorAll('.accordion-header').forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                button.classList.toggle('active');
+                content.classList.toggle('active');
+                
+                if (content.classList.contains('active')) {
+                    // Set to auto first to measure, then set height for transition
+                    content.style.maxHeight = 'none'; // Remove any previous limit
+                    const scrollHeight = content.scrollHeight;
+                    content.style.maxHeight = '0'; // Set back to 0 before transitioning
+                    // Use setTimeout to allow the max-height: 0 to apply before transitioning
+                    setTimeout(() => {
+                         content.style.maxHeight = scrollHeight + "px";
+                         // Add padding *after* transition starts (or remove padding transition)
+                         content.style.paddingTop = "var(--normal-padding)"; 
+                    }, 10); // Small delay
+                } else {
+                    content.style.maxHeight = '0px';
+                    content.style.paddingTop = '0'; // Remove padding when closing
+                }
+            });
+        });
+
+        // --- Source Management Logic ---
+        const sourcesList = document.getElementById('sourcesList');
+        const sourceSearchInput = document.getElementById('sourceSearch');
+        const sourceCountSpan = document.getElementById('sourceCount');
+        const addSourceForm = document.getElementById('addSourceForm'); // Get form reference
+        const addSourceButton = document.getElementById('addSourceButton');
+        const sourceActionStatus = document.getElementById('sourceActionStatus');
+        const sourceCategorySelect = document.getElementById('sourceCategory');
+        const sourceBiasSelect = document.getElementById('sourceBias');
+        
+        let allSources = []; // Store all sources for filtering/searching
+        let availableCategories = ['UNKNOWN']; // Default
+        let availableBiases = ['Unknown', 'Left', 'Liberal', 'Centrist', 'Conservative', 'Right']; // Default
+
+        // Fetch config for dropdowns
+        async function fetchSourceConfig() {
+            try {
+                const response = await fetch('/api/sources/config');
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const config = await response.json();
+                availableCategories = config.sourceCategories || availableCategories;
+                availableBiases = config.biasCategories || availableBiases;
+                populateSelect(sourceCategorySelect, availableCategories);
+                populateSelect(sourceBiasSelect, availableBiases);
+            } catch (error) {
+                 console.error('Error fetching source config:', error);
+                 // Use default values if fetch fails
+                 populateSelect(sourceCategorySelect, availableCategories);
+                 populateSelect(sourceBiasSelect, availableBiases);
+            }
+        }
+        
+        function populateSelect(selectElement, options) {
+            selectElement.innerHTML = '<option value="" disabled selected>Select...</option>'; 
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                selectElement.appendChild(opt);
+            });
+        }
+        
+        // Function to render the sources table
+        function renderSourcesTable(sourcesToRender = allSources) {
+            console.log("🔄 Rendering sources table with", sourcesToRender.length, "sources");
+            
+            sourcesList.innerHTML = ''; // Clear existing rows
+            sourceCountSpan.textContent = sourcesToRender.length;
+            if (sourcesToRender.length === 0) {
+                sourcesList.innerHTML = '<tr><td colspan="7">No sources match search or none exist.</td></tr>';
+                return;
+            }
+
+            sourcesToRender.forEach((source, index) => {
+                const row = sourcesList.insertRow();
+                row.insertCell().textContent = source.name || '';
+
+                // Log the first few items for debugging
+                if (index < 3) {
+                    console.log(`📝 Rendering source: id=${source.id}, name=${source.name}, category=${source.category}, bias=${source.bias}`);
+                }
+
+                // Category Dropdown
+                const categoryCell = row.insertCell();
+                const categorySelect = document.createElement('select');
+                categorySelect.dataset.field = 'category'; // Add field type
+                categorySelect.dataset.sourceId = source.id; // Add source ID
+                
+                // FIXED: Force normalize the category value to prevent case-related issues
+                const sourceCategory = (source.category || '').trim();
+                categorySelect.dataset.originalValue = sourceCategory; // Keep original value
+                
+                categorySelect.innerHTML = '';
+                availableCategories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category; 
+                    option.textContent = category;
+                    // FIXED: Compare with exact string values, not normalized uppercase
+                    option.selected = (sourceCategory === category);
+                    categorySelect.appendChild(option);
+                });
+
+                categorySelect.disabled = !source.id;
+                categoryCell.appendChild(categorySelect);
+
+                // Bias Dropdown
+                const biasCell = row.insertCell();
+                const biasSelect = document.createElement('select');
+                biasSelect.dataset.field = 'bias'; // Add field type
+                biasSelect.dataset.sourceId = source.id; // Add source ID
+                
+                // FIXED: Force normalize the bias value to prevent case-related issues
+                const sourceBias = (source.bias || '').trim();
+                biasSelect.dataset.originalValue = sourceBias; // Keep original value
+
+                biasSelect.innerHTML = '';
+                availableBiases.forEach(bias => {
+                    const option = document.createElement('option');
+                    option.value = bias; 
+                    option.textContent = bias;
+                    // FIXED: Compare with exact string values, not normalized uppercase
+                    option.selected = (sourceBias === bias);
+                    biasSelect.appendChild(option);
+                });
+
+                biasSelect.disabled = !source.id;
+                biasCell.appendChild(biasSelect);
+
+                row.insertCell().textContent = source.url || ''; // Feed URL
+                row.insertCell().textContent = source.site_url || ''; // Site URL
+                row.insertCell().textContent = source.miniflux_feed_id || 'Not Synced';
+                
+                const actionsCell = row.insertCell();
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.classList.add('delete-button');
+                if (source.id) { // Only enable if source has an ID (synced)
+                    deleteButton.addEventListener('click', () => deleteSource(source.id, source.name));
+                } else {
+                    deleteButton.disabled = true;
+                    deleteButton.title = 'Cannot delete unsynced source';
+                }
+                actionsCell.appendChild(deleteButton);
+            });
+        }
+        
+        // Handle changes to category/bias fields using event delegation
+        sourcesList.addEventListener('change', (event) => {
+            const selectElement = event.target;
+            // Check if the event target is a select element with the necessary data attributes
+            if (selectElement.tagName === 'SELECT' && selectElement.dataset.sourceId && selectElement.dataset.field) {
+                handleFieldChange(selectElement);
+            }
+        });
+
+        function handleFieldChange(selectElement) {
+            // Explicitly log the element and the retrieved ID
+            console.log("🔵 handleFieldChange: Target Element:", selectElement);
+            const sourceId = selectElement.dataset.sourceId;
+            console.log(`🔵 handleFieldChange: Extracted sourceId: ${sourceId}`); 
+            
+            const field = selectElement.dataset.field;
+            const newValue = selectElement.value;
+            // REMOVED: const originalValue = selectElement.dataset.originalValue; 
+
+            // Get the current value from the local allSources array
+            const sourceIndex = allSources.findIndex(s => s.id === sourceId);
+            if (sourceIndex === -1) {
+                console.error(`❌ Cannot handle change: Source ID ${sourceId} not found in local allSources array.`);
+                // Optionally revert UI? Or just log?
+                // selectElement.value = originalValue; // Need originalValue if we revert
+                return;
+            }
+            const currentValueInArray = allSources[sourceIndex][field];
+
+            console.log(`🔄 Change detected on ${sourceId}/${field} to "${newValue}". Current value in allSources: "${currentValueInArray}"`);
+
+            // Prevent trying to update if the value hasn't actually changed compared to our local array
+            if (newValue === currentValueInArray) {
+                console.log(`⏭️ Value hasn't changed from local state "${currentValueInArray}", skipping update.`);
+                // Ensure the dataset matches the actual value, in case it was wrong
+                selectElement.dataset.originalValue = newValue; 
+                return;
+            }
+
+            // Disable the select during update
+            selectElement.disabled = true;
+            
+            // Update the field (Backend)
+            updateSourceField(sourceId, field, newValue) // Pass newValue
+                .then(success => {
+                    if (success) {
+                        // Update the dataset AFTER successful backend update
+                        selectElement.dataset.originalValue = newValue; 
+                        console.log(`✅ Dataset originalValue updated for ${sourceId}/${field} to "${newValue}" AFTER successful save.`);
+                        
+                        // Note: allSources is updated inside updateSourceField upon success
+                    } else {
+                        // Revert to original value visually if update failed
+                        // Use the value we know was last correct in our local array
+                        selectElement.value = currentValueInArray; 
+                        console.log(`⏪ Reverted dropdown for ${sourceId}/${field} to value from local array: "${currentValueInArray}"`);
+                    }
+                })
+                .finally(() => {
+                    // Re-enable the select
+                    selectElement.disabled = false;
+                });
+        }
+
+        // Function to filter/search sources
+        function filterSources() {
+            console.log("🔍 Filtering sources with search term:", sourceSearchInput.value);
+            
+            const searchTerm = sourceSearchInput.value.toLowerCase();
+            const filteredSources = allSources.filter(source => {
+                return (
+                    (source.name || '').toLowerCase().includes(searchTerm) ||
+                    (source.url || '').toLowerCase().includes(searchTerm) ||
+                    (source.category || '').toLowerCase().includes(searchTerm) ||
+                    (source.bias || '').toLowerCase().includes(searchTerm)
+                );
+            });
+            
+            console.log(`   Found ${filteredSources.length} sources matching search term`);
+            
+            renderSourcesTable(filteredSources);
+        }
+
+        // Sort sources
+        function sortSources(key) {
+            console.log(`🔄 Sorting sources by ${key}`);
+            
+            const direction = (key === currentSortKey && currentSortDirection === 'asc') ? 'desc' : 'asc';
+            
+            // Sort the actual allSources array
+            allSources.sort((a, b) => {
+                let valA = a[key] || ''; // Handle null/undefined values
+                let valB = b[key] || '';
+                
+                // Special handling for miniflux_feed_id (numeric sort if possible)
+                if (key === 'miniflux_feed_id') {
+                    valA = parseInt(valA) || 0;
+                    valB = parseInt(valB) || 0;
+                    return direction === 'asc' ? valA - valB : valB - valA;
+                }
+                
+                // Default string comparison (case-insensitive)
+                valA = String(valA).toLowerCase();
+                valB = String(valB).toLowerCase();
+                
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            currentSortKey = key;
+            currentSortDirection = direction;
+
+            // Update header classes for visual feedback
+            document.querySelectorAll('#sourcesTable .sort-button').forEach(button => {
+                button.classList.remove('asc', 'desc');
+                if (button.dataset.sortKey === key) {
+                    button.classList.add(direction);
+                }
+            });
+
+            // Re-render with the newly sorted data from allSources
+            renderSourcesTable(); 
+        }
+
+        // Update source field in the database
+        async function updateSourceField(sourceId, field, value) {
+            // Log the received ID immediately
+            console.log(`⭐ updateSourceField: Received sourceId: ${sourceId}, field: ${field}, value: ${value}`);
+            
+            sourceActionStatus.textContent = `Updating ${field} for source ${sourceId}...`;
+            sourceActionStatus.className = '';
+
+            try {
+                const serverField = field === 'category' ? 'category' : 
+                                  field === 'bias' ? 'bias' : field;
+                          
+                const response = await fetch(`/api/sources/${sourceId}?_t=${Date.now()}`, { 
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    body: JSON.stringify({ [serverField]: value }) 
+                });
+                
+                if (!response.ok) {
+                    let errorMessage = `HTTP error! Status: ${response.status}`;
+                    try {
+                        const errorResult = await response.json();
+                        errorMessage = errorResult.message || errorResult.error || errorMessage;
+                    } catch (parseError) {
+                        console.warn("Could not parse error response as JSON.");
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const result = await response.json();
+                console.log(`✅ SERVER RESPONSE: Updated source ${sourceId}, set ${serverField}="${result[serverField]}"`);
+                sourceActionStatus.textContent = `Source ${result.id} ${field} updated to ${result[serverField]}.`;
+                sourceActionStatus.className = 'success';
+                
+                // FIXED: Update the local data ONLY AFTER successful server response
+                const sourceIndex = allSources.findIndex(s => s.id === sourceId);
+                if (sourceIndex > -1) {
+                    console.log(`✅ Updating allSources[${sourceIndex}].${field} from "${allSources[sourceIndex][field]}" to "${result[serverField]}"`);
+                    allSources[sourceIndex][field] = result[serverField];
+                } else {
+                    console.error(`❌ Could not find source with ID ${sourceId} in allSources (length: ${allSources.length})`);
+                    console.log("First few source IDs in allSources:", allSources.slice(0, 5).map(s => s.id));
+                }
+                
+                // REMOVED: Re-rendering call - the UI element (select) is already updated
+                
+                return true; // Indicate success
+            } catch (error) {
+                console.error(`❌ Error updating source ${sourceId} field ${field}:`, error);
+                sourceActionStatus.textContent = `Error updating ${field}: ${error.message}`;
+                sourceActionStatus.className = 'error';
+                
+                // Return false, the calling handleFieldChange will handle reverting the select
+                return false; // Indicate failure
+            } 
+        }
+
+        // Fetch and display existing sources
+        async function loadSources() {
+            sourcesList.innerHTML = '<tr><td colspan="7">Loading sources...</td></tr>';
+            sourceCountSpan.textContent = '...';
+            
+            console.log("🔄 Loading sources...");
+            
+            try {
+                // REMOVED: Saving current changes before fetching - rely on server state after refresh
+                
+                // Force bypass of cache with timestamp and headers
+                const timestamp = Date.now();
+                const response = await fetch(`/api/sources?_t=${timestamp}`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const fetchedSources = await response.json();
+                
+                // REMOVED: Applying unsaved changes - use fetched data directly
+                
+                // Update allSources with the fetched data
+                allSources = fetchedSources;
+                
+                console.log('✅ Sources loaded:', allSources.length, 'items');
+                console.log('📊 Categories in loaded sources:', [...new Set(allSources.map(s => s.category))]);
+                console.log('📊 Biases in loaded sources:', [...new Set(allSources.map(s => s.bias))]); // Add bias logging
+                
+                // Ensure table is rendered based on the *potentially* sorted state of allSources
+                // If a sort key is active, re-apply the sort before rendering
+                if (currentSortKey) {
+                    console.log(`🔄 Re-applying sort by ${currentSortKey} (${currentSortDirection}) after loading`);
+                    // Temporarily reverse direction so sortSources applies the correct one
+                    const tempDirection = currentSortDirection;
+                    currentSortDirection = (tempDirection === 'asc') ? 'desc' : 'asc'; 
+                    sortSources(currentSortKey); // This will sort allSources again and render
+                } else {
+                    renderSourcesTable(); // Render unsorted if no sort key is active
+                }
+                
+            } catch (error) {
+                console.error('❌ Error fetching sources:', error);
+                sourcesList.innerHTML = `<tr><td colspan="7">Error loading sources: ${error.message}</td></tr>`;
+                sourceCountSpan.textContent = 'Error';
+            }
+        }
+
+        // Add new source
+        addSourceForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            sourceActionStatus.textContent = 'Adding source...';
+            sourceActionStatus.className = '';
+            addSourceButton.disabled = true;
+
+            const formData = new FormData(addSourceForm);
+            const sourceData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/sources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sourceData)
+                });
+                 const result = await response.json();
+                if (!response.ok) {
+                     throw new Error(result.message || result.error || `HTTP error! Status: ${response.status}`);
+                }
+                sourceActionStatus.textContent = `Source "${result.name}" added successfully. (Miniflux ID: ${result.miniflux_feed_id})`;
+                sourceActionStatus.className = 'success';
+                addSourceForm.reset();
+                loadSources(); // Refresh the list
+            } catch (error) {
+                console.error('Error adding source:', error);
+                sourceActionStatus.textContent = `Error adding source: ${error.message}`;
+                 sourceActionStatus.className = 'error';
+            } finally {
+                addSourceButton.disabled = false;
+            }
+        });
+
+        // Delete source
+        async function deleteSource(sourceId, sourceName) {
+            if (!confirm(`Are you sure you want to delete the source "${sourceName}" (ID: ${sourceId})? This will remove it from the list and Miniflux.`)) {
+                return;
+            }
+             sourceActionStatus.textContent = `Deleting source "${sourceName}"...`;
+            sourceActionStatus.className = '';
+
+            try {
+                const response = await fetch(`/api/sources/${sourceId}`, { method: 'DELETE' });
+                if (!response.ok) {
+                     const result = await response.json().catch(() => ({})); // Try to parse error
+                    throw new Error(result.message || result.error || `HTTP error! Status: ${response.status}`);
+                }
+                sourceActionStatus.textContent = `Source "${sourceName}" deleted successfully.`;
+                sourceActionStatus.className = 'success';
+                loadSources(); // Refresh the list
+            } catch (error) {
+                console.error('Error deleting source:', error);
+                 sourceActionStatus.textContent = `Error deleting source: ${error.message}`;
+                sourceActionStatus.className = 'error';
+            }
+        }
+        
+        // --- Tag Statistics Logic ---
+        async function loadTagStats() {
+            // Define variable inside the function to ensure DOM is ready
+            const tagStatsContainer = document.getElementById('tagStatsContainer'); 
+            if (!tagStatsContainer) {
+                console.error("Error: Could not find element with ID 'tagStatsContainer'");
+                return; // Exit if element not found
+            }
+            tagStatsContainer.innerHTML = '<p>Loading statistics...</p>'; // Show loading state
+            try {
+                // Make sure this endpoint exists and returns the correct data structure
+                const response = await fetch(`${API_BASE_URL}/status/api/admin/tag-stats`);
+                     if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const stats = await response.json();
+                
+                displayTagStats(stats);
+                
+                 } catch (error) {
+                console.error('Error loading tag statistics:', error);
+                tagStatsContainer.innerHTML = `<p class="error">Error loading tag statistics: ${error.message}</p>`;
+            }
+        }
+
+        function displayTagStats(stats) {
+            if (!stats || typeof stats !== 'object') {
+                 tagStatsContainer.innerHTML = '<p class="error">Invalid statistics format received.</p>';
+                 return;
+            }
+            
+            // Example structure assuming stats = { totalUniqueTags: number, byCategory: { categoryName: count, ... }, byBias: { biasName: count, ... } }
+            // Adjust based on the ACTUAL response from your fixed backend route
+            
+            let html = ``;
+            
+            if (stats.totalUniqueTags !== undefined) {
+                 html += `<p><strong>Total Unique Tags:</strong> ${stats.totalUniqueTags}</p>`;
+            } else {
+                 html += `<p><strong>Total Unique Tags:</strong> (Data unavailable)</p>`;
+            }
+
+            // Display counts by category
+            if (stats.byCategory && Object.keys(stats.byCategory).length > 0) {
+                html += '<h3>Tags by Category:</h3><ul>';
+                Object.entries(stats.byCategory)
+                    .sort(([, countA], [, countB]) => countB - countA) // Sort categories by count desc
+                    .forEach(([category, count]) => {
+                        html += `<li>${category}: ${count}</li>`;
+                    });
+                html += '</ul>';
+                } else {
+                 html += '<h3>Tags by Category:</h3><p>(Data unavailable or no tags found)</p>';
+            }
+
+            // Display counts by bias
+            if (stats.byBias && Object.keys(stats.byBias).length > 0) {
+                html += '<h3>Tags by Bias:</h3><ul>';
+                 // Define bias order for consistent display
+                 const biasOrder = ['Left', 'Liberal', 'Centrist', 'Unknown', 'Conservative', 'Right'];
+                 biasOrder.forEach(bias => {
+                     if (stats.byBias[bias] !== undefined) {
+                        html += `<li>${bias}: ${stats.byBias[bias]}</li>`;
+                     }
+                 });
+                 // Add any biases not in the defined order (shouldn't happen with enum)
+                 Object.entries(stats.byBias).forEach(([bias, count]) => {
+                     if (!biasOrder.includes(bias)) {
+                          html += `<li>${bias}: ${count}</li>`;
+                     }
+                 });
+                html += '</ul>';
+                } else {
+                html += '<h3>Tags by Bias:</h3><p>(Data unavailable or no tags found)</p>';
+            }
+
+            tagStatsContainer.innerHTML = html;
+        }
+        
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chain the fetches explicitly
+            fetchSourceConfig()
+                .then(() => {
+                     console.log("Config fetched, now loading sources...");
+                     return loadSources(); // Load sources only after config is done
+                })
+                .then(() => {
+                     console.log("Sources loaded and rendered.");
+                     // Open accordions by default (after DOMContentLoaded and data load)
+                     document.querySelectorAll('.accordion-header').forEach(button => {
+                         if (!button.classList.contains('active')) {
+                             setTimeout(() => { button.click(); }, 50); 
+                         }
+                     });
+                })
+                .catch(error => {
+                     console.error("Error during initial data load sequence:", error);
+                     // Display an error message to the user?
+                });
+        
+            loadTagStats(); // Can run in parallel
+            fetchStatus(); // Can run in parallel
+            setInterval(fetchStatus, 15000); 
+            
+            // Add search listener
+            sourceSearchInput.addEventListener('input', filterSources);
+        
+            // Refresh tag statistics periodically
+            setInterval(loadTagStats, 30000); 
+        });
+
+        // --- Status Panel Logic ---
+        const statusPanel = document.getElementById('status-panel');
+        const lastUpdatedElement = document.getElementById('lastUpdated');
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/status/api`);
+                const data = await response.json();
+
+                const services = [
+                    data.docker,
+                    data.mongodb,
+                    data.miniflux,
+                    data.ollama,
+                    data.llmModel,
+                    data.llmFallback
+                ];
+
+                let statusHTML = '';
+                services.forEach(service => {
+                    if (service) { // Check if service data exists
+                         statusHTML += `<div class="status-item status-${service.status}">${service.message}</div>`;
+                    }
+                });
+
+                // Update metrics
+                if (data.metrics) {
+                    statusHTML += `<div class="status-item status-good">Articles in DB: ${data.metrics.dbItemCount}</div>`;
+                    // <<< Add display for processed items and calculate percentage >>>
+                    if (data.metrics.processedItemCount !== undefined && data.metrics.dbItemCount > 0) {
+                        const processedCount = data.metrics.processedItemCount;
+                        const totalCount = data.metrics.dbItemCount;
+                        const percentage = ((processedCount / totalCount) * 100).toFixed(1);
+                        statusHTML += `<div class="status-item status-good">LLM Processed: ${processedCount} (${percentage}%)</div>`;
+                    } else if (data.metrics.processedItemCount !== undefined) {
+                        statusHTML += `<div class="status-item status-good">LLM Processed: ${data.metrics.processedItemCount}</div>`;
+                    } // <<< End of addition >>>
+                    // statusHTML += `<div class="status-item status-good">Queue Size: ${data.metrics.queueSize}</div>`; // Assuming queue size might be added later
+                    statusHTML += `<div class="status-item status-good">CPU Usage: ${data.metrics.cpuUsage}</div>`;
+                    statusHTML += `<div class="status-item status-good">Memory: ${data.metrics.memoryUsage}</div>`;
+                }
+
+                statusPanel.innerHTML = statusHTML;
+                lastUpdatedElement.textContent = new Date(data.timestamp).toLocaleTimeString();
+
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                statusPanel.innerHTML = '<div class="status-item status-bad">Error loading status</div>';
+            }
+        }
+
+        // --- Sorting Logic for Sources Table ---
+        let currentSortKey = null;
+        let currentSortDirection = 'asc'; // 'asc' or 'desc'
+
+        // Attach listeners to sort buttons
+        document.querySelectorAll('#sourcesTable .sort-button').forEach(button => {
+            button.addEventListener('click', () => {
+                sortSources(button.dataset.sortKey);
+            });
+        });
+
+        // --- DB Actions Logic ---
+        const purgeDbButton = document.getElementById('purgeDbButton');
+        const forceRefreshButton = document.getElementById('forceRefreshButton');
+        const fixCategoriesButton = document.getElementById('fixCategoriesButton'); // <<< Get new button
+        const actionStatus = document.getElementById('actionStatus');
+
+        purgeDbButton.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to PURGE ALL NEWS ITEMS from the database? This cannot be undone.')) return;
+            actionStatus.textContent = 'Purging database...';
+            actionStatus.className = '';
+            purgeDbButton.disabled = true;
+            forceRefreshButton.disabled = true;
+            fixCategoriesButton.disabled = true; // <<< Disable during action
+            try {
+                const response = await fetch(`${API_BASE_URL}/status/api/admin/purge-db`, { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || result.error || 'Unknown error');
+                actionStatus.textContent = `Database purged! Deleted ${result.deletedCount} items.`;
+                actionStatus.className = 'success';
+                // Refresh stats and potentially sources list after purge
+                loadSources();
+                loadTagStats(); 
+                fetchStatus();
+            } catch (error) {
+                actionStatus.textContent = `Error purging database: ${error.message}`;
+                actionStatus.className = 'error';
+            } finally {
+                purgeDbButton.disabled = false;
+                forceRefreshButton.disabled = false;
+                fixCategoriesButton.disabled = false; // <<< Re-enable after action
+            }
+        });
+
+        forceRefreshButton.addEventListener('click', async () => {
+            actionStatus.textContent = 'Starting force refresh...';
+            actionStatus.className = '';
+            purgeDbButton.disabled = true;
+            forceRefreshButton.disabled = true;
+            fixCategoriesButton.disabled = true; // <<< Disable during action
+            try {
+                const response = await fetch(`${API_BASE_URL}/status/api/admin/force-refresh`, { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || result.error || 'Unknown error');
+                actionStatus.textContent = `Force refresh started (runs in background).`;
+                actionStatus.className = 'success';
+            } catch (error) {
+                actionStatus.textContent = `Error starting force refresh: ${error.message}`;
+                actionStatus.className = 'error';
+            } finally {
+                // Re-enable buttons after a short delay, assuming the user understands it's background
+                 setTimeout(() => {
+                     purgeDbButton.disabled = false;
+                     forceRefreshButton.disabled = false;
+                     fixCategoriesButton.disabled = false; // <<< Re-enable after action
+                     actionStatus.textContent = 'Force refresh running in background...';
+                     actionStatus.className = ''; // Clear status class
+                 }, 3000); 
+            }
+        });
+        
+        // <<< Add listener for the new button >>>
+        fixCategoriesButton.addEventListener('click', async () => {
+            if (!confirm('This will attempt to update all news items currently marked with source category UNKNOWN based on the current source list. Proceed?')) return;
+            actionStatus.textContent = 'Starting category fix process...';
+            actionStatus.className = '';
+            purgeDbButton.disabled = true;
+            forceRefreshButton.disabled = true;
+            fixCategoriesButton.disabled = true;
+            try {
+                // Note: Use the correct API path prefix if sourceRoutes isn't at root
+                const response = await fetch(`${API_BASE_URL}/api/sources/fix-unknown-categories`, { method: 'POST' }); 
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || result.error || 'Unknown error');
+                actionStatus.textContent = result.message || `Category fix finished.`;
+                actionStatus.className = 'success';
+                // Refresh tag stats immediately after fixing
+                loadTagStats(); 
+                 fetchStatus(); // Refresh status too (maybe processed count changed)
+            } catch (error) {
+                actionStatus.textContent = `Error fixing categories: ${error.message}`;
+                actionStatus.className = 'error';
+            } finally {
+                purgeDbButton.disabled = false;
+                forceRefreshButton.disabled = false;
+                fixCategoriesButton.disabled = false;
+            }
+        });
+
+        // Debug Tools
+        document.getElementById('debugUpdateBtn').addEventListener('click', async () => {
+            const debugOutput = document.getElementById('debugOutput');
+            const sourceId = document.getElementById('debugSourceId').value.trim();
+            const field = document.getElementById('debugField').value;
+            const value = document.getElementById('debugValue').value.trim();
+            
+            if (!sourceId || !value) {
+                debugOutput.innerHTML = '<p style="color: var(--error-color);">⚠️ Please enter Source ID and value</p>';
+                return;
+            }
+            
+            debugOutput.innerHTML = `<p>Sending update request to server for source ${sourceId}...</p>`;
+            
+            try {
+                const updateResponse = await fetch(`/api/sources/${sourceId}?_t=${Date.now()}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    },
+                    body: JSON.stringify({ [field]: value })
+                });
+                
+                const updateData = await updateResponse.json();
+                
+                if (!updateResponse.ok) {
+                    throw new Error(updateData.message || `Status: ${updateResponse.status}`);
+                }
+                
+                debugOutput.innerHTML += `<p style="color: var(--accent-color);">✅ Server response: ${JSON.stringify(updateData)}</p>`;
+                
+                // Now get the source to verify the update
+                const verifyResponse = await fetch(`/api/sources/${sourceId}?_t=${Date.now()}`, {
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                });
+                
+                if (!verifyResponse.ok) {
+                    throw new Error(`Failed to verify update: ${verifyResponse.status}`);
+                }
+                
+                const verifyData = await verifyResponse.json();
+                debugOutput.innerHTML += `<p>🔍 Verification - Current source data: ${JSON.stringify(verifyData)}</p>`;
+                debugOutput.innerHTML += `<p style="color: ${verifyData[field] === value ? 'var(--accent-color)' : 'var(--error-color)'}">
+                    Verification result: ${verifyData[field] === value ? 'SUCCESS' : 'FAILED'} - 
+                    Expected ${field}="${value}", Got ${field}="${verifyData[field]}"
+                </p>`;
+                
+            } catch (error) {
+                debugOutput.innerHTML += `<p style="color: var(--error-color);">❌ Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('debugGetSourceBtn').addEventListener('click', async () => {
+            const debugOutput = document.getElementById('debugOutput');
+            const sourceId = document.getElementById('debugSourceId').value.trim();
+            
+            if (!sourceId) {
+                debugOutput.innerHTML = '<p style="color: var(--error-color);">⚠️ Please enter Source ID</p>';
+                return;
+            }
+            
+            debugOutput.innerHTML = `<p>Fetching source ${sourceId}...</p>`;
+            
+            try {
+                const response = await fetch(`/api/sources/${sourceId}?_t=${Date.now()}`, {
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to get source: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                debugOutput.innerHTML += `<p>📄 Source data: ${JSON.stringify(data)}</p>`;
+                
+            } catch (error) {
+                debugOutput.innerHTML += `<p style="color: var(--error-color);">❌ Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('debugReloadBtn').addEventListener('click', async () => {
+            const debugOutput = document.getElementById('debugOutput');
+            debugOutput.innerHTML = '<p>Forcing reload of all sources...</p>';
+            
+            try {
+                await loadSources();
+                debugOutput.innerHTML += '<p style="color: var(--accent-color);">✅ Sources reloaded</p>';
+                debugOutput.innerHTML += `<p>📊 Current sources count: ${allSources.length}</p>`;
+                
+                // Show first few sources
+                if (allSources.length > 0) {
+                    debugOutput.innerHTML += '<p>Sample of loaded sources:</p>';
+                    allSources.slice(0, 3).forEach(source => {
+                        debugOutput.innerHTML += `<p>${source.id}: ${source.name} - Category: ${source.category}, Bias: ${source.bias}</p>`;
+                    });
+                }
+            } catch (error) {
+                debugOutput.innerHTML += `<p style="color: var(--error-color);">❌ Error: ${error.message}</p>`;
+            }
+        });
+
+    </script>
+</body>
+</html> 

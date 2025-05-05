@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
 const { processNewsKeywords } = require('./services/wordProcessingService');
-const { getDB } = require('./config/db');
+const NewsItem = require('./models/NewsItem');
 
 // Path to the refresh feeds script
 const REFRESH_SCRIPT_PATH = path.join(__dirname, 'miniflux/refreshFeeds.js');
@@ -46,27 +46,63 @@ const processingQueue = new Queue(async (batch, cb) => {
 
 // Handle queue events with clean logging
 processingQueue.on('task_finish', async (taskId, result) => {
-  console.log(`Finished processing batch ${taskId} with ${result.length} articles. Saving to DB...`);
-  try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
+  // --- Add detailed logging --- 
+  console.log(`[task_finish ${taskId}] Received raw result type: ${typeof result}`);
+  if (result) {
+      console.log(`[task_finish ${taskId}] Raw result content (first element if array):`, JSON.stringify(Array.isArray(result) ? result[0] : result));
+  }
+  // --- End detailed logging --- 
 
+  // Ensure result is an array, even if only one item was processed in the batch
+  const processedArticles = Array.isArray(result) ? result : [result]; 
+  console.log(`Finished processing batch ${taskId} with ${processedArticles.length} articles. Saving to DB...`);
+  
+  // --- Add logging after ensuring array --- 
+  console.log(`[task_finish ${taskId}] processedArticles type: ${typeof processedArticles}, isArray: ${Array.isArray(processedArticles)}, length: ${processedArticles.length}`);
+  if (processedArticles.length > 0) {
+    console.log(`[task_finish ${taskId}] First element in processedArticles:`, JSON.stringify(processedArticles[0]));
+  }
+  // --- End logging --- 
+  
+  try {
     // Prepare bulk update operations
-    const operations = result.map(article => ({
+    // Filter for fulfilled promises and extract the actual result from the 'value' field
+    const successfulResults = processedArticles
+      .filter(result => result.status === 'fulfilled' && result.value && result.value.minifluxEntryId)
+      .map(result => result.value); // Extract the 'value' which contains the LLM output
+
+    // --- Add logging after filtering ---
+    console.log(`[task_finish ${taskId}] successfulResults length (after filtering for fulfilled & minifluxEntryId): ${successfulResults.length}`);
+    if (successfulResults.length !== processedArticles.length) {
+        console.warn(`[task_finish ${taskId}] Some articles were filtered out or failed! Original count: ${processedArticles.length}, Successful count: ${successfulResults.length}`);
+        // Log the first rejected/invalid item, if possible
+        const rejectedItem = processedArticles.find(result => result.status !== 'fulfilled' || !result.value || !result.value.minifluxEntryId);
+        console.log(`[task_finish ${taskId}] Example filtered/failed item:`, JSON.stringify(rejectedItem));
+    }
+    // --- End logging ---
+
+    // Now map using the successfulResults array which contains the actual LLM data
+    const operations = successfulResults.map(articleData => ({
       updateOne: {
-        filter: { id: article.id }, // Assuming miniflux 'id' is unique and present
-        update: { 
-          $set: { 
-            keywords: article.keywords, 
-            llmBias: article.bias // Save LLM result to llmBias field
-          }
+        // Corrected Filter: Use minifluxEntryId from the extracted articleData
+        filter: { minifluxEntryId: articleData.minifluxEntryId },
+        update: {
+          $set: {
+            keywords: articleData.keywords,
+            bias: articleData.bias, // Save LLM result to the main 'bias' field
+            llmProcessed: true, // Mark as processed
+            llmProcessingError: null, // Clear any previous error
+            // Use attempts from the extracted data, incrementing it
+            llmProcessingAttempts: (articleData.llmProcessingAttempts || 0) + 1
+          },
+          $unset: { contentSnippet: "" } // Optional: Remove snippet after processing
         },
-        // upsert: true // Optional: If you want to insert if somehow missing (use with caution)
+        // upsert: false // Should not upsert here, only update existing
       }
     }));
 
     if (operations.length > 0) {
-      const bulkResult = await newsCollection.bulkWrite(operations);
+      const bulkResult = await NewsItem.bulkWrite(operations, { ordered: false }); // Add ordered: false
       console.log(`DB Save Complete for batch ${taskId}: Matched ${bulkResult.matchedCount}, Modified ${bulkResult.modifiedCount}`);
     } else {
       console.log(`No operations to save for batch ${taskId}.`);
@@ -114,27 +150,34 @@ const processQueuedArticles = async () => {
   const MAX_ARTICLES_TO_QUEUE = 200; // Limit articles queued per run
 
   try {
-    const db = getDB();
-    const newsCollection = db.collection('newsitems');
-
-    // Find articles that haven't been processed by the LLM yet
-    // Using existence of 'keywords' field as the indicator
-    const articlesToProcess = await newsCollection.find(
-      { keywords: { $exists: false } }, 
-      {
-        limit: MAX_ARTICLES_TO_QUEUE, 
-        projection: { id: 1, title: 1, content: 1, url: 1 } // Only fetch necessary fields
-      }
-    ).toArray();
+    // Find articles using Mongoose Model find()
+    // Corrected Projection: Fetch fields needed for processing AND identification (minifluxEntryId)
+    const articlesToProcess = await NewsItem.find(
+      { llmProcessed: false }, 
+      'title contentSnippet url minifluxEntryId llmProcessingAttempts' // Fetch snippet and miniflux ID
+    )
+    .limit(MAX_ARTICLES_TO_QUEUE)
+    .lean() 
+    .exec();
 
     if (articlesToProcess && articlesToProcess.length > 0) {
       console.log(`Found ${articlesToProcess.length} articles needing LLM processing. Queuing...`);
       articlesToProcess.forEach(article => {
-        // Ensure article has an id, title, and content for processing
-        if (article.id && article.title && article.content) {
-           processingQueue.push(article);
+        // Corrected Check: Ensure required fields fetched are present
+        if (article.minifluxEntryId && article.title && article.contentSnippet) {
+           // Map to the structure expected by processNewsKeywords (assuming it needs 'content')
+           // Also pass minifluxEntryId and attempts for the task_finish handler
+           processingQueue.push({
+               minifluxEntryId: article.minifluxEntryId, 
+               title: article.title,
+               content: article.contentSnippet, // Map snippet to content
+               url: article.url,
+               llmProcessingAttempts: article.llmProcessingAttempts || 0
+           });
         } else {
-          console.warn(`Skipping queuing article (ID: ${article._id}) due to missing fields (id, title, or content).`);
+          // Use `_id` if available for logging, otherwise try minifluxEntryId
+          const logId = article._id || article.minifluxEntryId || 'Unknown ID'; 
+          console.warn(`Skipping queuing article (ID: ${logId}) due to missing fields (minifluxEntryId, title, or contentSnippet).`);
         }
       });
       console.log(`Finished queuing ${articlesToProcess.length} articles.`);

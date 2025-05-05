@@ -33,11 +33,11 @@ const checkServerAndOpenBrowsers = async () => {
       // Open the main application
       exec('open http://localhost:3000');
 
-      // Open the status dashboard
-      exec('open http://localhost:5001/status.html');
-
       // Open Miniflux RSS reader
       exec('open http://localhost:8080');
+
+      // Open the consolidated admin page
+      exec('open http://localhost:5001/admin.html');
 
       return true;
     } catch (error) {

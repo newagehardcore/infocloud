@@ -198,13 +198,27 @@ const App: React.FC = () => {
     loadNews();
   }, [selectedCategory, enabledBiases]);
 
-  // Compute displayed words based on enabled biases (fast, in-memory)
+  // Compute displayed words based on enabled biases AND selected category
   const displayedWords = useMemo(() => {
-    console.log(`Filtering ${allTagCloudWords.length} total words by biases:`, Array.from(enabledBiases));
-    const filtered = allTagCloudWords.filter(word => enabledBiases.has(word.bias));
-    console.log(`Displaying ${filtered.length} words`);
+    console.log(`Filtering ${allTagCloudWords.length} total words by biases: [${Array.from(enabledBiases).join(', ')}] and category: ${selectedCategory}`);
+    
+    let filtered = allTagCloudWords;
+
+    // 1. Filter by enabled biases
+    if (enabledBiases.size < Object.values(PoliticalBias).length) { // Only filter if not all biases are enabled
+        filtered = filtered.filter(word => enabledBiases.has(word.bias));
+    }
+    
+    // 2. Filter by selected category (if not 'all')
+    if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
+        const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
+        filtered = filtered.filter(word => word.category === upperCaseCategory);
+    }
+
+    console.log(`Displaying ${filtered.length} words after filtering.`);
     return filtered;
-  }, [allTagCloudWords, enabledBiases]);
+    // Ensure selectedCategory is in dependency array
+  }, [allTagCloudWords, enabledBiases, selectedCategory]);
 
   const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
     if (!word || !word.text) {
@@ -363,7 +377,7 @@ const App: React.FC = () => {
           {openNewsWindows.map(win => (
             <FloatingNewsWindow
               key={win.wordData.text}
-              data={win}
+              data={{ wordData: win.wordData, newsItems: win.newsItems }}
               position={win.position}
               clickedWordBias={win.wordData.bias}
               onClose={() => handleCloseNewsWindow(win.wordData.text)}
