@@ -3,7 +3,7 @@ const { fetchAndProcessMinifluxEntries } = require('./services/rssService');
 const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
-const { processNewsKeywords } = require('./services/wordProcessingService');
+const { processNewsKeywords, cacheAggregatedKeywords } = require('./services/wordProcessingService');
 const NewsItem = require('./models/NewsItem');
 
 // Path to the refresh feeds script
@@ -163,8 +163,8 @@ const processQueuedArticles = async () => {
     if (articlesToProcess && articlesToProcess.length > 0) {
       console.log(`Found ${articlesToProcess.length} articles needing LLM processing. Queuing...`);
       articlesToProcess.forEach(article => {
-        // Corrected Check: Ensure required fields fetched are present
-        if (article.minifluxEntryId && article.title && article.contentSnippet) {
+        // Corrected Check: Ensure required fields fetched are present, be lenient on contentSnippet
+        if (article.minifluxEntryId && article.title && typeof article.contentSnippet === 'string') {
            // Map to the structure expected by processNewsKeywords (assuming it needs 'content')
            // Also pass minifluxEntryId and attempts for the task_finish handler
            processingQueue.push({
@@ -198,32 +198,44 @@ const processQueuedArticles = async () => {
 // --- RENAMED and UPDATED Scheduling function ---
 // Schedule the tasks
 const scheduleCronJobs = () => {
-  // Schedule feed fetching (every 15 minutes)
-  console.log('Scheduling feed fetching cron job (every 15 minutes: */15 * * * *).');
-  cron.schedule('*/15 * * * *', () => {
-    fetchAllSources();
-  }, {
-    scheduled: true,
-    timezone: "America/New_York"
-  });
+  console.log('Scheduling cron jobs...');
 
-  // Schedule LLM processing queue job (every 5 minutes)
-  console.log('Scheduling LLM processing queue job (every 5 minutes: */5 * * * *).');
-  cron.schedule('*/5 * * * *', () => {
-    processQueuedArticles();
-  }, {
-    scheduled: true,
-    timezone: "America/New_York"
-  });
+  // 1. Fetch and Process Miniflux Entries (Every 5 minutes)
+  cron.schedule('*/5 * * * *', fetchAllSources);
+  console.log('Scheduled: Fetch Miniflux entries every 5 minutes.');
 
-  // Optional: Run initial tasks on startup
-  console.log('Running initial feed fetch on startup...');
-  fetchAllSources(); 
-  // Add a small delay before the first LLM queue run to allow feeds to fetch
+  // 2. Queue articles for LLM processing (Every 1 minute, offset)
+  // Runs more frequently to keep the LLM queue fed
   setTimeout(() => {
-      console.log('Running initial LLM processing queue check on startup...');
-      processQueuedArticles();
-  }, 15000); // Wait 15 seconds after startup
+    cron.schedule('*/1 * * * *', processQueuedArticles);
+    console.log('Scheduled: Queue articles for LLM processing every 1 minute (with initial delay).');
+    // Run immediately on startup after initial delay
+    processQueuedArticles();
+  }, 15000); // Start 15 seconds after main fetch schedule
+
+  // 3. Update Aggregated Keyword Cache (Every 2 minutes, offset)
+  setTimeout(() => {
+    cron.schedule('*/2 * * * *', async () => {
+      console.log('\n+++++++++++++++\nCron Job: Starting keyword cache update task...');
+      const startTime = Date.now();
+      try {
+        await cacheAggregatedKeywords();
+        const duration = (Date.now() - startTime) / 1000;
+        console.log(`Cron Job: Finished keyword cache update task in ${duration.toFixed(2)} seconds.`);
+      } catch (error) {
+        const duration = (Date.now() - startTime) / 1000;
+        console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error);
+      }
+       console.log('+++++++++++++++\n');
+    });
+    console.log('Scheduled: Update aggregated keyword cache every 2 minutes (with initial delay).');
+    // Run immediately on startup after initial delay
+    cacheAggregatedKeywords();
+  }, 30000); // Start 30 seconds after main fetch schedule (15s after LLM queue)
+
+  // Initial run for main fetch on startup
+  console.log('Running initial Miniflux fetch on startup...');
+  fetchAllSources(); 
 };
 
 // --- UPDATED Export ---

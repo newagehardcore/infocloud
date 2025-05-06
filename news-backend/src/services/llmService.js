@@ -6,12 +6,55 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { LRUCache } = require('lru-cache');
 const { PoliticalBias } = require('../types');
+const { lemmatizeWord } = require('../utils/textUtils');
+const fs = require('fs');
+const path = require('path');
+
+// <<< Read LLM config >>>
+let activeModel = 'llama3:8b'; // Default fallback
+const configPath = path.join(__dirname, '..', '..', 'config', 'llmConfig.json');
+try {
+  const configData = fs.readFileSync(configPath, 'utf8');
+  const config = JSON.parse(configData);
+  if (config && config.activeModel) {
+    activeModel = config.activeModel;
+    console.log(`[LLM Service] Loaded active model from config: ${activeModel}`);
+  } else {
+      console.warn(`[LLM Service] activeModel not found in ${configPath}, using default: ${activeModel}`);
+  }
+} catch (err) {
+  console.error(`[LLM Service] Error reading ${configPath}, using default model ${activeModel}. Error: ${err.message}`);
+}
+// <<< End reading config >>>
 
 // Configure caching
 const cache = new LRUCache({ 
   max: 1000,
   ttl: 1000 * 60 * 60 * 24 // 24 hour cache
 });
+
+// Function to dynamically set the active model
+// This will be called by the route handler when the config file is updated
+function setActiveModel(newModelName) {
+  if (newModelName && typeof newModelName === 'string' && newModelName.trim() !== '') {
+    const trimmedNewModel = newModelName.trim();
+    if (activeModel !== trimmedNewModel) {
+      activeModel = trimmedNewModel;
+      console.log(`[LLM Service] Active model dynamically updated to: ${activeModel}`);
+      // Optional: Clear cache if model change could affect output for the same input.
+      // For now, we assume cache keys are specific enough (include title/sentence).
+      // If different models produce different keywords/bias for identical inputs,
+      // and you want the new model's output immediately even for cached entries,
+      // you might need to clear or selectively invalidate the cache here.
+      // e.g., cache.clear();
+    } else {
+      console.log(`[LLM Service] Attempted to set active model to ${trimmedNewModel}, but it's already the current model.`);
+    }
+    return true;
+  }
+  console.warn(`[LLM Service] Invalid model name provided to setActiveModel: ${newModelName}`);
+  return false;
+}
 
 /**
  * Create hash for cache keys
@@ -48,9 +91,9 @@ async function processArticle(title, firstSentence = '') { // Accept title and f
   
   try {
     const response = await axios.post('http://localhost:11434/api/generate', {
-      model: 'llama3:8b', // Switch back to Llama 3 8B for quality
+      model: activeModel,
       format: "json", // Enforce JSON output format
-      prompt: `You are a highly efficient news headline analyst. Your task is to extract the political bias and the 2-3 most central and distinct keywords or named entities from the provided headline and optional first sentence.
+      prompt: `You are a highly efficient news headline analyst. Your task is to extract the political bias and 2-3 distinct, central keywords/entities from the provided headline and optional first sentence.
 
 Analyze this input:
 Headline: ${title}
@@ -59,26 +102,24 @@ First Sentence: ${firstSentence}
 Respond ONLY with valid JSON containing two fields:
 
 "bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")
-"keywords": array of 2-3 UNIQUE and most central keywords/phrases that:
+"keywords": array of 2-3 UNIQUE keywords/phrases adhering to these guidelines:
 
-IMPORTANT KEYWORD GUIDELINES:
-* SELECT only the 2-3 most critical keywords/named entities that define the CORE SUBJECT or EVENT.
-* PRIORITIZE distinct concepts. AVOID synonyms or minor variations if another keyword captures the main idea.
-* EXTRACT keywords DIRECTLY from the headline/sentence text.
-* FOCUS ON specific proper nouns (people, organizations, places), core actions, or defining topics.
-* VARY length (single words to multi-word phrases) only if necessary to capture a distinct central concept.
-* MAINTAIN original capitalization where possible.
+**IMPORTANT KEYWORD GUIDELINES (Updated):**
+1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.
+2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.
+3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.
+4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.
+5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.
+6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.
+7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).
 
 **AVOID:**
-* More than 3 keywords.
-* Redundant keywords covering the same core concept.
-* Generic or uninformative words (e.g., "today", "report", "update", "says").
-* Adding concepts not explicitly mentioned.
-* Paraphrasing the original text.
-* News source names unless they are the subject.
-* HTML code or entities.
-* Dates/times unless absolutely central to identifying the event (rare).
-* Generic words without context (e.g., "statement", "issue").
+*   More than 3 keywords total.
+*   Redundant keywords (synonyms or minor variations of the primary topic).
+*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").
+*   Adding concepts not explicitly mentioned or paraphrasing.
+*   News source names (unless they are the subject).
+*   HTML code/entities, dates/times (unless central).
 
 **BIAS CLASSIFICATION GUIDE:**
 * "Left" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism
@@ -88,11 +129,11 @@ IMPORTANT KEYWORD GUIDELINES:
 * "Right" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs
 * "Unknown" - No clear political leaning detectable or not applicable to political spectrum
 
-      Respond with valid JSON only in this exact format:
-      {
-        "bias": "[political bias category]",
-        "keywords": ["central keyword 1", "central keyword 2"] // (or up to 3 if necessary)
-      }`,
+Respond with valid JSON only in this exact format:
+{
+  "bias": "[political bias category]",
+  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")
+}`,
       stream: false
     });
     
@@ -101,21 +142,25 @@ IMPORTANT KEYWORD GUIDELINES:
     try {
       result = JSON.parse(response.data.response);
       
-      // Ensure result has the expected structure
+      // Ensure result has the expected structure and apply lemmatization + filtering
       result = {
         bias: mapToPoliticalBias(result.bias || ''),
-        keywords: Array.isArray(result.keywords) ? 
+        keywords: Array.isArray(result.keywords) ?
           result.keywords
-            .map(k => k.trim().toLowerCase()) // Normalize to lowercase
-            .filter(k => {
+            .map(k => k.trim()) // Trim whitespace first
+            .filter(k => k.length > 0) // Filter empty strings after trimming
+            .map(k => lemmatizeWord(k)) // Lemmatize each non-empty keyword
+            .filter(k => { // Apply existing filtering logic *after* lemmatization
               const words = k.split(' ');
-              // Accept 1-4 word phrases, rejecting empty strings
-              return k.length > 0 && words.length >= 1 && words.length <= 4 && 
-                // Filter out common generic phrases
+              // Accept 1-4 word phrases (post-lemmatization)
+              return k.length > 0 && words.length >= 1 && words.length <= 4 &&
+                // Filter out common generic phrases (already lowercase due to lemmatizer)
                 !['news', 'update', 'read more', 'latest', 'breaking'].includes(k) &&
-                // Filter out single prepositions or articles
-                !(words.length === 1 && ['and', 'the', 'of', 'to', 'in', 'for', 'with', 'on', 'by', 'at'].includes(k));
+                // Filter out single prepositions or articles (already lowercase)
+                !(words.length === 1 && ['a', 'an', 'and', 'the', 'of', 'to', 'in', 'for', 'with', 'on', 'by', 'at'].includes(k));
             })
+            // Add a final uniqueness filter after lemmatization and filtering
+            .filter((value, index, self) => self.indexOf(value) === index)
           : []
       };
     } catch (e) {
@@ -207,36 +252,13 @@ function mapToPoliticalBias(biasString) {
 
 // Function to get the currently configured model name
 function getCurrentModelName() {
-  // In the future, this could read from config, but for now, reads the hardcoded value
-  // This is a bit brittle, assumes the model line format doesn't change drastically
-  try {
-    const fileContent = require('fs').readFileSync(__filename, 'utf8');
-    const modelLine = fileContent.split('\n').find(line => line.includes('model:'));
-    const match = modelLine.match(/model:\s*'([^\']+)'/);
-    // --- Update Model Name Reading Logic ---
-    // Simple approach: Find the line with `model:` and extract the value.
-    // This might need adjustment if the formatting changes significantly.
-    if (match && match[1]) {
-        return match[1];
-    } else {
-        // Fallback if regex fails
-        const modelSettingLine = fileContent.split('\n').find(line => line.trim().startsWith('model:'));
-        if (modelSettingLine) {
-            const parts = modelSettingLine.split(':');
-            if (parts.length > 1) {
-                return parts[1].trim().replace(/['",]/g, '').split(' ')[0]; // Get model name, remove quotes/commas
-            }
-        }
-        return 'unknown'; // Default if model line not found or parsed
-    }
-  } catch (err) {
-    console.error("Error reading model name from llmService.js:", err);
-    return 'error_reading_model';
-  }
+  // Read directly from the variable loaded from config
+  return activeModel;
 }
 
 module.exports = {
   processArticle,
   processArticleWithRetry,
-  getCurrentModelName
+  getCurrentModelName,
+  setActiveModel
 };

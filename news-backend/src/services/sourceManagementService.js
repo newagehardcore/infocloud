@@ -314,96 +314,19 @@ async function getMinifluxFeeds() {
   }
 }
 
-// --- Fix Unknown Category Items Function ---
-
-async function fixUnknownCategoryItems() {
-    console.log('[Category Fix] Starting process to fix NewsItems with UNKNOWN category...');
-    let modifiedCount = 0;
-
-    // 1. Load master sources from DB and create mapping
-    let dbSources = [];
-    try {
-        dbSources = await Source.find().lean(); // Get sources from DB
-    } catch (dbError) {
-        console.error('[Category Fix] CRITICAL ERROR: Could not load sources from MongoDB:', dbError);
-        throw new Error('Failed to load sources from database for category fix.');
-    }
-    
-    const feedIdToCategoryMap = new Map();
-    dbSources.forEach(source => {
-        if (source.minifluxFeedId != null) { 
-            feedIdToCategoryMap.set(String(source.minifluxFeedId), source.category.toUpperCase()); 
-        }
-    });
-    console.log(`[Category Fix] Loaded ${dbSources.length} sources from DB, mapped ${feedIdToCategoryMap.size} feed IDs to categories.`);
-
-    if (feedIdToCategoryMap.size === 0) {
-        console.warn('[Category Fix] No feed IDs found in master sources. Cannot fix categories.');
-        return { matchedCount: 0, modifiedCount: 0, errors: 0 };
-    }
-
-    // 2. Find items with UNKNOWN category
-    const NewsItem = require('../models/NewsItem'); // Import model here to avoid circular deps
-    const unknownItems = await NewsItem.find({ 'source.category': 'UNKNOWN' })
-                                       .select('_id minifluxFeedId') // Select only needed fields
-                                       .lean(); // Use lean for performance
-
-    console.log(`[Category Fix] Found ${unknownItems.length} NewsItems with source.category = UNKNOWN.`);
-
-    if (unknownItems.length === 0) {
-        console.log('[Category Fix] No items found with UNKNOWN category. Nothing to fix.');
-        return { matchedCount: 0, modifiedCount: 0, errors: 0 };
-    }
-
-    // 3. Prepare bulk update operations
-    const bulkOps = [];
-    let itemsToUpdateCount = 0;
-    unknownItems.forEach(item => {
-        const correctCategory = feedIdToCategoryMap.get(String(item.minifluxFeedId));
-        if (correctCategory && correctCategory !== 'UNKNOWN') {
-            itemsToUpdateCount++;
-            bulkOps.push({
-                updateOne: {
-                    filter: { _id: item._id },
-                    update: { $set: { 'source.category': correctCategory } }
-                }
-            });
-        } else {
-            // Log if a mapping wasn't found or if the mapped category is still UNKNOWN
-            if (!correctCategory) {
-                console.warn(`[Category Fix] No category mapping found for minifluxFeedId: ${item.minifluxFeedId} (NewsItem ID: ${item._id})`);
-            }
-            // No need to log if correctCategory is UNKNOWN, as we wouldn't update it anyway
-        }
-    });
-
-    console.log(`[Category Fix] Prepared ${bulkOps.length} update operations out of ${unknownItems.length} unknown items.`);
-
-    // 4. Execute bulk write if there are operations
-    let bulkWriteResult = { matchedCount: 0, modifiedCount: 0, acknowledged: false, errors: [] };
-    if (bulkOps.length > 0) {
-        try {
-            console.log(`[Category Fix] Executing bulk update for ${bulkOps.length} items...`);
-            bulkWriteResult = await NewsItem.bulkWrite(bulkOps, { ordered: false });
-            modifiedCount = bulkWriteResult.modifiedCount;
-            console.log(`[Category Fix] Bulk update complete. Matched: ${bulkWriteResult.matchedCount}, Modified: ${modifiedCount}, Errors: ${bulkWriteResult.getWriteErrorCount()}`);
-            if(bulkWriteResult.hasWriteErrors()) {
-                 console.error("[Category Fix] Bulk write errors occurred:", JSON.stringify(bulkWriteResult.getWriteErrors()));
-            }
-        } catch (error) {
-            console.error('[Category Fix] Error executing bulkWrite:', error);
-            // Return error state, maybe partial counts if available before error?
-             return { matchedCount: bulkWriteResult?.matchedCount || 0, modifiedCount: bulkWriteResult?.modifiedCount || 0, errors: bulkWriteResult?.getWriteErrorCount() || 1, errorMessage: error.message };
-        }
-    }
-
-    return { 
-        totalUnknownFound: unknownItems.length,
-        updatesAttempted: bulkOps.length,
-        matchedCount: bulkWriteResult.matchedCount,
-        modifiedCount: modifiedCount, 
-        errors: bulkWriteResult.getWriteErrorCount()
-    };
+// NEW function to get unique source categories from DB
+async function getUniqueSourceCategories() {
+  try {
+    console.log("[SourceService - getUniqueSourceCategories] Fetching distinct categories from DB...");
+    const categories = await Source.distinct('category');
+    // Filter out null or empty string categories, then sort
+    const sortedCategories = categories.filter(cat => cat && cat.trim() !== '').sort();
+    console.log(`[SourceService - getUniqueSourceCategories] Found ${sortedCategories.length} distinct categories.`);
+    return sortedCategories;
+  } catch (error) {
+    console.error("[SourceService - getUniqueSourceCategories] Error fetching distinct categories:", error);
+    throw new Error('Failed to retrieve distinct categories from database.');
+  }
 }
 
 // --- Export Functions ---
@@ -417,5 +340,5 @@ module.exports = {
     getMinifluxFeeds,
     syncWithMinifluxFeeds, // Keep export, but function is disabled
     removeSourcesByUrl,    // Keep export, but function is disabled
-    fixUnknownCategoryItems 
+    getUniqueSourceCategories // <<< Export new function
 }; 

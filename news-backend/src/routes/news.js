@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb'); // May still be needed if manipulating _id directly elsewhere, but likely not for queries now.
 const { fetchNews } = require('../miniflux/fetchEntries');
-const { aggregateKeywordsForCloud } = require('../services/wordProcessingService');
+const {
+  aggregateKeywordsForCloud,
+  getCachedAggregatedKeywords,
+  cacheAggregatedKeywords
+} = require('../services/wordProcessingService');
 const { PoliticalBias } = require('../types');
 const NewsItem = require('../models/NewsItem'); // Import the Mongoose model
 
@@ -73,9 +77,21 @@ router.get('/', async (req, res) => {
 
     console.log(`Total items fetched: ${combinedNews.length}, returning: ${finalNews.length}`);
 
-    // --- Aggregating Keywords for Tag Cloud ---
-    const newsWithKeywords = finalNews.filter(item => item.keywords && item.keywords.length > 0);
-    const wordsForCloud = aggregateKeywordsForCloud(newsWithKeywords, 500); 
+    // --- Aggregating Keywords for Tag Cloud (Use Cache First) ---
+    let wordsForCloud = getCachedAggregatedKeywords(); // Try cache
+
+    if (!wordsForCloud) { // Cache miss or stale
+      console.log('[GET /api/news] Cache miss/stale. Calculating keywords on the fly...');
+      const newsWithKeywords = finalNews.filter(item => item.keywords && item.keywords.length > 0);
+      wordsForCloud = aggregateKeywordsForCloud(newsWithKeywords, 500);
+
+      // Trigger an async update of the cache, but don't wait for it
+      cacheAggregatedKeywords().catch(err => {
+        console.error('[GET /api/news] Error triggering background cache update after miss:', err);
+      });
+    } else {
+      console.log('[GET /api/news] Serving keywords from cache.');
+    }
 
     // Return the balanced, prioritized & capped data
     res.json({
