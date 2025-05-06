@@ -93,12 +93,16 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
       publishedAt = new Date().toISOString();
     }
 
+    // --- Add new log here ---
+    console.log(`[RSS Service - mapMinifluxEntryToNewsItem] PRE-SAVE CHECK for Miniflux Entry ID ${entry?.id}: cleanedContent (first 70 chars): '${cleanedContent.substring(0,70)}', title: '${title}'`);
+    // --- End new log ---
+
     const mappedSourceBias = getTitleCaseBias(sourceInfo.bias);
 
     const newsItem = {
       id, // Use Miniflux entry hash or ID as our primary key
       title,
-      description,
+      contentSnippet: description,
       url,
       source: {
         name: sourceInfo.name,

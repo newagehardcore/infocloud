@@ -457,11 +457,9 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
       llmResult = { bias: itemBias, keywords: [] };
     }
 
-    const traditionalKeywords = extractKeywordsTraditional(item.contentSnippet, {
-      ...config,
-      useLemmatization: true, // Ensure lemmatization for traditional
-      removeStopWords: true,
-    }).map(kwObj => kwObj.keyword);
+    // Use extractMeaningfulPhrases instead of the undefined extractKeywordsTraditional
+    const traditionalKeywords = extractMeaningfulPhrases(item.contentSnippet)
+                                  .map(kwObj => ({ text: kwObj.text, value: kwObj.weight })); // Keep objects, map weight to value
 
     const combinedKeywords = combineKeywords(llmResult.keywords, traditionalKeywords);
 
@@ -631,42 +629,45 @@ function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
       const originalText = item.text;
       // --- Filtering Stage ---
       if (!item.text) {
-        console.log(`[aggregateKeywordsForCloud FILTERING] Out: Empty text. Original: ${originalText}`);
+        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Empty text. Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
 
-      const lowerText = item.text.toLowerCase();
-      const words = item.text.split(' ');
+      // Define these once at the top of the filter callback scope
+      const lowerText = item.text.toLowerCase().trim(); 
+      const words = item.text.split(' '); 
       const wordCount = words.length;
 
-      const containsSource = words.some(word => NEWS_SOURCE_NAMES.has(word.toLowerCase()));
-      if (containsSource) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Contains source name. Original: ${originalText}`);
+      // Refined NEWS_SOURCE_NAMES Filter:
+      // Filter out the keyword if the ENTIRE normalized phrase is in NEWS_SOURCE_NAMES.
+      if (NEWS_SOURCE_NAMES.has(lowerText)) {
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Keyword matches a NEWS_SOURCE_NAME. Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
 
+      // Existing filters (HTML entities, word count, text length, all stop words)
       if (/&#\d+;/.test(item.text) || /&[a-zA-Z]+;/.test(item.text)) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: HTML entity. Original: ${originalText}`);
+        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: HTML entity. Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
 
       if (wordCount < 1 || wordCount > 5) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Word count (${wordCount}). Original: ${originalText}`);
+        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Word count (${wordCount}). Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
 
       if (item.text.length < 2 || item.text.length > 50) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Text length (${item.text.length}). Original: ${originalText}`);
+        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Text length (${item.text.length}). Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
 
       if (wordCount > 1 && words.every(w => STOP_WORDS.has(w.toLowerCase()))) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: All stop words. Original: ${originalText}`);
+        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: All stop words. Original: ${originalText}`);
         filteredOutCount++;
         return false;
       }
@@ -731,8 +732,32 @@ function combineKeywords(llmKeywords, traditionalKeywords) {
     // Limit the number of traditional keywords to prevent overwhelming the LLM ones
     .slice(0, Math.min(llmKeywords.length, 30));
   
+  // Extract just the text from the traditional keywords
+  const uniqueTraditionalKeywordStrings = uniqueTraditionalKeywords.map(kw => kw.text);
+
   // Combine, strongly prioritizing LLM keywords (they come first in the array)
-  return [...llmKeywords, ...uniqueTraditionalKeywords];
+  // Ensure all keywords are strings and the final list is unique, attempting to preserve original casing.
+  const combined = [...llmKeywords, ...uniqueTraditionalKeywordStrings];
+  
+  // Create a map to store original casings based on lowercase versions
+  const casingMap = new Map();
+  llmKeywords.forEach(k => {
+    if (typeof k === 'string') { // Ensure k is a string
+        casingMap.set(k.toLowerCase(), k);
+    }
+  });
+  uniqueTraditionalKeywords.forEach(kwObj => { // kwObj is {text, value}
+    if (typeof kwObj.text === 'string') { // Ensure kwObj.text is a string
+        if (!casingMap.has(kwObj.text.toLowerCase())) { // Prioritize LLM casing if conflict
+            casingMap.set(kwObj.text.toLowerCase(), kwObj.text);
+        }
+    }
+  });
+
+  // Get unique lowercase keywords, then map back to original casing
+  const uniqueLowercaseKeywords = Array.from(new Set(combined.filter(k => typeof k === 'string').map(k => k.toLowerCase())));
+  
+  return uniqueLowercaseKeywords.map(lk => casingMap.get(lk) || lk); // Fallback to lowercase if original somehow not found
 }
 
 // <<< New Function: cacheAggregatedKeywords >>>
