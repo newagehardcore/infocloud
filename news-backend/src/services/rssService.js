@@ -64,18 +64,19 @@ function cleanHtmlContent(htmlContent) {
  */
 function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
   try {
-    // Enhanced check: Ensure sourceInfo itself is valid, and its category is present and not empty
-    // Also explicitly check for entry.content, as cron.js requires a contentSnippet (derived from description)
+    const cleanedContent = entry.content ? cleanHtmlContent(entry.content) : '';
+
     if (!entry || !sourceInfo || 
-        !entry.id || !entry.feed_id || !entry.url || !entry.title || !entry.content || 
+        !entry.id || !entry.feed_id || !entry.url || !entry.title || 
+        !cleanedContent || cleanedContent.trim() === '' || // Explicitly check cleanedContent
         !sourceInfo.category || sourceInfo.category.trim() === '') {
-      console.warn(`[RSS Service - mapMinifluxEntryToNewsItem] Skipping entry due to missing essential fields (entry.id, feed_id, url, title, content), missing sourceInfo, or empty/invalid source category. Entry ID: ${entry?.id}, Feed ID: ${entry?.feed_id}, Source Category: ${sourceInfo?.category}, HasContent: ${!!entry?.content}`);
+      console.warn(`[RSS Service - mapMinifluxEntryToNewsItem] Skipping entry due to missing essential fields (id, feed_id, url, title), empty cleanedContent, missing sourceInfo, or empty/invalid source category. Entry ID: ${entry?.id}, Feed ID: ${entry?.feed_id}, Source Category: ${sourceInfo?.category}, CleanedContent Empty: ${!cleanedContent || cleanedContent.trim() === ''}`);
       return null;
     }
 
     const id = entry.hash || `miniflux-${entry.id}`;
     const title = he.decode(entry.title).trim();
-    let description = cleanHtmlContent(entry.content);
+    let description = cleanedContent;
     const url = entry.url;
     let publishedAt = entry.published_at;
 

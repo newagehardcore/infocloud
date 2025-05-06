@@ -2,32 +2,27 @@
 require('dotenv').config(); // Load environment variables from .env file
 const mongoose = require('mongoose');
 const { processNewsKeywords, aggregateKeywordsForCloud } = require('../services/wordProcessingService');
+const Source = require('../models/Source'); // Adjust path as needed
 
-// Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'news_aggregator';
+async function checkSourcesAndTagCloud() {
+  console.log('Connecting to database for tag cloud check...');
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  const DB_NAME = process.env.DB_NAME || 'news_aggregator';
 
-mongoose.connect(`${MONGODB_URI}/${DB_NAME}`, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+  const connectionOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    // useCreateIndex: true, // Optional, depending on Mongoose version
+    // useFindAndModify: false, // Optional
+    serverSelectionTimeoutMS: 5000, // Shorter timeout for a script
+    dbName: DB_NAME
+  };
 
-async function checkTagCloud() {
+  await mongoose.connect(`${MONGODB_URI}/${DB_NAME}`, connectionOptions);
+
+  console.log('Database connected. Checking sources...');
+
   try {
-    console.log('Connecting to database...');
-    
-    // Wait for connection
-    await new Promise(resolve => {
-      if (mongoose.connection.readyState === 1) {
-        resolve();
-      } else {
-        mongoose.connection.once('connected', () => {
-          console.log('MongoDB Connected...');
-          resolve();
-        });
-      }
-    });
-    
     console.log('Checking news items...');
     
     // Get the database and collection directly
@@ -99,4 +94,4 @@ async function checkTagCloud() {
   }
 }
 
-checkTagCloud();
+checkSourcesAndTagCloud();

@@ -71,82 +71,65 @@ function createHash(text) {
  * 
  * @param {string} title - The article title
  * @param {string} firstSentence - The first sentence of the article description (optional)
+ * @param {string} existingBias - The existing bias for the article
  * @returns {Promise<Object>} - Object with bias and keywords
  */
-async function processArticle(title, firstSentence = '') { // Accept title and firstSentence
+async function processArticle(title, firstSentence = '', existingBias = PoliticalBias.Unknown) { // Accept title, firstSentence, and existingBias
   // Skip empty title
   if (!title || title.trim().length === 0) {
     return {
-      bias: PoliticalBias.Unknown,
+      bias: existingBias, // Return existing or Unknown if title is empty
       keywords: []
     };
   }
   
   // Combine title and sentence for processing and caching
+  // Cache key should also consider if bias was requested, to avoid serving a keyword-only result if bias was needed later
+  const requestingBias = !existingBias || existingBias === PoliticalBias.Unknown;
   const inputText = `${title}${firstSentence ? '. ' + firstSentence : ''}`;
-
-  // Cache key based on normalized combined input
-  const cacheKey = `article-combo-${createHash(inputText)}`; 
+  const cacheKey = `article-combo-${requestingBias ? 'full' : 'kw_only'}-${createHash(inputText)}`;
+  
   if (cache.has(cacheKey)) return cache.get(cacheKey);
   
+  let promptInstruction = "You are a highly efficient news headline analyst. Your task is to extract ";
+  let jsonFields = "";
+  let jsonStructureExample = "";
+
+  if (requestingBias) {
+    promptInstruction += "the political bias and 2-3 distinct, central keywords/entities";
+    jsonFields = `"bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")\n"keywords": array of 2-3 UNIQUE keywords/phrases`;
+    jsonStructureExample = `{\n  "bias": "[political bias category]",\n  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")\n}`;
+  } else {
+    promptInstruction += "2-3 distinct, central keywords/entities";
+    jsonFields = `"keywords": array of 2-3 UNIQUE keywords/phrases`;
+    jsonStructureExample = `{\n  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")\n}`;
+    console.log(`[LLM Service] Bias already exists for article "${title}" as "${existingBias}". Requesting keywords only.`);
+  }
+  
+  promptInstruction += " from the provided headline and optional first sentence.";
+
   try {
     const response = await axios.post('http://localhost:11434/api/generate', {
       model: activeModel,
       format: "json", // Enforce JSON output format
-      prompt: `You are a highly efficient news headline analyst. Your task is to extract the political bias and 2-3 distinct, central keywords/entities from the provided headline and optional first sentence.
-
-Analyze this input:
-Headline: ${title}
-First Sentence: ${firstSentence}
-
-Respond ONLY with valid JSON containing two fields:
-
-"bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")
-"keywords": array of 2-3 UNIQUE keywords/phrases adhering to these guidelines:
-
-**IMPORTANT KEYWORD GUIDELINES (Updated):**
-1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.
-2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.
-3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.
-4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.
-5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.
-6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.
-7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).
-
-**AVOID:**
-*   More than 3 keywords total.
-*   Redundant keywords (synonyms or minor variations of the primary topic).
-*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").
-*   Adding concepts not explicitly mentioned or paraphrasing.
-*   News source names (unless they are the subject).
-*   HTML code/entities, dates/times (unless central).
-
-**BIAS CLASSIFICATION GUIDE:**
-* "Left" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism
-* "Liberal" - Progressive-leaning but more moderate, supportive of government programs, social reform
-* "Centrist" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments
-* "Conservative" - Traditional values, limited government, business-friendly, incremental change
-* "Right" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs
-* "Unknown" - No clear political leaning detectable or not applicable to political spectrum
-
-Respond with valid JSON only in this exact format:
-{
-  "bias": "[political bias category]",
-  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")
-}`,
+      prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\n${requestingBias ? "**BIAS CLASSIFICATION GUIDE:**\n* \"Left\" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism\n* \"Liberal\" - Progressive-leaning but more moderate, supportive of government programs, social reform\n* \"Centrist\" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments\n* \"Conservative\" - Traditional values, limited government, business-friendly, incremental change\n* \"Right\" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs\n* \"Unknown\" - No clear political leaning detectable or not applicable to political spectrum\n\n" : "" }Respond with valid JSON only in this exact format:\n${jsonStructureExample}`,
       stream: false
     });
     
     // Parse the JSON response
-    let result;
+    let resultJson;
     try {
-      result = JSON.parse(response.data.response);
+      resultJson = JSON.parse(response.data.response);
       
-      // Ensure result has the expected structure and apply lemmatization + filtering
-      result = {
-        bias: mapToPoliticalBias(result.bias || ''),
-        keywords: Array.isArray(result.keywords) ?
-          result.keywords
+      // Determine bias: use LLM's bias if requested and present, otherwise use existingBias
+      const finalBias = requestingBias 
+                        ? mapToPoliticalBias(resultJson.bias || '') 
+                        : existingBias;
+
+      const processedResult = {
+        bias: finalBias,
+        keywords: Array.isArray(resultJson.keywords) ?
+          resultJson.keywords
             .map(k => k.trim()) // Trim whitespace first
             .filter(k => k.length > 0) // Filter empty strings after trimming
             .map(k => lemmatizeWord(k)) // Lemmatize each non-empty keyword
@@ -163,27 +146,32 @@ Respond with valid JSON only in this exact format:
             .filter((value, index, self) => self.indexOf(value) === index)
           : []
       };
+      cache.set(cacheKey, processedResult);
+      return processedResult;
     } catch (e) {
-      // Fallback parsing for non-JSON responses
-      console.error('Failed to parse LLM response as JSON:', e);
-      result = {
-        bias: mapToPoliticalBias(response.data.response),
+      console.error(`[LLM Service] Failed to parse LLM JSON response for article "${title}". Response: ${response.data.response}. Error:`, e);
+      // Fallback if JSON parsing fails but bias was requested
+      const fallbackBias = requestingBias ? mapToPoliticalBias(response.data.response) : existingBias;
+      const fallbackResult = {
+        bias: fallbackBias,
         keywords: []
       };
+      cache.set(cacheKey, fallbackResult); // Cache fallback to prevent re-processing bad response
+      return fallbackResult;
     }
-    
-    cache.set(cacheKey, result);
-    return result;
   } catch (error) {
-    // Clean error logging - only show essential information
     const errorMessage = error.code === 'ECONNREFUSED' 
-      ? 'LLM connection failed: Ollama service not available (ECONNREFUSED)' 
-      : `LLM processing failed: ${error.message || error}`;
+      ? `LLM connection failed for article "${title}": Ollama service not available (ECONNREFUSED)`
+      : `LLM processing error for article "${title}" (First sentence: "${firstSentence ? firstSentence.substring(0,50)+'...' : 'N/A'}"): ${error.response ? error.response.status + ' ' + error.response.statusText : error.message || error}`;
     
     console.error(errorMessage);
+    // Log the actual error object if it's not a connection refusal, for more details on 500s etc.
+    if (error.code !== 'ECONNREFUSED' && error.response) {
+        console.error('[LLM Service] Ollama Error Response Data:', error.response.data);
+    }
     
     return {
-      bias: PoliticalBias.Unknown,
+      bias: existingBias, // On error, retain existing bias or Unknown
       keywords: []
     };
   }
@@ -194,30 +182,29 @@ Respond with valid JSON only in this exact format:
  * 
  * @param {string} title - The article title to analyze
  * @param {string} firstSentence - The first sentence of the article description (optional)
+ * @param {string} existingBias - The existing bias for the article
  * @param {number} retries - Number of retry attempts
  * @returns {Promise<Object>} - Object with bias and keywords
  */
-async function processArticleWithRetry(title, firstSentence = '', retries = 2) { // Accept title and firstSentence
+async function processArticleWithRetry(title, firstSentence = '', existingBias = PoliticalBias.Unknown, retries = 2) { // Accept and pass existingBias
   try {
-    return await processArticle(title, firstSentence); // Pass title and firstSentence
+    // Pass existingBias to processArticle
+    return await processArticle(title, firstSentence, existingBias);
   } catch (error) {
-    // Check if it's a connection error (likely Ollama not running)
-    if (error.code === 'ECONNREFUSED' && retries > 0) {
-      console.log(`LLM connection failed. Retrying ${retries} more times...`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-      return processArticleWithRetry(title, firstSentence, retries - 1); // Pass title and firstSentence on retry
+    // Check if it's a connection error (likely Ollama not running) or a specific type of server error we want to retry
+    const shouldRetry = (error.code === 'ECONNREFUSED' || (error.response && error.response.status === 500));
+
+    if (shouldRetry && retries > 0) {
+      console.log(`LLM connection/server error for article "${title}". Retrying ${retries} more times...`);
+      await new Promise(resolve => setTimeout(resolve, 1000 + ( (2 - retries) * 500) )); // Wait 1s, 1.5s for subsequent retries
+      // Pass existingBias on retry
+      return processArticleWithRetry(title, firstSentence, existingBias, retries - 1);
     } 
-    // Other errors or out of retries
-    else if (retries > 0) {
-      console.log(`LLM error: ${error.message || 'Unknown error'}. Retrying ${retries} more times...`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-      return processArticleWithRetry(title, firstSentence, retries - 1); // Pass title and firstSentence on retry
-    }
     
-    // No more retries left
-    console.error('LLM processing failed after all retry attempts');
+    // No more retries left or not a retryable error
+    console.error(`LLM processing failed for article "${title}" after all retry attempts or due to unretryable error: ${error.message}`);
     return {
-      bias: PoliticalBias.Unknown,
+      bias: existingBias, // On final failure, retain existing bias or Unknown
       keywords: []
     };
   }
