@@ -3,11 +3,12 @@ const { exec } = require('child_process');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const { getLlmFallbackCount } = require('../services/wordProcessingService');
-const { getCurrentModelName } = require('../services/llmService');
+const { getCurrentModelName, setActiveModel } = require('../services/llmService');
 const { forceRefreshAllFeeds } = require('../services/rssService');
 const NewsItem = require('../models/NewsItem');
 const router = express.Router();
 const path = require('path');
+const fs = require('fs').promises; // Use fs.promises
 
 // Check Docker status
 const checkDocker = () => {
@@ -372,6 +373,95 @@ router.get('/api/admin/tag-stats', async (req, res) => {
 // Route to serve the admin status page
 router.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// <<< NEW Route to get Ollama models (Corrected Path) >>>
+router.get('/ollama-models', async (req, res) => {
+  console.log('>>> DEBUG: /status/ollama-models route HIT! <<<');
+
+  try {
+    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    console.log(`>>> DEBUG: Attempting to fetch models from Ollama at: ${ollamaBaseUrl}/api/tags <<<`);
+    const response = await axios.get(`${ollamaBaseUrl}/api/tags`, { timeout: 5000 });
+
+    console.log('>>> DEBUG: Ollama response status:', response.status);
+    console.log('>>> DEBUG: Ollama response data:', JSON.stringify(response.data, null, 2));
+
+    if (response.data && Array.isArray(response.data.models)) {
+        console.log('>>> DEBUG: Successfully found models array. Sending to frontend. <<<');
+        res.json(response.data.models);
+    } else {
+        console.warn('>>> WARN: Ollama API response for /api/tags did not contain a models array or data was unexpected. Sending empty array to frontend. <<<', response.data);
+        res.json([]);
+    }
+  } catch (error) {
+      console.error('>>> ERROR: Error fetching Ollama models: <<<', error.message);
+      if (error.response) {
+          console.error('>>> ERROR: Ollama error response data: <<<', error.response.data);
+          console.error('>>> ERROR: Ollama error response status: <<<', error.response.status);
+      } else if (error.request) {
+          console.error('>>> ERROR: No response received from Ollama. Request details: <<<', error.request);
+      } else {
+          console.error('>>> ERROR: Axios request setup error: <<<', error.message);
+      }
+      res.status(500).json({ error: 'Failed to fetch Ollama models', details: error.code || error.message });
+  }
+});
+
+// <<< NEW Route to SET Ollama model (Corrected Path) >>>
+router.post('/api/set-llm-model', async (req, res) => {
+  const { model: newModelName } = req.body;
+
+  if (!newModelName || typeof newModelName !== 'string' || newModelName.trim() === '') {
+    return res.status(400).json({ error: 'Invalid model name provided.' });
+  }
+
+  const trimmedModelName = newModelName.trim();
+  const configPath = path.join(__dirname, '..', 'config', 'llmConfig.json');
+
+  try {
+    // Optional: Verify the model exists using Ollama API before setting?
+    // This adds latency but prevents setting a non-existent model.
+    // For simplicity, we'll skip verification for now, assuming the user selects from the populated list.
+
+    // Read current config
+    let config = {};
+    try {
+      const configData = await fs.readFile(configPath, 'utf8');
+      config = JSON.parse(configData);
+    } catch (readError) {
+       // If file doesn't exist or is invalid, start with an empty object
+       console.warn(`[Set LLM Model] Config file ${configPath} not found or invalid. Creating new one.`);
+    }
+
+    // Update the model
+    config.activeModel = trimmedModelName;
+
+    // Write the updated config back
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+    console.log(`[Set LLM Model] Successfully updated active model in ${configPath} to: ${trimmedModelName}`);
+    
+    // Dynamically update the model in the running llmService
+    const modelUpdatedInMemory = setActiveModel(trimmedModelName);
+
+    if (modelUpdatedInMemory) {
+      res.json({ 
+          success: true, 
+          message: `LLM model set to ${trimmedModelName} and updated in the running service.` 
+      });
+    } else {
+      // This case might be hit if setActiveModel returns false (e.g., invalid name, though validated above)
+      res.json({ 
+          success: true, 
+          message: `LLM model configuration updated to ${trimmedModelName}. Restart server if live update failed.` 
+      });
+    }
+
+  } catch (error) {
+    console.error(`[Set LLM Model] Error setting LLM model to ${trimmedModelName}:`, error);
+    res.status(500).json({ error: 'Failed to set LLM model configuration', details: error.message });
+  }
 });
 
 module.exports = router;

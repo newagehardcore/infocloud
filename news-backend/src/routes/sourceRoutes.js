@@ -5,14 +5,9 @@ const {
     addSource, 
     updateSource, 
     deleteSource,
-    fixUnknownCategoryItems,
+    getUniqueSourceCategories
 } = require('../services/sourceManagementService'); 
 const { BIAS_CATEGORIES } = require('../utils/constants'); // Import defined bias categories
-const fs = require('fs').promises; // Use promises version of fs
-const path = require('path');
-
-// Correct path to master_sources.json relative to this file
-const SOURCES_FILE_PATH = path.join(__dirname, '..', '..', 'data', 'master_sources.json');
 
 // GET /api/sources - List all sources
 router.get('/', async (req, res) => {
@@ -33,25 +28,19 @@ router.get('/', async (req, res) => {
 // GET /api/sources/config - Get available bias/categories (for UI dropdowns)
 router.get('/config', async (req, res) => {
     try {
-        // Read the master sources file to extract unique categories
-        let categories = ['Uncategorized']; // Default category
+        let categories = ['Uncategorized']; // Default in case DB fetch fails or returns empty
         try {
-            const data = await fs.readFile(SOURCES_FILE_PATH, 'utf8');
-            const sources = JSON.parse(data);
-            // Get unique, non-empty categories and sort them
-            const uniqueCategories = [...new Set(sources.map(s => s.category).filter(Boolean))].sort();
-            if (uniqueCategories.length > 0) {
-                categories = uniqueCategories;
+            const dbCategories = await getUniqueSourceCategories();
+            if (dbCategories && dbCategories.length > 0) {
+                categories = dbCategories;
             }
-             // Ensure 'Uncategorized' is present if needed, or just use it as default if no others exist
+            // Ensure 'Uncategorized' is present if not already included by DB query (shouldn't happen if data is clean)
             if (!categories.includes('Uncategorized')) {
-                 categories.push('Uncategorized'); // Add if not present
-                 categories.sort(); // Re-sort after adding
+                 categories.push('Uncategorized');
+                 categories.sort(); // Re-sort if 'Uncategorized' was added
             }
-
-        } catch (readError) {
-            // If file doesn't exist or can't be read, proceed with default category
-            console.warn(`[Config] Could not read ${SOURCES_FILE_PATH} to get categories, using default. Error: ${readError.message}`);
+        } catch (dbError) {
+            console.warn(`[Config] Could not fetch categories from DB, using default. Error: ${dbError.message}`);
         }
 
         // Add cache-control headers
@@ -75,13 +64,26 @@ router.get('/config', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const { url, name, category, bias } = req.body;
-        if (!url || !name || !category || !bias) {
-            return res.status(400).json({ message: "Missing required fields: url, name, category, bias" });
+
+        // --- Updated Validation ---
+        // Ensure all required fields are present and non-empty
+        if (!url || !name || !bias) { // Removed category from this initial check
+            return res.status(400).json({ message: "Missing required fields: url, name, bias" });
         }
+        // Specific validation for category: Must exist, not be empty, and not be 'Uncategorized'
+        if (!category || category.trim().length === 0) {
+            return res.status(400).json({ message: "Category field is required and cannot be empty." });
+        }
+        if (category.trim().toLowerCase() === 'uncategorized') {
+            return res.status(400).json({ message: "Please select a specific category instead of 'Uncategorized'." });
+        }
+        // Validate bias
         if (!BIAS_CATEGORIES.includes(bias)) {
              return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
         }
-        const newSource = await addSource({ url, name, category, bias });
+        // --- End Updated Validation ---
+
+        const newSource = await addSource({ url, name, category: category.trim(), bias }); // Trim category before saving
         res.status(201).json(newSource);
     } catch (error) {
         console.error("Error adding source:", error);
@@ -153,18 +155,6 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error(`Error deleting source ${req.params.id}:`, error);
         res.status(500).json({ message: "Failed to delete source", error: error.message });
-    }
-});
-
-// NEW: Route to fix items with UNKNOWN category
-router.post('/fix-unknown-categories', async (req, res) => {
-    console.log("Received request to fix items with UNKNOWN category...");
-    try {
-        const updateResult = await fixUnknownCategoryItems();
-        res.json({ message: `Category fix process completed. Updated ${updateResult.modifiedCount} items.`, details: updateResult });
-    } catch (error) {
-        console.error('Error running fix unknown categories:', error);
-        res.status(500).json({ message: "Failed to run category fix process", error: error.message });
     }
 });
 

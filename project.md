@@ -40,6 +40,7 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
     *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API.
     *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection.
+    *   **Validation Check:** Before saving, entries are validated to ensure essential fields (including ID, title, and content from Miniflux) are present; incomplete entries are skipped to maintain data quality for subsequent LLM processing.
     *   Enriched data is bulk upserted into the MongoDB `newsitems` collection.
     *   Processed entries are marked as read in Miniflux via API.
     *   A separate scheduled job (`processQueuedArticles`) identifies unprocessed articles in MongoDB.

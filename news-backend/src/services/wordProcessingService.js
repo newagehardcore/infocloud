@@ -2,6 +2,15 @@ const natural = require('natural');
 const nlp = require('compromise');
 const { PoliticalBias } = require('../types'); // Import PoliticalBias from shared types
 const { processArticleWithRetry } = require('./llmService'); // Import LLM service
+const NewsItem = require('../models/NewsItem'); // <<< Import NewsItem model
+const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils'); // <<< Import from textUtils
+
+// In-memory cache for aggregated keywords
+let aggregatedKeywordsCache = {
+  timestamp: null,
+  data: []
+};
+const CACHE_TTL_MS = 5 * 60 * 1000; // Cache for 5 minutes
 
 // Counter for LLM fallbacks
 let llmFallbackCount = 0;
@@ -207,34 +216,6 @@ const IMPORTANT_DESCRIPTIVE_WORDS = new Set([
 ]);
 
 /**
- * Lemmatizes a word using the compromise library
- */
-const lemmatizeWord = (word) => {
-  if (!word || word.length === 0) return word;
-  let originalWord = word; // Keep original for logging
-  try {
-    const lowerWord = word.toLowerCase();
-    const doc = nlp(lowerWord);
-    const termsData = doc.json({ terms: { normal: true, text: true } });
-    const normalizedTerms = termsData[0]?.terms.map(t => t.normal || t.text) || [];
-    const result = normalizedTerms.join(' ').trim();
-    // Debug logging removed for performance improvement
-    return result;
-  } catch (error) {
-    console.warn(`[WordProcessing] Error lemmatizing "${word}":`, error);
-    return word.toLowerCase();
-  }
-};
-
-/**
- * Detects if a string is likely a proper noun (name, place, organization)
- */
-const isProperNoun = (text) => {
-  const doc = nlp(text);
-  return doc.match('#ProperNoun').found;
-};
-
-/**
  * Extracts meaningful phrases using NLP
  * Prioritizes named entities and important news constructions
  */
@@ -294,34 +275,6 @@ const extractMeaningfulPhrases = (text) => {
   });
 
   return phrases;
-};
-
-/**
- * Strip HTML tags from text
- * @param {string} text - The text containing HTML to strip
- * @returns {string} - Clean text without HTML tags
- */
-const stripHtml = (text) => {
-  if (!text || typeof text !== 'string') return '';
-  
-  // First remove script and style tags with their content
-  let clean = text.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
-  
-  // Then remove all HTML tags
-  clean = clean.replace(/<\/?[^>]+(>|$)/g, ' ');
-  
-  // Replace HTML entities
-  clean = clean.replace(/&nbsp;/g, ' ')
-               .replace(/&amp;/g, '&')
-               .replace(/&lt;/g, '<')
-               .replace(/&gt;/g, '>')
-               .replace(/&quot;/g, '"')
-               .replace(/&#39;/g, "'");
-  
-  // Replace multiple spaces with a single space
-  clean = clean.replace(/\s+/g, ' ').trim();
-  
-  return clean;
 };
 
 /**
@@ -460,9 +413,9 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
   // For now, a simple Promise.all with map is used, relying on the queue's concurrency.
 
   const processedResults = await Promise.allSettled(newsItems.map(async (item) => {
-    // Ensure item has the necessary fields before processing
-    if (!item || !item.minifluxEntryId || !item.title || !item.content) {
-        console.warn(`[WordProcessingService] Skipping item due to missing fields (minifluxEntryId, title, content):`, item);
+    // Ensure item has the necessary fields before processing, be lenient on content
+    if (!item || !item.minifluxEntryId || !item.title || typeof item.content !== 'string') {
+        console.warn(`[WordProcessingService] Skipping item due to missing fields (minifluxEntryId, title, or content type check failed):`, item);
         // Return a specific structure indicating failure for this item
         return { 
             status: 'rejected', 
@@ -538,18 +491,13 @@ function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
     return [];
   }
 
-  // Store frequency, sources by bias, and bias weight for each keyword
   const wordData = new Map();
-
   console.log(`[aggregateKeywordsForCloud] Starting aggregation for ${newsItems?.length} items.`);
 
-  // **** Add log here to inspect the first item ****
   if (newsItems && newsItems.length > 0) {
-    console.log('[aggregateKeywordsForCloud] Inspecting first news item:', JSON.stringify(newsItems[0], null, 2));
+    console.log('[aggregateKeywordsForCloud] Inspecting first news item for aggregation:', JSON.stringify(newsItems[0], (key, value) => key === 'content' || key === 'description' ? '[TRUNCATED]' : value, 2));
   }
-  // **** End of added log ****
 
-  // Process all keywords from all news items
   newsItems.forEach((item, index) => {
     // Ensure bias exists, default to Unknown if not. Read from item.bias directly.
     const itemBias = item.bias || PoliticalBias.Unknown;
@@ -590,16 +538,25 @@ function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
           if (!wordData.has(keywordKey)) { // Use original casing key
             // First time seeing this keyword, store its data
             wordData.set(keywordKey, { // Use original casing key
-              value: 1,
+              value: 1, // Raw frequency count
               bias: itemBias, // Assign initial bias
               biasCounts: { [itemBias]: 1 }, // Track bias occurrences
               category: itemCategory, // <<< Assign initial category
-              categoryCounts: { [itemCategory]: 1 } // <<< Track category occurrences
+              categoryCounts: { [itemCategory]: 1 }, // <<< Track category occurrences
+              // <<< Track unique documents and sources >>>
+              docIds: new Set([item.id || item.minifluxEntryId]), // Use item ID or Miniflux ID
+              sourceNames: new Set([item.source?.name].filter(Boolean)) // Track source names
             });
           } else {
             // Already seen, update counts and bias tracking
             const currentData = wordData.get(keywordKey); // Use original casing key
-            currentData.value += 1;
+            currentData.value += 1; // Increment raw frequency
+
+            // <<< Add current doc ID and source name >>>
+            currentData.docIds.add(item.id || item.minifluxEntryId);
+            if (item.source?.name) {
+              currentData.sourceNames.add(item.source.name);
+            }
 
             // Update bias tracking
             if (!currentData.biasCounts[itemBias]) {
@@ -642,67 +599,67 @@ function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
     }
   });
 
-  // Log the size of wordData after processing all items
-  console.log(`[aggregateKeywordsForCloud] wordData map size after processing: ${wordData.size}`);
+  // Log the size of wordData after processing all items and before filtering
+  console.log(`[aggregateKeywordsForCloud] Initial wordData map size before filtering: ${wordData.size}`);
 
-  // Convert map to array, sort by frequency descending, and take top N
-  const mappedKeywords = Array.from(wordData.entries())
-    .map(([text, data]) => ({ // text here will be original casing key
-      text,
-      value: data.value,
-      bias: data.bias, // Include the calculated dominant bias
-      category: data.category // <<< Include the calculated dominant category
-    }))
+  let filteredOutCount = 0;
+  const initialKeywordArrayForFiltering = Array.from(wordData.entries()).map(([text, data]) => {
+    const docCount = data.docIds.size;
+    return { text, value: data.value * Math.log10(1.1 + docCount), rawValue: data.value, docCount, sourceCount: data.sourceNames.size, bias: data.bias, category: data.category };
+  });
+
+  const mappedKeywords = initialKeywordArrayForFiltering
     .filter(item => {
+      const originalText = item.text;
       // --- Filtering Stage ---
-      if (!item.text) return false;
+      if (!item.text) {
+        console.log(`[aggregateKeywordsForCloud FILTERING] Out: Empty text. Original: ${originalText}`);
+        filteredOutCount++;
+        return false;
+      }
 
       const lowerText = item.text.toLowerCase();
       const words = item.text.split(' ');
       const wordCount = words.length;
 
-      // 1. Filter out keywords containing specific news source names (case-insensitive)
-      // Check if *any* part of the keyword matches a source name
       const containsSource = words.some(word => NEWS_SOURCE_NAMES.has(word.toLowerCase()));
       if (containsSource) {
-        // console.log(`Filtering source name: ${item.text}`); // Debug log
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Contains source name. Original: ${originalText}`);
+        filteredOutCount++;
         return false;
       }
 
-      // 2. Filter out HTML entities
       if (/&#\d+;/.test(item.text) || /&[a-zA-Z]+;/.test(item.text)) {
-          // console.log(`Filtering HTML entity: ${item.text}`); // Debug log
-          return false;
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: HTML entity. Original: ${originalText}`);
+        filteredOutCount++;
+        return false;
       }
 
-      // 3. Filter by word count (1 to 5 words) - Renumbered
       if (wordCount < 1 || wordCount > 5) {
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Word count (${wordCount}). Original: ${originalText}`);
+        filteredOutCount++;
         return false;
       }
 
-      // 4. Basic character length filter (keep existing) - Renumbered
       if (item.text.length < 2 || item.text.length > 50) {
-        // Adjust min length if needed, e.g., allow single characters if meaningful like 'X'
-        // For now, keep min length 2 to avoid noise.
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Text length (${item.text.length}). Original: ${originalText}`);
+        filteredOutCount++;
         return false;
       }
 
-      // 5. Add a check for keywords composed *only* of stop words (unless it's a single important word) - Renumbered
       if (wordCount > 1 && words.every(w => STOP_WORDS.has(w.toLowerCase()))) {
-          // console.log(`Filtering stop phrase: ${item.text}`); // Debug log
-          return false; // Filter multi-word phrases made entirely of stop words
+        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: All stop words. Original: ${originalText}`);
+        filteredOutCount++;
+        return false;
       }
-
-      // Pass filters
       return true;
     })
     .sort((a, b) => b.value - a.value)
     .slice(0, maxWords);
-
-  // The variable name 'mappedKeywords' now represents the *filtered* and sorted list
+  console.log(`[aggregateKeywordsForCloud] Total keywords filtered out: ${filteredOutCount}`);
   console.log(`[aggregateKeywordsForCloud] Aggregated ${mappedKeywords.length} unique keywords with bias from ${newsItems.length} items.`);
   return mappedKeywords;
-};
+}
 
 /**
  * Combine keywords from LLM and traditional NLP processing
@@ -760,9 +717,71 @@ function combineKeywords(llmKeywords, traditionalKeywords) {
   return [...llmKeywords, ...uniqueTraditionalKeywords];
 }
 
+// <<< New Function: cacheAggregatedKeywords >>>
+/**
+ * Fetches recently processed news items, aggregates keywords, and caches the result.
+ */
+async function cacheAggregatedKeywords() {
+  console.log('[WordProcessingService] Starting keyword aggregation cache update...');
+  try {
+    const lookbackMinutes = 240;
+    const cutoffDate = new Date(Date.now() - lookbackMinutes * 60 * 1000);
+
+    const recentItems = await NewsItem.find({
+      llmProcessed: true,
+      updatedAt: { $gte: cutoffDate },
+      'keywords.0': { $exists: true }
+    }).lean();
+
+    if (!recentItems || recentItems.length === 0) {
+      console.log('[WordProcessingService] No recently processed items found to update keyword cache within the last ' + lookbackMinutes + ' minutes.');
+      return;
+    }
+
+    console.log(`[WordProcessingService] Found ${recentItems.length} recent items for cache aggregation. Inspecting first few (up to 2):`);
+    // Log the first 2 items fetched, showing crucial fields like keywords, llmProcessed, updatedAt
+    for (let i = 0; i < Math.min(recentItems.length, 2); i++) {
+      const item = recentItems[i];
+      console.log(`[WordProcessingService] Item ${i + 1} for cache: id=${item._id}, minifluxEntryId=${item.minifluxEntryId}, llmProcessed=${item.llmProcessed}, updatedAt=${item.updatedAt}, keywords=${JSON.stringify(item.keywords)}, bias=${item.bias}, category=${item.category}`);
+    }
+
+    const aggregatedData = aggregateKeywordsForCloud(recentItems, 1000);
+
+    // Update the cache
+    aggregatedKeywordsCache = {
+      timestamp: new Date(),
+      data: aggregatedData
+    };
+
+    console.log(`[WordProcessingService] Keyword cache updated successfully with ${aggregatedData.length} keywords at ${aggregatedKeywordsCache.timestamp.toISOString()}.`);
+
+  } catch (error) {
+    console.error('[WordProcessingService] Error updating keyword aggregation cache:', error);
+  }
+}
+
+// <<< New Function: getCachedAggregatedKeywords >>>
+/**
+ * Returns the cached aggregated keywords if available and not stale.
+ */
+function getCachedAggregatedKeywords() {
+  const now = Date.now();
+  if (aggregatedKeywordsCache.timestamp && (now - aggregatedKeywordsCache.timestamp.getTime() < CACHE_TTL_MS) && aggregatedKeywordsCache.data.length > 0) {
+    console.log(`[WordProcessingService] Serving ${aggregatedKeywordsCache.data.length} keywords from cache (timestamp: ${aggregatedKeywordsCache.timestamp.toISOString()}).`);
+    return aggregatedKeywordsCache.data;
+  } else {
+    console.log('[WordProcessingService] Cache miss or stale. No cached keywords served.');
+    // Optionally trigger an immediate update if cache is stale?
+    // cacheAggregatedKeywords(); // Be careful with async calls here
+    return null; // Indicate cache miss
+  }
+}
+
 module.exports = {
   processNewsKeywords,
   aggregateKeywordsForCloud,
+  cacheAggregatedKeywords, // <<< Export new function
+  getCachedAggregatedKeywords, // <<< Export new getter
   getLlmFallbackCount, // Export the getter function
   DEFAULT_CONFIG,
   combineKeywords, // Ensure existing exports remain

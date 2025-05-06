@@ -17,8 +17,17 @@ const sourceManagementService = require('./sourceManagementService');
 const he = require('he'); // HTML entity decoder
 const NewsItem = require('../models/NewsItem');
 const { PoliticalBias } = require('../types');
-const { stripHtml } = require('./wordProcessingService'); // Import stripHtml
+const { stripHtml } = require('../utils/textUtils'); // <<< Import from textUtils
 const mongoose = require('mongoose');
+
+// Function to convert uppercase bias (from Source model) to title case (for NewsItem model)
+function getTitleCaseBias(uppercaseBias) {
+  if (!uppercaseBias) return PoliticalBias.Unknown; // Default if input is undefined/null
+  // Find the key in PoliticalBias enum whose uppercase version matches the input bias
+  const foundKey = Object.keys(PoliticalBias).find(key => key.toUpperCase() === uppercaseBias.toUpperCase());
+  // Return the corresponding TitleCase value, or Unknown if not found
+  return foundKey ? PoliticalBias[foundKey] : PoliticalBias.Unknown;
+}
 
 // --- Miniflux Client Configuration ---
 // Duplicated from sourceManagementService - consider refactoring to a shared module
@@ -50,17 +59,21 @@ function cleanHtmlContent(htmlContent) {
 /**
  * Maps a Miniflux entry and its source info to our NewsItem schema.
  * @param {object} entry - Miniflux entry object
- * @param {object} sourceInfo - Corresponding source info from master_sources.json
+ * @param {object} sourceInfo - Corresponding source info (from MongoDB via sourceManagementService)
  * @returns {object|null} NewsItem object or null if mapping fails
  */
 function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
   try {
-    if (!entry || !sourceInfo || !entry.id || !entry.feed_id || !entry.url || !entry.title) {
-      console.warn(`[RSS Service] Skipping entry due to missing essential fields:`, entry?.id, entry?.feed_id);
+    // Enhanced check: Ensure sourceInfo itself is valid, and its category is present and not empty
+    // Also explicitly check for entry.content, as cron.js requires a contentSnippet (derived from description)
+    if (!entry || !sourceInfo || 
+        !entry.id || !entry.feed_id || !entry.url || !entry.title || !entry.content || 
+        !sourceInfo.category || sourceInfo.category.trim() === '') {
+      console.warn(`[RSS Service - mapMinifluxEntryToNewsItem] Skipping entry due to missing essential fields (entry.id, feed_id, url, title, content), missing sourceInfo, or empty/invalid source category. Entry ID: ${entry?.id}, Feed ID: ${entry?.feed_id}, Source Category: ${sourceInfo?.category}, HasContent: ${!!entry?.content}`);
       return null;
     }
 
-    const id = entry.hash || `miniflux-${entry.id}`; // Use hash for content ID if available, fallback to entry ID
+    const id = entry.hash || `miniflux-${entry.id}`;
     const title = he.decode(entry.title).trim();
     let description = cleanHtmlContent(entry.content);
     const url = entry.url;
@@ -79,6 +92,8 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
       publishedAt = new Date().toISOString();
     }
 
+    const mappedSourceBias = getTitleCaseBias(sourceInfo.bias);
+
     const newsItem = {
       id, // Use Miniflux entry hash or ID as our primary key
       title,
@@ -86,13 +101,13 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
       url,
       source: {
         name: sourceInfo.name,
-        bias: sourceInfo.bias,
+        bias: mappedSourceBias, // Use the title-cased bias
+        category: sourceInfo.category, 
       },
       publishedAt,
-      category: sourceInfo.category,
       keywords: [], // Keywords will be added by a later process
-      minifluxEntryId: entry.id, // Keep original Miniflux entry ID for reference/marking as read
-      minifluxFeedId: entry.feed_id // Keep original Miniflux feed ID for reference
+      minifluxEntryId: entry.id.toString(), // Ensure it's a string for consistency
+      minifluxFeedId: entry.feed_id.toString() // Ensure it's a string for consistency
     };
 
     return newsItem;
@@ -108,21 +123,21 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
  * regardless of read status, and upserts them into the database.
  * This triggers a full refresh, allowing background LLM processing to catch up.
  *
- * @returns {Promise<{ processedCount: number, errorCount: number }>} - Count of processed and errored items.
+ * @returns {Promise<{ processedCount: number, errorCount: number, skippedCount: number }>} - Count of processed, errored, and skipped items.
  */
 async function forceRefreshAllFeeds() {
   console.log('[RSS Service] Starting Force Refresh...');
   let sources = [];
   try {
-    sources = await sourceManagementService.loadSources(); // Await the async call
+    sources = await sourceManagementService.getAllSources();
   } catch (err) {
     console.error('[RSS Service] Force Refresh Error: Failed to load sources:', err);
-    return { processedCount: 0, errorCount: 1 }; // Return error if loading fails
+    return { processedCount: 0, errorCount: 1, skippedCount: 0 };
   }
 
   if (!sources || sources.length === 0) {
-    console.error('[RSS Service] Force Refresh Error: No sources found in master_sources.json or loading failed.');
-    return { processedCount: 0, errorCount: 0 };
+    console.warn('[RSS Service] Force Refresh Warning: No sources found in DB. Cannot process entries.');
+    return { processedCount: 0, errorCount: 0, skippedCount: 0 };
   }
 
   const minifluxUrl = process.env.MINIFLUX_URL;
@@ -130,20 +145,32 @@ async function forceRefreshAllFeeds() {
 
   if (!minifluxUrl || !minifluxApiKey) {
     console.error('[RSS Service] Force Refresh Error: Miniflux URL or API Key not configured.');
-    return { processedCount: 0, errorCount: 0 };
+    return { processedCount: 0, errorCount: 0, skippedCount: 0 };
   }
 
   const headers = { 'X-Auth-Token': minifluxApiKey };
   let processedCount = 0;
   let errorCount = 0;
+  let skippedCount = 0;
   const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 7); // Fetch articles from the last 7 days
+  cutoffDate.setDate(cutoffDate.getDate() - 7);
 
-  // Map source IDs to their metadata for quick lookup
-  const sourceMap = new Map(sources.map(s => [s.miniflux_feed_id?.toString(), s]));
+  const sourceMap = new Map();
+  sources.forEach(s => {
+    // Ensure source has minifluxFeedId (use correct camelCase) and a non-empty category
+    if (s.minifluxFeedId && s.category && s.category.trim() !== '') {
+      sourceMap.set(s.minifluxFeedId.toString(), s);
+    } else {
+      console.warn(`[RSS Service - ForceRefresh SourceMap] Skipping source "${s.name}" (DB ID: ${s._id}, UUID: ${s.id}) from sourceMap due to missing minifluxFeedId or empty category. FeedID: ${s.minifluxFeedId}, Category: ${s.category}`);
+    }
+  });
+
+  if (sourceMap.size === 0) {
+    console.warn('[RSS Service] Force Refresh Warning: No valid sources with minifluxFeedId and category found to create sourceMap. Cannot process entries.');
+    return { processedCount: 0, errorCount: 0, skippedCount: 0 };
+  }
 
   try {
-    // 1. Get all feed IDs from Miniflux
     const feedsResponse = await axios.get(`${minifluxUrl}/v1/feeds`, { headers });
     const feedIds = feedsResponse.data.map(feed => feed.id);
     console.log(`[RSS Service] Force Refresh: Found ${feedIds.length} feeds in Miniflux.`);
@@ -186,47 +213,59 @@ async function forceRefreshAllFeeds() {
 
     if (allEntries.length === 0) {
       console.log('[RSS Service] Force Refresh: No recent entries found to process.');
-      return { processedCount: 0, errorCount };
+      return { processedCount, errorCount, skippedCount };
     }
 
     // 3. Prepare entries for bulk upsert
-    const bulkOps = allEntries.map(entry => {
-      const sourceInfo = sourceMap.get(entry.feed_id?.toString());
-      const bias = sourceInfo?.bias || PoliticalBias.Unknown;
-      const category = sourceInfo?.category || 'Unknown';
-      const sourceName = sourceInfo?.name || entry.feed.title || 'Unknown Source';
+    const bulkOps = []; // Initialize as an empty array
 
-      // Basic content cleaning (similar to fetchAndProcess)
-      const cleanedDescription = stripHtml(entry.content || '');
+    allEntries.forEach(entry => {
+      if (!entry.feed_id) {
+        console.warn(`[RSS Service - ForceRefresh] Skipping entry (Miniflux Entry ID: ${entry.id}, URL: ${entry.url}) due to missing feed_id in Miniflux data.`);
+        skippedCount++;
+        return; // Skip this entry
+      }
+      const sourceInfo = sourceMap.get(entry.feed_id.toString());
 
-      const newsItemData = {
-        title: entry.title || '',
-        url: entry.url || '',
-        contentSnippet: cleanedDescription.substring(0, 250), // Store snippet
-        publishedAt: new Date(entry.published_at),
-        minifluxEntryId: entry.id.toString(),
-        minifluxFeedId: entry.feed_id.toString(),
-        source: {
-          name: sourceName,
-          category: category,
-          bias: bias
-        },
-        // Reset processing status so they get picked up by LLM queue
-        llmProcessed: false,
-        llmProcessingError: null,
-        llmProcessingAttempts: 0,
-        keywords: [], // Clear keywords; let LLM reprocess
-        bias: PoliticalBias.Unknown // Reset bias; let LLM reprocess
+      if (!sourceInfo) {
+        console.warn(`[RSS Service - ForceRefresh] No source info found in sourceMap for Miniflux Feed ID: ${entry.feed_id} (Entry ID: ${entry.id}, URL: ${entry.url}). Skipping entry. Ensure a Source exists in DB with this minifluxFeedId and has a category.`);
+        skippedCount++;
+        return; // Skip this entry
+      }
+
+      // mapMinifluxEntryToNewsItem will perform the final check on sourceInfo.category
+      const newsItemData = mapMinifluxEntryToNewsItem(entry, sourceInfo);
+
+      if (!newsItemData) {
+        // mapMinifluxEntryToNewsItem already logged the reason for skipping (e.g. empty category)
+        skippedCount++;
+        return; // Skip this entry
+      }
+      
+      // Ensure source sub-document is correctly populated based on the (now corrected) newsItemData from mapMinifluxEntryToNewsItem
+      newsItemData.source = {
+          name: sourceInfo.name,
+          bias: getTitleCaseBias(sourceInfo.bias),   // Use the title-cased bias
+          category: sourceInfo.category
       };
 
-      return {
+      // Reset processing status so they get picked up by LLM queue
+      newsItemData.llmProcessed = false;
+      newsItemData.llmProcessingError = null;
+      newsItemData.llmProcessingAttempts = 0;
+      newsItemData.keywords = []; 
+      newsItemData.bias = PoliticalBias.Unknown; // Reset bias; let LLM reprocess
+
+      bulkOps.push({
         updateOne: {
           filter: { minifluxEntryId: entry.id.toString() },
           update: { $set: newsItemData },
           upsert: true
         }
-      };
+      });
     });
+
+    console.log(`[RSS Service] Force Refresh: Total entries to process: ${bulkOps.length}, Skipped: ${skippedCount}`);
 
     // 4. Execute Bulk Upsert in Batches
     const batchSize = 20; // Process 20 operations at a time (Reduced further)
@@ -257,223 +296,176 @@ async function forceRefreshAllFeeds() {
     console.log(`[RSS Service] Force Refresh: Finished processing all batches.`);
 
   } catch (error) {
-    console.error('[RSS Service] Force Refresh Error during main process:', error);
-    if (error && error.stack) {
-        console.error("Stack Trace:", error.stack);
-    }
-    if (errorCount === 0 && processedCount === 0) errorCount = 1; // Mark at least one error if nothing else was caught
+    console.error('[RSS Service] Force Refresh: Critical error during processing:', error);
+    errorCount++; // Increment general error count
   }
-
-  console.log(`[RSS Service] Force Refresh finished. Total processed/upserted: ${processedCount}, Total errors: ${errorCount}`);
-  return { processedCount, errorCount };
+  console.log(`[RSS Service] Force Refresh Complete. Processed: ${processedCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+  return { processedCount, errorCount, skippedCount };
 }
 
 /**
- * Fetches UNREAD entries from Miniflux, enriches them, and saves to DB.
- * Marks fetched entries as read in Miniflux.
+ * Fetches UNREAD entries from Miniflux, processes them, and marks them as read.
+ * This is typically run by a cron job.
  */
 async function fetchAndProcessMinifluxEntries() {
-  console.log('[RSS Service] Starting Miniflux entry fetch...');
+  console.log('[RSS Service] Starting Fetch & Process Unread Miniflux Entries...');
   let sources = [];
   try {
-    sources = await sourceManagementService.loadSources();
-    
-    // Keep the basic source count log
-    console.log(`[RSS Service] Loaded ${sources.length} sources via service for processing.`); 
-    // --- REMOVE Debug Check Logging --- 
-    // if (sources && sources.length > 0) {
-    //     console.log(`[RSS Service - Debug Check] First source object received: ${JSON.stringify(sources[0], null, 2)}`);
-    //     console.log(`[RSS Service - Debug Check] Type of sources[0].minifluxFeedId: ${typeof sources[0].minifluxFeedId}`);
-    //     console.log(`[RSS Service - Debug Check] Value of sources[0].minifluxFeedId: ${sources[0].minifluxFeedId}`);
-    // }
-    // --- END REMOVE Debug Check Logging ---
-
-    // --- Revert to original filter check --- 
-    const sourcesWithoutFeedId = sources.filter(s => s.minifluxFeedId === null || s.minifluxFeedId === undefined);
-
-    // --- REMOVE Manual loop --- 
-    // const sourcesWithoutFeedId = [];
-    // for (const source of sources) {
-    //     if (sources.indexOf(source) < 5) {
-    //         console.log(`[RSS Service - Loop Check ${sources.indexOf(source)}] ID: ${source.id}, FeedId value: ${source.minifluxFeedId}, Type: ${typeof source.minifluxFeedId}`);
-    //     }
-    //     if (!source.minifluxFeedId) { 
-    //         sourcesWithoutFeedId.push(source);
-    //     }
-    // }
-    // --- End replacement --- 
-
-    // Revert warning log if needed (or keep simplified version)
-    if (sourcesWithoutFeedId.length > 0) {
-      console.warn(`[RSS Service] WARNING: Found ${sourcesWithoutFeedId.length} sources missing 'miniflux_feed_id'. Check master_sources.json and run sync script if necessary.`, 
-                   sourcesWithoutFeedId.slice(0, 5).map(s => ({ id: s.id, name: s.name, url: s.url })) // Log first 5 problematic items
-      );
-    }
-    // Check for non-string/number types (keep this check)
-    const sourcesWithNonStringOrNumberId = sources.filter(s => 
-        s.minifluxFeedId !== null && 
-        s.minifluxFeedId !== undefined && 
-        typeof s.minifluxFeedId !== 'string' && 
-        typeof s.minifluxFeedId !== 'number'
-    );
-    if (sourcesWithNonStringOrNumberId.length > 0) {
-      console.warn(`[RSS Service] WARNING: Found ${sourcesWithNonStringOrNumberId.length} sources with unexpected type for 'miniflux_feed_id':`,
-                   sourcesWithNonStringOrNumberId.map(s => ({ id: s.id, name: s.name, feedIdType: typeof s.minifluxFeedId }))
-      );
-    }
+    sources = await sourceManagementService.getAllSources();
   } catch (err) {
-    console.error('[RSS Service] Fatal Error: Failed to load sources via service:', err);
-    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0 }; 
+    console.error('[RSS Service - FetchUnread] Error: Failed to load sources:', err);
+    return { processedCount: 0, errorCount: 1, markedAsReadCount: 0, skippedCount: 0 };
   }
-  
+
   if (!sources || sources.length === 0) {
-    console.error('[RSS Service] Error: No sources found or loading failed.');
-    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0 };
+    console.warn('[RSS Service - FetchUnread] Warning: No sources found in DB. Cannot process entries.');
+    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0 };
   }
 
   const minifluxUrl = process.env.MINIFLUX_URL;
   const minifluxApiKey = process.env.MINIFLUX_API_KEY;
 
   if (!minifluxUrl || !minifluxApiKey) {
-    console.error('[RSS Service] Error: Miniflux URL or API Key not configured.');
-    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0 };
+    console.error('[RSS Service - FetchUnread] Error: Miniflux URL or API Key not configured.');
+    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0 };
   }
 
-  const headers = { 'X-Auth-Token': minifluxApiKey };
+  const sourceCache = new Map();
+  sources.forEach(s => {
+    if (s.minifluxFeedId && s.category && s.category.trim() !== '') {
+      sourceCache.set(s.minifluxFeedId.toString(), s);
+    } else {
+      console.warn(`[RSS Service - FetchUnread SourceCache] Skipping source "${s.name}" (DB ID: ${s._id}, UUID: ${s.id}) from sourceCache due to missing minifluxFeedId or empty category. FeedID: ${s.minifluxFeedId}, Category: ${s.category}`);
+    }
+  });
+  
+  if (sourceCache.size === 0) {
+      console.warn('[RSS Service - FetchUnread] Warning: No valid sources with minifluxFeedId and category found to create sourceCache. Cannot process entries.');
+      return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0 };
+  }
+
+  let allUnreadEntries = [];
   let processedCount = 0;
   let errorCount = 0;
   let markedAsReadCount = 0;
-
-  // --- REMOVE Map creation logs --- 
-  // const mapInput = sources.map(s => {
-  //     const key = s.minifluxFeedId?.toString(); 
-  //     // if (sources.indexOf(s) < 5) {
-  //     //     console.log(`[RSS Service - Map Key Gen ${sources.indexOf(s)}] ID: ${s.id}, FeedId value: ${s.minifluxFeedId}, Generated Key: ${key}, Key Type: ${typeof key}`);
-  //     // }
-  //     return [key, s];
-  // });
-  // console.log(`[RSS Service - Map Input] First 5 pairs: ${JSON.stringify(mapInput.slice(0, 5).map(pair => ({ key: pair[0], sourceId: pair[1].id })), null, 2)}`);
-  const sourceMap = new Map(sources.map(s => [s.minifluxFeedId?.toString(), s])); 
-  // console.log(`[RSS Service - Map Result] Final Map Keys:`, Array.from(sourceMap.keys()).slice(0, 20));
-  // --- END REMOVE Map creation logs --- 
+  let skippedCount = 0; // Added for tracking skipped items
 
   try {
-    console.log('[RSS Service] Fetching latest entries from Miniflux...');
-    const entriesResponse = await axios.get(`${minifluxUrl}/v1/entries`, {
-      headers,
+    console.log(`[RSS Service - FetchUnread] Fetching up to ${MAX_ENTRIES_PER_FETCH} unread entries from Miniflux...`);
+    const response = await minifluxClient.get('/v1/entries', {
       params: {
-        status: 'unread', 
-        order: 'published_at',
-        direction: 'desc',
-        limit: 500 
+        status: 'unread',
+        limit: MAX_ENTRIES_PER_FETCH, // Fetch a limited number of entries
+        direction: 'asc' // Process oldest first
       }
     });
 
-    const entries = entriesResponse.data.entries || [];
-    const unreadEntries = entries; 
-    const entryIdsToMarkRead = [];
+    allUnreadEntries = response.data.entries || [];
+    console.log(`[RSS Service - FetchUnread] Found ${allUnreadEntries.length} unread entries.`);
 
-    console.log(`[RSS Service] Found ${unreadEntries.length} unread entries.`);
-
-    if (unreadEntries.length === 0) {
-      console.log('[RSS Service] No unread entries found.');
-      return { processedCount: 0, errorCount: 0, markedAsReadCount: 0 };
+    if (allUnreadEntries.length === 0) {
+      console.log('[RSS Service - FetchUnread] No unread entries to process.');
+      return { processedCount, errorCount, markedAsReadCount, skippedCount };
     }
 
     const bulkOps = [];
-    unreadEntries.forEach((entry, idx) => {
-      const feedIdString = entry.feed_id?.toString();
-      const sourceInfo = sourceMap.get(feedIdString);
+    const entryIdsToMarkRead = [];
 
-      // --- REMOVE Loop Debug Logging ---
-      // if (idx < 10) { 
-      //     console.log(`[RSS Service Loop Debug] Entry ${idx}: ID=${entry.id}, FeedID=${entry.feed_id}, FeedIDString=${feedIdString}, FoundSource=${!!sourceInfo}`);
-      //     if (!sourceInfo) {
-      //         if (idx === 0) { 
-      //             console.log(`[RSS Service Loop Debug] SourceMap Keys:`, Array.from(sourceMap.keys()).slice(0, 20)); 
-      //         }
-      //     }
-      // }
-      // --- END REMOVE Loop Debug Logging ---
+    for (const entry of allUnreadEntries) {
+      if (!entry.feed_id) {
+        console.warn(`[RSS Service - FetchUnread] Skipping entry (Miniflux Entry ID: ${entry.id}) due to missing feed_id in Miniflux data.`);
+        skippedCount++;
+        entryIdsToMarkRead.push(entry.id);
+        continue;
+      }
 
-      if (sourceInfo) {
-        const bias = sourceInfo.bias || PoliticalBias.Unknown;
-        const category = sourceInfo.category || 'Unknown';
-        const sourceName = sourceInfo.name || entry.feed.title || 'Unknown Source';
+      const sourceInfo = sourceCache.get(entry.feed_id.toString());
 
-        // Basic content cleaning
-        const cleanedDescription = stripHtml(entry.content || '');
+      if (!sourceInfo) {
+        console.warn(`[RSS Service - FetchUnread] No source info found in cache for Miniflux Feed ID: ${entry.feed_id} (Entry ID: ${entry.id}, URL: ${entry.url}). Skipping entry. Ensure a Source exists in DB with this minifluxFeedId and has a category.`);
+        skippedCount++;
+        entryIdsToMarkRead.push(entry.id);
+        continue; 
+      }
+      
+      const newsItemDocument = mapMinifluxEntryToNewsItem(entry, sourceInfo);
 
-        const newsItemData = {
-          title: entry.title || '',
-          url: entry.url || '',
-          contentSnippet: cleanedDescription.substring(0, 250), // Store snippet
-          publishedAt: new Date(entry.published_at),
-          minifluxEntryId: entry.id.toString(),
-          minifluxFeedId: entry.feed_id.toString(),
-          source: {
-            name: sourceName,
-            category: category,
-            bias: bias
-          },
-          // Mark as unprocessed for LLM queue
-          llmProcessed: false,
-          llmProcessingError: null,
-          llmProcessingAttempts: 0,
-          keywords: [],
-          bias: PoliticalBias.Unknown
+      if (newsItemDocument) {
+        // Ensure source sub-document is correctly populated based on the (now corrected) newsItemData from mapMinifluxEntryToNewsItem
+        newsItemDocument.source = {
+            name: sourceInfo.name,
+            bias: getTitleCaseBias(sourceInfo.bias), // Use the title-cased bias
+            category: sourceInfo.category
         };
+
+        newsItemDocument.llmProcessed = false;
+        newsItemDocument.llmProcessingError = null;
+        newsItemDocument.llmProcessingAttempts = 0;
+        newsItemDocument.keywords = []; 
+        newsItemDocument.bias = PoliticalBias.Unknown; // Reset bias; let LLM reprocess
 
         bulkOps.push({
           updateOne: {
-            filter: { minifluxEntryId: entry.id.toString() },
-            update: { $set: newsItemData },
+            filter: { minifluxEntryId: entry.id.toString() }, // Use Miniflux Entry ID for upsert filter
+            update: { $set: newsItemDocument },
             upsert: true
           }
         });
         entryIdsToMarkRead.push(entry.id);
       } else {
-        // console.warn(`[RSS Service] Skipping entry ${entry.id} from feed ${entry.feed_id}: No matching source found in master_sources.json.`);
-        // Optionally mark these as read anyway to prevent re-fetching? Or leave unread.
-        // Let's leave them unread for now.
+        console.warn(`[RSS Service - FetchUnread] Failed to map Miniflux entry ID ${entry.id} to NewsItem. Skipping.`);
+        skippedCount++;
+        // Mark as read even if mapping failed to prevent loop on bad data
+        entryIdsToMarkRead.push(entry.id);
       }
-    });
-
-    // Execute Bulk Upsert
-    if (bulkOps.length > 0) {
-      console.log(`[RSS Service] Performing bulk upsert of ${bulkOps.length} items...`);
-      const result = await NewsItem.bulkWrite(bulkOps, { ordered: false });
-      processedCount = result.upsertedCount + result.modifiedCount;
-      errorCount = result.writeErrors?.length || 0;
-      console.log(`[RSS Service] Bulk upsert complete. Processed: ${processedCount}, Errors: ${errorCount}`);
-    } else {
-        console.log('[RSS Service] No valid entries found to upsert after filtering by master sources.');
     }
 
-    // Mark processed entries as read in Miniflux
+    if (bulkOps.length > 0) {
+      console.log(`[RSS Service - FetchUnread] Performing bulk upsert for ${bulkOps.length} NewsItems...`);
+      // Execute Bulk Upsert in Batches
+      const batchSize = 50; // Batch size for upserts
+      for (let i = 0; i < bulkOps.length; i += batchSize) {
+          const batch = bulkOps.slice(i, i + batchSize);
+          try {
+              const result = await NewsItem.bulkWrite(batch, { ordered: false });
+              const batchProcessed = result.upsertedCount + result.modifiedCount;
+              processedCount += batchProcessed;
+              // Note: result.writeErrors might contain details on individual op errors if ordered:false
+              if (result.writeErrors && result.writeErrors.length > 0) {
+                  console.warn(`[RSS Service - FetchUnread] ${result.writeErrors.length} errors during bulkWrite batch.`);
+                  errorCount += result.writeErrors.length;
+              }
+              console.log(`[RSS Service - FetchUnread] Batch upsert complete. Processed in batch: ${batchProcessed}`);
+          } catch (batchError) {
+              console.error(`[RSS Service - FetchUnread] Error during bulkWrite batch:`, batchError);
+              errorCount += batch.length; // Assume all items in this batch failed
+          }
+      }
+    } else {
+      console.log('[RSS Service - FetchUnread] No valid NewsItems to upsert.');
+    }
+
+    // Mark entries as read in Miniflux
     if (entryIdsToMarkRead.length > 0) {
-      console.log(`[RSS Service] Marking ${entryIdsToMarkRead.length} entries as read in Miniflux...`);
+      console.log(`[RSS Service - FetchUnread] Marking ${entryIdsToMarkRead.length} entries as read in Miniflux...`);
       try {
-        await axios.put(
-          `${minifluxUrl}/v1/entries`,
-          { entry_ids: entryIdsToMarkRead, status: 'read' },
-          { headers }
-        );
+        // Miniflux API expects an array of entry IDs (integers)
+        await minifluxClient.put('/v1/entries', { entry_ids: entryIdsToMarkRead, status: 'read' });
         markedAsReadCount = entryIdsToMarkRead.length;
-        console.log(`[RSS Service] Successfully marked ${markedAsReadCount} entries as read.`);
+        console.log(`[RSS Service - FetchUnread] Successfully marked ${markedAsReadCount} entries as read.`);
       } catch (markReadError) {
-        console.error('[RSS Service] Error marking entries as read:', markReadError.message);
-        // Don't increment main error count here, as upsert might have succeeded
+        console.error('[RSS Service - FetchUnread] Error marking entries as read in Miniflux:', markReadError.response ? markReadError.response.data : markReadError.message);
+        // Don't increment main errorCount for this, as items might have been processed successfully
       }
     }
 
   } catch (error) {
-    console.error('[RSS Service] Error fetching or processing Miniflux entries:', error);
-    errorCount++; // Increment error count for general fetch/process failure
+    console.error('[RSS Service - FetchUnread] Error fetching or processing unread entries:', error.response ? error.response.data : error.message, error.stack);
+    errorCount++;
   }
 
-  console.log(`[RSS Service] Miniflux entry fetch finished. Processed: ${processedCount}, Errors: ${errorCount}, Marked as Read: ${markedAsReadCount}`);
-  return { processedCount, errorCount, markedAsReadCount };
+  console.log(`[RSS Service - FetchUnread] Fetch & Process Unread Complete. Items Processed (Upserted/Modified): ${processedCount}, Items Skipped: ${skippedCount}, Marked as Read: ${markedAsReadCount}, Errors: ${errorCount}`);
+  return { processedCount, errorCount, markedAsReadCount, skippedCount };
 }
 
 // Export the primary function for fetching/processing
