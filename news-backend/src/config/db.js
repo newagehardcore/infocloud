@@ -13,6 +13,10 @@ const connectDB = async () => {
   try {
     // Mongoose connection options
     const options = {
+      useNewUrlParser: true,        // Added for avoiding deprecation warnings
+      useUnifiedTopology: true,   // Added for unified topology
+      // useCreateIndex: true,      // For Mongoose versions < 6, ensure indexes. For v6+, it's default or no-op.
+      // useFindAndModify: false,   // To use native findOneAndUpdate() instead of findAndModify(). Consider if needed.
       serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
       socketTimeoutMS: 45000, // Increase socket timeout
       bufferCommands: true, // Mongoose default, keep buffering enabled
@@ -20,7 +24,7 @@ const connectDB = async () => {
       dbName: process.env.DB_NAME || 'news_aggregator' // Ensure DB name is specified if not in URI
     };
 
-    console.log(`Connecting to MongoDB with Mongoose at ${MONGODB_URI}...`);
+    console.log(`Connecting to MongoDB with Mongoose at ${MONGODB_URI} with options:`, options);
     await mongoose.connect(MONGODB_URI, options);
     
     console.log('Mongoose MongoDB Connected...');

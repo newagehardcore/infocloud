@@ -406,75 +406,93 @@ const shouldKeepWord = (phrase, config) => {
  * @returns {Promise<Array<object>>} An array of objects, each containing the original ID, bias, and keywords.
  */
 async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
-  console.log(`[WordProcessingService] Starting keyword processing for ${newsItems.length} items.`);
-  const MAX_CONCURRENT_LLM_REQUESTS = 5; // Limit concurrency to avoid overwhelming LLM
+  if (!Array.isArray(newsItems) || newsItems.length === 0) {
+    console.log("[Word Processing Service] No news items to process keywords for.");
+    return [];
+  }
 
-  // Use a library like 'p-limit' or a simple semaphore pattern if needed for more robust concurrency control.
-  // For now, a simple Promise.all with map is used, relying on the queue's concurrency.
+  console.log(`[Word Processing Service] Starting keyword processing for ${newsItems.length} news items.`);
+  const processedItems = [];
+  let itemsProcessedCount = 0;
+  const totalItems = newsItems.length;
 
-  const processedResults = await Promise.allSettled(newsItems.map(async (item) => {
-    // Ensure item has the necessary fields before processing, be lenient on content
-    if (!item || !item.minifluxEntryId || !item.title || typeof item.content !== 'string') {
-        console.warn(`[WordProcessingService] Skipping item due to missing fields (minifluxEntryId, title, or content type check failed):`, item);
-        // Return a specific structure indicating failure for this item
-        return { 
-            status: 'rejected', 
-            reason: 'Missing required fields', 
-            minifluxEntryId: item?.minifluxEntryId || 'unknown' // Include ID if possible
-        };
+  for (const item of newsItems) {
+    if (!item || !item.title || !item.contentSnippet) {
+      console.warn(`[Word Processing Service] Skipping item due to missing title or contentSnippet. Item ID: ${item?._id || 'N/A'}`);
+      processedItems.push({
+        ...item,
+        keywords: item.keywords || [],
+        bias: item.bias || PoliticalBias.Unknown,
+        llmProcessed: item.llmProcessed || false
+      });
+      continue;
     }
+
+    const title = item.title;
+    // Use the first sentence of contentSnippet, or the whole snippet if it's short or no period.
+    let firstSentence = item.contentSnippet.split('.')[0];
+    if (firstSentence.length < 50 && item.contentSnippet.length > firstSentence.length) { // if first sentence is very short, try to get more context
+        firstSentence = item.contentSnippet.substring(0, 250); // Max 250 chars for LLM context
+    } else if (firstSentence.length > 250) {
+        firstSentence = firstSentence.substring(0, 250); // Truncate if too long
+    }
+
+    let llmResult = null;
+    let itemBias = item.bias || (item.source && item.source.bias ? item.source.bias : PoliticalBias.Unknown);
 
     try {
-      // Extract title and first sentence (or use content snippet if no sentence structure)
-      const title = item.title;
-      // Basic first sentence extraction (improve if needed)
-      const firstSentenceMatch = item.content.match(/^[^.!?]+[.!?]/);
-      const firstSentence = firstSentenceMatch ? firstSentenceMatch[0] : item.content.substring(0, 150);
-
-      // Call LLM service - processArticleWithRetry handles retries internally
-      const llmResult = await processArticleWithRetry(title, firstSentence);
+      // Pass the item's current bias (from source or previous processing) to the LLM service
+      llmResult = await processArticleWithRetry(title, firstSentence, itemBias);
       
-      // --- Combine LLM result with original item identifiers --- 
-      const finalResult = {
-          ...llmResult, // Should contain { bias, keywords }
-          minifluxEntryId: item.minifluxEntryId, // Add the ID back!
-          llmProcessingAttempts: item.llmProcessingAttempts // Keep track of attempts
-          // Add any other fields needed by the task_finish handler
-      };
-      
-      console.log(`[WordProcessingService] LLM Result for item ${finalResult.minifluxEntryId}:`, JSON.stringify(finalResult));
-      
-      return { status: 'fulfilled', value: finalResult }; // Wrap in settled structure
+      // If llmResult is null or undefined (e.g. from an unrecoverable error in llmService after retries)
+      // default to item's existing bias and empty keywords for safety.
+      if (!llmResult) {
+        console.warn(`[Word Processing Service] LLM processing for "${title}" returned null/undefined. Using existing bias: ${itemBias}`);
+        llmResult = { bias: itemBias, keywords: [] };
+      }
 
     } catch (error) {
-      console.error(`[WordProcessingService] Error processing item ${item.minifluxEntryId} with LLM:`, error);
-      llmFallbackCount++; // Increment fallback counter on error
-      // Return detailed error structure
-      return { 
-          status: 'rejected', 
-          reason: error.message || 'Unknown processing error', 
-          minifluxEntryId: item.minifluxEntryId, // Include ID
-          llmProcessingAttempts: item.llmProcessingAttempts // Keep track of attempts
-       };
+      console.error(`[Word Processing Service] Error during LLM processing for "${title}": ${error.message}. Falling back to existing bias.`);
+      // Ensure llmResult is an object with default values even if processArticleWithRetry itself throws an unhandled exception
+      llmResult = { bias: itemBias, keywords: [] };
     }
-  }));
 
-  // Filter out rejected promises and extract the successful results
-  const successfulResults = processedResults
-    .filter(result => result.status === 'fulfilled' && result.value)
-    .map(result => result.value);
-    
-  // Log errors for rejected promises
-  processedResults
-    .filter(result => result.status === 'rejected')
-    .forEach(result => {
-        console.error(`[WordProcessingService] Failed processing item ${result.minifluxEntryId || 'unknown'}: ${result.reason}`);
-        // Potentially update the DB item to mark the error and increment attempts here
-        // This might be better handled in the task_finish handler based on the result structure
+    const traditionalKeywords = extractKeywordsTraditional(item.contentSnippet, {
+      ...config,
+      useLemmatization: true, // Ensure lemmatization for traditional
+      removeStopWords: true,
+    }).map(kwObj => kwObj.keyword);
+
+    const combinedKeywords = combineKeywords(llmResult.keywords, traditionalKeywords);
+
+    // Log the source of bias determination
+    if (itemBias !== PoliticalBias.Unknown && llmResult.bias === itemBias) {
+        console.log(`[Word Processing Service] LLM processing for "${title}": Bias (${itemBias}) confirmed from source/existing. Keywords: [${llmResult.keywords.join(', ')}]`);
+    } else if (itemBias !== PoliticalBias.Unknown && llmResult.bias !== itemBias) {
+        console.log(`[Word Processing Service] LLM processing for "${title}": Bias changed from ${itemBias} to ${llmResult.bias}. Keywords: [${llmResult.keywords.join(', ')}]`);
+    } else {
+        console.log(`[Word Processing Service] LLM processing for "${title}": Bias determined as ${llmResult.bias}. Keywords: [${llmResult.keywords.join(', ')}]`);
+    }
+
+    processedItems.push({
+      ...item,
+      title: item.title, // ensure title is present
+      contentSnippet: item.contentSnippet, // ensure contentSnippet is present
+      keywords: combinedKeywords,
+      bias: llmResult.bias, // Use bias from LLM result (which respects existing bias if only keywords were requested)
+      llmProcessed: true, // Mark as processed by LLM logic path
+      processedAt: new Date(),
     });
 
-  console.log(`[WordProcessingService] Finished keyword processing. Successful: ${successfulResults.length}, Failed: ${processedResults.length - successfulResults.length}`);
-  return successfulResults; // Return only successfully processed items
+    itemsProcessedCount++;
+    if (itemsProcessedCount % 10 === 0 || itemsProcessedCount === totalItems) {
+      console.log(`[Word Processing Service] Progress: ${itemsProcessedCount}/${totalItems} items processed for keywords.`);
+    }
+  } // end for loop
+
+  console.log("[Word Processing Service] Finished keyword processing.");
+  await cacheAggregatedKeywords(); // Update cache after processing
+  return processedItems;
 }
 
 /**

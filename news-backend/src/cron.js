@@ -65,39 +65,39 @@ processingQueue.on('task_finish', async (taskId, result) => {
   // --- End logging --- 
   
   try {
-    // Prepare bulk update operations
-    // Filter for fulfilled promises and extract the actual result from the 'value' field
+    // Filter for items that were actually processed by LLM logic and have necessary data.
+    // processNewsKeywords returns items with llmProcessed: true if LLM path was taken.
     const successfulResults = processedArticles
-      .filter(result => result.status === 'fulfilled' && result.value && result.value.minifluxEntryId)
-      .map(result => result.value); // Extract the 'value' which contains the LLM output
+      .filter(article => article && article.minifluxEntryId && article.llmProcessed === true);
 
-    // --- Add logging after filtering ---
-    console.log(`[task_finish ${taskId}] successfulResults length (after filtering for fulfilled & minifluxEntryId): ${successfulResults.length}`);
-    if (successfulResults.length !== processedArticles.length) {
-        console.warn(`[task_finish ${taskId}] Some articles were filtered out or failed! Original count: ${processedArticles.length}, Successful count: ${successfulResults.length}`);
-        // Log the first rejected/invalid item, if possible
-        const rejectedItem = processedArticles.find(result => result.status !== 'fulfilled' || !result.value || !result.value.minifluxEntryId);
-        console.log(`[task_finish ${taskId}] Example filtered/failed item:`, JSON.stringify(rejectedItem));
+    console.log(`[task_finish ${taskId}] successfulResults length (after filtering for llmProcessed=true & minifluxEntryId): ${successfulResults.length}`);
+    
+    if (processedArticles.length > 0 && successfulResults.length !== processedArticles.length) {
+        console.warn(`[task_finish ${taskId}] Some articles from the batch were not successfully LLM processed! Original batch count: ${processedArticles.length}, Successfully LLM processed count: ${successfulResults.length}`);
+        // Log the first item that wasn't successfully LLM processed
+        const unprocessedItem = processedArticles.find(article => !article.llmProcessed);
+        if (unprocessedItem) {
+            console.log(`[task_finish ${taskId}] Example item not fully LLM processed (llmProcessed is false or missing):`, JSON.stringify(unprocessedItem));
+        } else {
+            const itemMissingData = processedArticles.find(article => !article || !article.minifluxEntryId);
+            console.log(`[task_finish ${taskId}] Example item missing minifluxEntryId (and thus filtered from successfulResults):`, JSON.stringify(itemMissingData));
+        }
     }
-    // --- End logging ---
 
-    // Now map using the successfulResults array which contains the actual LLM data
     const operations = successfulResults.map(articleData => ({
       updateOne: {
-        // Corrected Filter: Use minifluxEntryId from the extracted articleData
         filter: { minifluxEntryId: articleData.minifluxEntryId },
         update: {
           $set: {
             keywords: articleData.keywords,
-            bias: articleData.bias, // Save LLM result to the main 'bias' field
-            llmProcessed: true, // Mark as processed
-            llmProcessingError: null, // Clear any previous error
-            // Use attempts from the extracted data, incrementing it
-            llmProcessingAttempts: (articleData.llmProcessingAttempts || 0) + 1
+            bias: articleData.bias, 
+            llmProcessed: true, 
+            llmProcessingError: null, 
+            llmProcessingAttempts: (articleData.llmProcessingAttempts || 0) + 1, // Increment attempts
+            processedAt: articleData.processedAt || new Date() // Use processedAt from wordProcessingService or now
           },
-          $unset: { contentSnippet: "" } // Optional: Remove snippet after processing
+          $unset: { contentSnippet: "" } 
         },
-        // upsert: false // Should not upsert here, only update existing
       }
     }));
 
@@ -170,7 +170,7 @@ const processQueuedArticles = async () => {
            processingQueue.push({
                minifluxEntryId: article.minifluxEntryId, 
                title: article.title,
-               content: article.contentSnippet, // Map snippet to content
+               contentSnippet: article.contentSnippet, // Corrected: Pass as contentSnippet
                url: article.url,
                llmProcessingAttempts: article.llmProcessingAttempts || 0
            });

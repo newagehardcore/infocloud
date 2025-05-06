@@ -42,7 +42,7 @@ const sourceSchema = new mongoose.Schema({
     minifluxFeedId: { 
         type: Number, // Miniflux IDs are numbers
         // unique: true, // Should be unique if present, but can be null
-        sparse: true // Allow multiple nulls if unique index is added
+        // sparse: true // This option is used with the index definition below, not needed here by itself
     },
     // Add timestamps for tracking when sources are added/updated
     createdAt: { type: Date, default: Date.now },
@@ -62,11 +62,11 @@ sourceSchema.pre('findOneAndUpdate', function(next) {
   next();
 });
 
-// Create index for faster lookups
-sourceSchema.index({ url: 1 });
+// Define indexes
+// sourceSchema.index({ url: 1 }); // Removed, as unique:true on field handles it
 sourceSchema.index({ category: 1 });
 sourceSchema.index({ bias: 1 });
-sourceSchema.index({ minifluxFeedId: 1 }, { unique: true, sparse: true });
+sourceSchema.index({ minifluxFeedId: 1 }, { unique: true, sparse: true }); // Correct definition for minifluxFeedId index
 
 const Source = mongoose.model('Source', sourceSchema);
 
