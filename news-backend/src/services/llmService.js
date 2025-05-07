@@ -114,6 +114,8 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
       format: "json", // Enforce JSON output format
       prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\n${requestingBias ? "**BIAS CLASSIFICATION GUIDE:**\n* \"Left\" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism\n* \"Liberal\" - Progressive-leaning but more moderate, supportive of government programs, social reform\n* \"Centrist\" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments\n* \"Conservative\" - Traditional values, limited government, business-friendly, incremental change\n* \"Right\" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs\n* \"Unknown\" - No clear political leaning detectable or not applicable to political spectrum\n\n" : "" }Respond with valid JSON only in this exact format:\n${jsonStructureExample}`,
       stream: false
+    }, {
+      timeout: 90000 // 90 seconds timeout
     });
     
     // Parse the JSON response
@@ -186,25 +188,31 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
  * @param {number} retries - Number of retry attempts
  * @returns {Promise<Object>} - Object with bias and keywords
  */
-async function processArticleWithRetry(title, firstSentence = '', existingBias = PoliticalBias.Unknown, retries = 2) { // Accept and pass existingBias
+async function processArticleWithRetry(title, firstSentence = '', existingBias = PoliticalBias.Unknown, retries = 2) {
   try {
-    // Pass existingBias to processArticle
     return await processArticle(title, firstSentence, existingBias);
   } catch (error) {
-    // Check if it's a connection error (likely Ollama not running) or a specific type of server error we want to retry
-    const shouldRetry = (error.code === 'ECONNREFUSED' || (error.response && error.response.status === 500));
+    // Broaden retry conditions
+    const isNetworkError = error.code === 'ECONNREFUSED' || 
+                           error.code === 'ECONNRESET' || 
+                           (error.message && error.message.toLowerCase().includes('socket hang up')) ||
+                           (error.message && error.message.toLowerCase().includes('timeout')); // Catch axios timeout
+    const isServerError = error.response && (error.response.status === 500 || error.response.status === 503 || error.response.status === 504);
+    
+    const shouldRetry = (isNetworkError || isServerError);
 
     if (shouldRetry && retries > 0) {
-      console.log(`LLM connection/server error for article "${title}". Retrying ${retries} more times...`);
-      await new Promise(resolve => setTimeout(resolve, 1000 + ( (2 - retries) * 500) )); // Wait 1s, 1.5s for subsequent retries
-      // Pass existingBias on retry
+      console.warn(`[LLM Service] Retrying for "${title}" due to ${error.message}. Retries left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, 1500 + ((2 - retries) * 1000))); // Wait 1.5s, 2.5s, 3.5s
       return processArticleWithRetry(title, firstSentence, existingBias, retries - 1);
     } 
     
-    // No more retries left or not a retryable error
-    console.error(`LLM processing failed for article "${title}" after all retry attempts or due to unretryable error: ${error.message}`);
+    console.error(`[LLM Service] Final failure for "${title}" after retries or unretryable error: ${error.message}`);
+    if (error.response && error.response.data) {
+      console.error("[LLM Service] Ollama Error Response Data on final failure:", error.response.data);
+    }
     return {
-      bias: existingBias, // On final failure, retain existing bias or Unknown
+      bias: existingBias, 
       keywords: []
     };
   }

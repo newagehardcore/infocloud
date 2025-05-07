@@ -195,6 +195,21 @@ This typically runs:
 *   **Caching:** `lru-cache` is used in `llmService.js` to avoid re-processing identical content.
 *   **Dependencies:** Requires Ollama server running and accessible.
 
+### 8.1 Key Data Integrity and Processing Fixes (Recent)
+
+Recent debugging and development efforts have addressed several critical issues in the data processing pipeline, ensuring more robust and accurate keyword generation and data handling:
+
+*   **`minifluxEntryId` Handling:**
+    *   The `NewsItem` model (`news-backend/src/models/NewsItem.js`) now correctly stores `minifluxEntryId` as a `String` (as received from Miniflux) to prevent type mismatches.
+    *   The cron job (`news-backend/src/cron.js`) that processes queued articles for LLM analysis now queries the `NewsItem` collection using `minifluxEntryId` as a string.
+    *   The `markEntriesAsRead` function in `rssService.js` correctly converts these string IDs to numbers when interacting with the Miniflux API.
+*   **`markEntriesAsRead` Function Implementation:**
+    *   The previously missing `markEntriesAsRead` function was implemented and exported in `news-backend/src/services/rssService.js`. This resolved a critical `TypeError` that occurred during the Miniflux feed processing, which could lead to articles not being marked as read and potentially reprocessed.
+*   **MongoDB Bulk Update Operations:**
+    *   The bulk update logic in `news-backend/src/cron.js` (within the `processingQueue`'s `task_finish` handler) was corrected. Previously, conflicting update operators (`$set` and `$inc`) for the same field path caused errors. The update operations are now structured correctly to apply both `$set` and `$inc` modifications to `NewsItem` documents in a single update operation per document.
+
+These changes have significantly improved the reliability of the news aggregation, LLM processing, and data storage pipeline, directly impacting the accuracy and completeness of the data available for the frontend tag cloud.
+
 ## 9. Important Notes for AI Assistant
 
 *   **Primary Source of Truth:** This `project.md` file. Refer to it for architecture, data flow, and key components.

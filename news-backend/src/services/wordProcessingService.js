@@ -429,23 +429,19 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
     }
 
     const title = item.title;
-    // Use the first sentence of contentSnippet, or the whole snippet if it's short or no period.
     let firstSentence = item.contentSnippet.split('.')[0];
-    if (firstSentence.length < 50 && item.contentSnippet.length > firstSentence.length) { // if first sentence is very short, try to get more context
-        firstSentence = item.contentSnippet.substring(0, 250); // Max 250 chars for LLM context
+    if (firstSentence.length < 50 && item.contentSnippet.length > firstSentence.length) {
+        firstSentence = item.contentSnippet.substring(0, 250);
     } else if (firstSentence.length > 250) {
-        firstSentence = firstSentence.substring(0, 250); // Truncate if too long
+        firstSentence = firstSentence.substring(0, 250);
     }
 
     let llmResult = null;
     let itemBias = item.bias || (item.source && item.source.bias ? item.source.bias : PoliticalBias.Unknown);
 
     try {
-      // Pass the item's current bias (from source or previous processing) to the LLM service
       llmResult = await processArticleWithRetry(title, firstSentence, itemBias);
       
-      // If llmResult is null or undefined (e.g. from an unrecoverable error in llmService after retries)
-      // default to item's existing bias and empty keywords for safety.
       if (!llmResult) {
         console.warn(`[Word Processing Service] LLM processing for "${title}" returned null/undefined. Using existing bias: ${itemBias}`);
         llmResult = { bias: itemBias, keywords: [] };
@@ -453,34 +449,39 @@ async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
 
     } catch (error) {
       console.error(`[Word Processing Service] Error during LLM processing for "${title}": ${error.message}. Falling back to existing bias.`);
-      // Ensure llmResult is an object with default values even if processArticleWithRetry itself throws an unhandled exception
       llmResult = { bias: itemBias, keywords: [] };
     }
 
-    // Use extractMeaningfulPhrases instead of the undefined extractKeywordsTraditional
     const traditionalKeywords = extractMeaningfulPhrases(item.contentSnippet)
-                                  .map(kwObj => ({ text: kwObj.text, value: kwObj.weight })); // Keep objects, map weight to value
-
+                                  .map(kwObj => ({ text: kwObj.text, value: kwObj.weight }));
+    
     const combinedKeywords = combineKeywords(llmResult.keywords, traditionalKeywords);
 
-    // Log the source of bias determination
-    if (itemBias !== PoliticalBias.Unknown && llmResult.bias === itemBias) {
+    // Determine final bias, respecting existing bias if LLM was only for keywords
+    const finalBias = llmResult.bias; // llmResult.bias already handles this logic
+
+    // Log the source of bias determination (already present, good)
+    if (itemBias !== PoliticalBias.Unknown && finalBias === itemBias) {
         console.log(`[Word Processing Service] LLM processing for "${title}": Bias (${itemBias}) confirmed from source/existing. Keywords: [${llmResult.keywords.join(', ')}]`);
-    } else if (itemBias !== PoliticalBias.Unknown && llmResult.bias !== itemBias) {
-        console.log(`[Word Processing Service] LLM processing for "${title}": Bias changed from ${itemBias} to ${llmResult.bias}. Keywords: [${llmResult.keywords.join(', ')}]`);
+    } else if (itemBias !== PoliticalBias.Unknown && finalBias !== itemBias) {
+        console.log(`[Word Processing Service] LLM processing for "${title}": Bias changed from ${itemBias} to ${finalBias}. Keywords: [${llmResult.keywords.join(', ')}]`);
     } else {
-        console.log(`[Word Processing Service] LLM processing for "${title}": Bias determined as ${llmResult.bias}. Keywords: [${llmResult.keywords.join(', ')}]`);
+        console.log(`[Word Processing Service] LLM processing for "${title}": Bias determined as ${finalBias}. Keywords: [${llmResult.keywords.join(', ')}]`);
     }
 
-    processedItems.push({
-      ...item,
-      title: item.title, // ensure title is present
-      contentSnippet: item.contentSnippet, // ensure contentSnippet is present
+    // Construct a new, minimal object for the result
+    const itemToPush = {
+      minifluxEntryId: item.minifluxEntryId,
+      _id: item._id, // Include for logging or if needed by other parts, though cron uses minifluxEntryId
+      title: item.title, // For logging context
       keywords: combinedKeywords,
-      bias: llmResult.bias, // Use bias from LLM result (which respects existing bias if only keywords were requested)
-      llmProcessed: true, // Mark as processed by LLM logic path
+      bias: finalBias,
       processedAt: new Date(),
-    });
+      llmProcessed: true // Explicitly set to true
+      // llmProcessingAttempts is handled by $inc in cron.js, so not needed here
+    };
+
+    processedItems.push(itemToPush);
 
     itemsProcessedCount++;
     if (itemsProcessedCount % 10 === 0 || itemsProcessedCount === totalItems) {
@@ -767,12 +768,12 @@ function combineKeywords(llmKeywords, traditionalKeywords) {
 async function cacheAggregatedKeywords() {
   console.log('[WordProcessingService] Starting keyword aggregation cache update...');
   try {
-    const lookbackMinutes = 240;
+    const lookbackMinutes = 1440;
     const cutoffDate = new Date(Date.now() - lookbackMinutes * 60 * 1000);
 
     const recentItems = await NewsItem.find({
       llmProcessed: true,
-      updatedAt: { $gte: cutoffDate },
+      processedAt: { $gte: cutoffDate },
       'keywords.0': { $exists: true }
     }).lean();
 
