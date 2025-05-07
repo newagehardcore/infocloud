@@ -256,11 +256,32 @@
             text-align: left;
             vertical-align: top; /* Better for multi-line content in cells */
         }
+        /* Add this for tighter select padding */
+        #sourcesTable select {
+            padding-top: 1px;
+            padding-bottom: 1px;
+            font-size: calc(var(--font-size-small) - 1px); /* Slightly smaller font for selects */
+        }
         th {
             background-color: var(--header-bg-color);
             color: var(--primary-accent-color);
             font-weight: normal;
         }
+        th.sortable-header {
+            cursor: pointer;
+        }
+        th.sortable-header:hover {
+            background-color: var(--secondary-accent-color);
+            color: var(--bg-color);
+        }
+        th .sort-arrow {
+            float: right;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        th .sort-arrow.asc::after { content: ' ▲'; }
+        th .sort-arrow.desc::after { content: ' ▼'; }
+
         tbody tr:nth-child(odd) {
             background-color: var(--input-bg-color); /* Subtle striping */
         }
@@ -483,11 +504,11 @@
                         <table id="sourcesTable">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>URL</th>
-                                    <th>Category</th>
-                                    <th>Bias</th>
-                                    <th>Miniflux ID</th>
+                                    <th class="sortable-header" data-sort-key="name">Name <span class="sort-arrow"></span></th>
+                                    <th class="sortable-header" data-sort-key="url">URL <span class="sort-arrow"></span></th>
+                                    <th class="sortable-header" data-sort-key="category">Category <span class="sort-arrow"></span></th>
+                                    <th class="sortable-header" data-sort-key="bias">Bias <span class="sort-arrow"></span></th>
+                                    <th class="sortable-header" data-sort-key="minifluxFeedId">Miniflux ID <span class="sort-arrow"></span></th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -955,13 +976,26 @@
             sourcesList.innerHTML = '';
             sourceCountSpan.textContent = sourcesToRender.length;
             if (sourcesToRender.length === 0) {
-                sourcesList.innerHTML = '<tr><td colspan="7">No sources match search or none exist.</td></tr>';
+                sourcesList.innerHTML = '<tr><td colspan="6">No sources match search or none exist.</td></tr>'; // Adjusted colspan
                 return;
             }
             sourcesToRender.forEach((source, index) => {
                 const row = sourcesList.insertRow();
-                row.insertCell().textContent = source.name || '';
-                const categoryCell = row.insertCell();
+                row.insertCell().textContent = source.name || ''; // Name
+
+                const urlCell = row.insertCell(); // URL
+                if (source.url) {
+                    const link = document.createElement('a');
+                    link.href = source.url;
+                    link.textContent = source.url;
+                    link.target = '_blank'; // Open in new tab
+                    link.style.color = 'var(--primary-accent-color)';
+                    urlCell.appendChild(link);
+                } else {
+                    urlCell.textContent = '';
+                }
+
+                const categoryCell = row.insertCell(); // Category
                 const categorySelect = document.createElement('select');
                 categorySelect.dataset.field = 'category';
                 categorySelect.dataset.sourceId = source.id;
@@ -977,7 +1011,8 @@
                 });
                 categorySelect.disabled = !source.id;
                 categoryCell.appendChild(categorySelect);
-                const biasCell = row.insertCell();
+
+                const biasCell = row.insertCell(); // Bias
                 const biasSelect = document.createElement('select');
                 biasSelect.dataset.field = 'bias';
                 biasSelect.dataset.sourceId = source.id;
@@ -993,10 +1028,11 @@
                 });
                 biasSelect.disabled = !source.id;
                 biasCell.appendChild(biasSelect);
-                row.insertCell().textContent = source.url || '';
-                row.insertCell().textContent = source.site_url || '';
-                row.insertCell().textContent = source.miniflux_feed_id || 'Not Synced';
-                const actionsCell = row.insertCell();
+
+                const minifluxIdCell = row.insertCell(); // Miniflux ID
+                minifluxIdCell.textContent = source.minifluxFeedId || 'Not Synced'; // Use camelCase
+
+                const actionsCell = row.insertCell(); // Actions
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.classList.add('delete-button');
@@ -1023,15 +1059,15 @@
             renderSourcesTable(filteredSources);
          }
         function sortSources(key) { 
-            // ... (Keep implementation here) ... 
+             // ... (Keep implementation here) ... 
              console.log(`🔄 Sorting sources by ${key}`);
             const direction = (key === currentSortKey && currentSortDirection === 'asc') ? 'desc' : 'asc';
             allSources.sort((a, b) => {
                 let valA = a[key] || '';
                 let valB = b[key] || '';
-                if (key === 'miniflux_feed_id') {
-                    valA = parseInt(valA) || 0;
-                    valB = parseInt(valB) || 0;
+                if (key === 'minifluxFeedId') { // Corrected to camelCase
+                    valA = parseInt(valA, 10) || 0;
+                    valB = parseInt(valB, 10) || 0;
                     return direction === 'asc' ? valA - valB : valB - valA;
                 }
                 valA = String(valA).toLowerCase();
@@ -1042,10 +1078,10 @@
             });
             currentSortKey = key;
             currentSortDirection = direction;
-            document.querySelectorAll('#sourcesTable .sort-button').forEach(button => {
-                button.classList.remove('asc', 'desc');
-                if (button.dataset.sortKey === key) {
-                    button.classList.add(direction);
+            document.querySelectorAll('#sourcesTable th.sortable-header .sort-arrow').forEach(arrowSpan => {
+                arrowSpan.classList.remove('asc', 'desc');
+                if (arrowSpan.parentElement.dataset.sortKey === key) {
+                    arrowSpan.classList.add(direction);
                 }
             });
             renderSourcesTable();
@@ -1285,22 +1321,34 @@
          // --- Accordion Logic --- 
          function setupAccordions() {
              document.querySelectorAll('.accordion-header').forEach(button => {
+                const content = button.nextElementSibling;
+
+                // Open by default directly
+                button.classList.add('active');
+                content.classList.add('active');
+                content.style.maxHeight = 'none'; // Allow natural height
+                content.style.paddingTop = "var(--padding-normal)";
+                content.style.paddingBottom = "var(--padding-normal)";
+
+                // Add click listener for subsequent interactions
                  button.addEventListener('click', () => {
-                     const content = button.nextElementSibling;
                      button.classList.toggle('active');
                      content.classList.toggle('active');
                      if (content.classList.contains('active')) {
-                         content.style.maxHeight = 'none';
+                         content.style.maxHeight = 'none'; // Ensure it can calculate full height
                          const scrollHeight = content.scrollHeight;
-                         content.style.maxHeight = '0';
-                         setTimeout(() => { content.style.maxHeight = scrollHeight + "px"; content.style.paddingTop = "var(--padding-normal)"; }, 10);
+                         content.style.maxHeight = '0'; // Reset for transition
+                         setTimeout(() => { 
+                             content.style.maxHeight = scrollHeight + "px"; 
+                             content.style.paddingTop = "var(--padding-normal)";
+                             content.style.paddingBottom = "var(--padding-normal)";
+                         }, 10);
                      } else {
                          content.style.maxHeight = '0px';
                          content.style.paddingTop = '0';
+                         content.style.paddingBottom = '0';
                      }
                  });
-                 // Open by default initially (optional, if needed after DOM load)
-                 // setTimeout(() => { if (!button.classList.contains('active')) { button.click(); } }, 50);
              });
           }
           
@@ -1362,7 +1410,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             console.log("🚀 DOM fully loaded. Initializing admin page...");
 
-            // Setup Accordions
+            // Setup Accordions - will now open them by default
             setupAccordions();
 
             // Setup Debug Tools
@@ -1392,10 +1440,10 @@
                     handleFieldChange(event.target);
                 }
             });
-             document.querySelectorAll('#sourcesTable .sort-button').forEach(button => {
-                 button.addEventListener('click', () => sortSources(button.dataset.sortKey));
+             document.querySelectorAll('#sourcesTable th.sortable-header').forEach(headerCell => {
+                 headerCell.addEventListener('click', () => sortSources(headerCell.dataset.sortKey));
              });
-             purgeDbButton?.addEventListener('click', () => { if (confirm('Are you SURE?')) { handleDbAction('purge-db'); } });
+             purgeDbButton?.addEventListener('click', () => { if (confirm('Are you SURE? This will delete ALL news items!')) { handleDbAction('purge-db'); } });
              forceRefreshButton?.addEventListener('click', () => handleDbAction('force-refresh'));
              fixCategoriesButton?.addEventListener('click', () => { if (confirm('Fix categories?')) { handleDbAction('fix-categories'); } });
 

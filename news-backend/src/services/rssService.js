@@ -473,8 +473,46 @@ async function fetchAndProcessMinifluxEntries() {
   return { processedCount, errorCount, markedAsReadCount, skippedCount };
 }
 
+/**
+ * Marks a list of entry IDs as "read" in Miniflux.
+ * @param {number[]} entryIds - An array of Miniflux entry IDs to mark as read.
+ * @returns {Promise<void>}
+ */
+async function markEntriesAsRead(entryIds) {
+  if (!entryIds || entryIds.length === 0) {
+    console.log('[RSS Service - markEntriesAsRead] No entry IDs provided to mark as read.');
+    return;
+  }
+
+  console.log(`[RSS Service - markEntriesAsRead] Attempting to mark ${entryIds.length} entries as read in Miniflux.`);
+
+  try {
+    const response = await minifluxClient.put('/v1/entries', {
+      entry_ids: entryIds,
+      status: 'read'
+    });
+    // Miniflux returns 204 No Content on success, so no specific data to check in response.data
+    console.log(`[RSS Service - markEntriesAsRead] Successfully marked ${entryIds.length} entries as read in Miniflux.`);
+  } catch (error) {
+    let errorMessage = `[RSS Service - markEntriesAsRead] Error marking entries as read in Miniflux for IDs: ${entryIds.join(', ')}.`;
+    if (error.response) {
+      errorMessage += ` Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`;
+    } else if (error.request) {
+      errorMessage += ' No response received from Miniflux.';
+    } else {
+      errorMessage += ` Error: ${error.message}`;
+    }
+    console.error(errorMessage);
+    // Optionally, re-throw the error if the caller needs to handle it
+    // throw error; 
+  }
+}
+
 // Export the primary function for fetching/processing
 module.exports = {
   fetchAndProcessMinifluxEntries,
-  forceRefreshAllFeeds
+  forceRefreshAllFeeds,
+  mapMinifluxEntryToNewsItem,
+  cleanHtmlContent,
+  markEntriesAsRead
 };

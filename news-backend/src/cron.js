@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { fetchAndProcessMinifluxEntries } = require('./services/rssService');
+const { fetchAndProcessMinifluxEntries, markEntriesAsRead } = require('./services/rssService');
 const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
@@ -12,177 +12,178 @@ const REFRESH_SCRIPT_PATH = path.join(__dirname, 'miniflux/refreshFeeds.js');
 // Create a processing queue with concurrency control for LLM processing
 const processingQueue = new Queue(async (batch, cb) => {
   try {
-    console.log(`Processing batch of ${batch.length} articles with LLM...`);
+    // >>> MODIFIED WORKER LOGIC <<<
+    console.log(`[Cron Queue Worker DEBUG] STARTING processing for batch. Batch length: ${batch.length}.`);
+    console.log(`[Cron Queue Worker] Received batch of ${batch.length} job(s).`);
+    if (batch.length > 0) {
+      console.log(`[Cron Queue Worker] Sample job object from batch[0]: ${JSON.stringify(batch[0])}`);
+    }
+
+    const articlesToProcessFull = [];
+    for (const job of batch) {
+      if (job && job.minifluxEntryId) {
+        const article = await NewsItem.findOne({ minifluxEntryId: job.minifluxEntryId })
+                                      .select('title contentSnippet url minifluxEntryId llmProcessingAttempts _id source bias') // Select necessary fields
+                                      .lean();
+        if (article) {
+          articlesToProcessFull.push(article);
+        } else {
+          console.warn(`[Cron Queue Worker] Article not found for minifluxEntryId: ${job.minifluxEntryId}`);
+        }
+      } else {
+        console.warn('[Cron Queue Worker] Received invalid job in batch:', job);
+      }
+    }
+
+    if (articlesToProcessFull.length === 0) {
+      console.log('[Cron Queue Worker] No valid articles to process after fetching from DB.');
+      return cb(null, []); // Return empty array if no articles found
+    }
+    // >>> END MODIFIED WORKER LOGIC <<<
+
+    console.log(`Processing ${articlesToProcessFull.length} full articles with LLM...`);
     const batchStartTime = Date.now();
     
-    // Process the batch with LLM integration
-    const processed = await processNewsKeywords(batch);
-    
-    const batchDuration = (Date.now() - batchStartTime) / 1000;
-    console.log(`Completed LLM processing for ${processed.length} articles in ${batchDuration.toFixed(2)} seconds`);
-    
-    // Return processed articles
-    cb(null, processed);
+    const results = await processNewsKeywords(articlesToProcessFull); // Pass the full article objects
+    const batchEndTime = Date.now();
+    console.log(`Batch LLM processing took ${(batchEndTime - batchStartTime) / 1000} seconds for ${results.length} results.`);
+
+    console.log(`[Cron Queue Worker DEBUG] COMPLETED LLM processing for batch. Calling success callback cb(null, results) now. Results length: ${results.length}`);
+    cb(null, results);
   } catch (err) {
-    // Format error message to avoid excessive logging
     let errorMessage = 'Error in processing queue';
-    
-    if (err.code) {
-      errorMessage += `: ${err.code}`;
-    } else if (err.message) {
-      errorMessage += `: ${err.message}`;
-    }
-    
+    if (err.code) errorMessage += `: ${err.code}`;
+    else if (err.message) errorMessage += `: ${err.message}`;
     console.error(errorMessage);
+    console.error('[Cron Queue Worker DEBUG] ERROR in batch processing. Calling error callback cb(err) now.', err);
     cb(err);
   }
 }, { 
-  concurrent: 8,     // Increased from 5 to 8 for better throughput
-  batchSize: 15,     // Increased from 10 to 15 for better efficiency
-  batchDelay: 50,    // Reduced from 100ms to 50ms
-  maxRetries: 2,     // Reduced from 3 to 2 to fail faster on persistent errors
-  retryDelay: 500    // Reduced from 1000ms to 500ms for faster retries
+  concurrent: 8,     
+  batchSize: 15,     
+  batchDelay: 50,    
+  maxRetries: 2,     
+  retryDelay: 500    
 });
 
-// Handle queue events with clean logging
 processingQueue.on('task_finish', async (taskId, result) => {
-  // --- Add detailed logging --- 
-  console.log(`[task_finish ${taskId}] Received raw result type: ${typeof result}`);
-  if (result) {
-      console.log(`[task_finish ${taskId}] Raw result content (first element if array):`, JSON.stringify(Array.isArray(result) ? result[0] : result));
-  }
-  // --- End detailed logging --- 
-
-  // Ensure result is an array, even if only one item was processed in the batch
-  const processedArticles = Array.isArray(result) ? result : [result]; 
+  console.log(`[Cron task_finish DEBUG] STARTING for taskId: ${taskId}. Result items (approx): ${Array.isArray(result) ? result.length : (result ? 1 : 0)}`);
+  const processedArticles = Array.isArray(result) ? result : (result ? [result] : []);
   console.log(`Finished processing batch ${taskId} with ${processedArticles.length} articles. Saving to DB...`);
-  
-  // --- Add logging after ensuring array --- 
-  console.log(`[task_finish ${taskId}] processedArticles type: ${typeof processedArticles}, isArray: ${Array.isArray(processedArticles)}, length: ${processedArticles.length}`);
-  if (processedArticles.length > 0) {
-    console.log(`[task_finish ${taskId}] First element in processedArticles:`, JSON.stringify(processedArticles[0]));
-  }
-  // --- End logging --- 
-  
-  try {
-    // Filter for items that were actually processed by LLM logic and have necessary data.
-    // processNewsKeywords returns items with llmProcessed: true if LLM path was taken.
-    const successfulResults = processedArticles
-      .filter(article => article && article.minifluxEntryId && article.llmProcessed === true);
 
-    console.log(`[task_finish ${taskId}] successfulResults length (after filtering for llmProcessed=true & minifluxEntryId): ${successfulResults.length}`);
-    
-    if (processedArticles.length > 0 && successfulResults.length !== processedArticles.length) {
-        console.warn(`[task_finish ${taskId}] Some articles from the batch were not successfully LLM processed! Original batch count: ${processedArticles.length}, Successfully LLM processed count: ${successfulResults.length}`);
-        // Log the first item that wasn't successfully LLM processed
-        const unprocessedItem = processedArticles.find(article => !article.llmProcessed);
-        if (unprocessedItem) {
-            console.log(`[task_finish ${taskId}] Example item not fully LLM processed (llmProcessed is false or missing):`, JSON.stringify(unprocessedItem));
-        } else {
-            const itemMissingData = processedArticles.find(article => !article || !article.minifluxEntryId);
-            console.log(`[task_finish ${taskId}] Example item missing minifluxEntryId (and thus filtered from successfulResults):`, JSON.stringify(itemMissingData));
-        }
-    }
+  const successfulResults = processedArticles.filter(item => item && item.minifluxEntryId && item.llmProcessed);
+  console.log(`[task_finish ${taskId}] successfulResults length (after filtering for minifluxEntryId AND llmProcessed): ${successfulResults.length}`);
 
-    const operations = successfulResults.map(articleData => ({
-      updateOne: {
-        filter: { minifluxEntryId: articleData.minifluxEntryId },
-        update: {
-          $set: {
-            keywords: articleData.keywords,
-            bias: articleData.bias, 
-            llmProcessed: true, 
-            llmProcessingError: null, 
-            llmProcessingAttempts: (articleData.llmProcessingAttempts || 0) + 1, // Increment attempts
-            processedAt: articleData.processedAt || new Date() // Use processedAt from wordProcessingService or now
-          },
-          $unset: { contentSnippet: "" } 
+  if (successfulResults.length > 0) {
+    const bulkOps = NewsItem.collection.initializeUnorderedBulkOp();
+    successfulResults.forEach(sResult => {
+      // Separate $set and $inc operations for the update
+      const fieldsToSet = {
+        keywords: sResult.keywords,
+        bias: sResult.bias,
+        llmProcessed: true,
+        processedAt: sResult.processedAt || new Date(),
+      };
+      const fieldsToIncrement = {
+        llmProcessingAttempts: 1
+      };
+      
+      bulkOps.find({ minifluxEntryId: sResult.minifluxEntryId }).updateOne({
+        $set: fieldsToSet,
+        $inc: fieldsToIncrement
+      });
+    });
+
+    if (bulkOps.length > 0) {
+      const firstSR = successfulResults[0];
+      // Reconstruct sample update log to reflect the new structure
+      const sampleUpdateLog = {
+        $set: {
+        keywords: firstSR.keywords,
+        bias: firstSR.bias,
+        llmProcessed: true,
+        processedAt: firstSR.processedAt || new Date(),
         },
-      }
-    }));
-
-    if (operations.length > 0) {
-      const bulkResult = await NewsItem.bulkWrite(operations, { ordered: false }); // Add ordered: false
-      console.log(`DB Save Complete for batch ${taskId}: Matched ${bulkResult.matchedCount}, Modified ${bulkResult.modifiedCount}`);
-    } else {
-      console.log(`No operations to save for batch ${taskId}.`);
+        $inc: { llmProcessingAttempts: 1 }
+      };
+      console.log(`[task_finish ${taskId}] Sample update for DB:`, JSON.stringify(sampleUpdateLog));
     }
 
-  } catch (error) {
-    console.error(`Error saving processed batch ${taskId} to DB:`, error);
+    try {
+      const bulkResult = await bulkOps.execute();
+      console.log(`DB Save Complete for batch ${taskId}: Matched ${bulkResult.matchedCount}, Modified ${bulkResult.modifiedCount}`);
+      const entryIdsToMarkAsRead = successfulResults.map(sResult => Number(sResult.minifluxEntryId)).filter(id => !isNaN(id));
+      if (entryIdsToMarkAsRead.length > 0) {
+        await markEntriesAsRead(entryIdsToMarkAsRead);
+        console.log(`[task_finish ${taskId}] Marked ${entryIdsToMarkAsRead.length} entries as read in Miniflux.`);
+      }
+    } catch (error) {
+      console.error(`Error executing bulk update for batch ${taskId}:`, error);
+    }
+  } else {
+    console.log(`No successful results to save for batch ${taskId}.`);
   }
 });
 
-// Add error handling for queue errors
 processingQueue.on('task_failed', (taskId, err) => {
-  // Log the full error object for better debugging
+  console.error(`[Cron task_failed DEBUG] STARTING for taskId: ${taskId}. Error:`, err?.message || 'Unknown error');
   console.error(`Batch ${taskId} processing failed. Full Error:`, err);
 });
 
-// Add queue error handling
 processingQueue.on('error', (err) => {
   console.error('Queue system error:', err.message || 'Unknown error');
 });
 
-// Define the main fetching task (now simplified)
 const fetchAllSources = async () => {
   console.log('\n--------------------\nCron Job: Starting Miniflux entry processing task...');
   const startTime = Date.now();
-  
   try {
-    // Call the consolidated service function
     await fetchAndProcessMinifluxEntries();
-
     const duration = (Date.now() - startTime) / 1000;
     console.log(`\nCron Job: Finished Miniflux entry processing task in ${duration.toFixed(2)} seconds.`);
-
   } catch (error) {
     const duration = (Date.now() - startTime) / 1000;
     console.error(`Cron Job: Error during Miniflux entry processing task after ${duration.toFixed(2)} seconds:`, error);
   }
-  console.log('--------------------\n');
+  console.log(`--------------------\n`);
 };
 
-// --- NEW: Function to find and queue articles for LLM processing --- 
 const processQueuedArticles = async () => {
-  console.log('\n~~~~~~~~~~~~~~~~~~~~\nCron Job: Starting LLM processing queue task...');
+  console.log(`\n~~~~~~~~~~~~~~~~~~~~
+Cron Job: Starting LLM processing queue task...`);
   const queueStartTime = Date.now();
-  const MAX_ARTICLES_TO_QUEUE = 200; // Limit articles queued per run
+  const MAX_ARTICLES_TO_QUEUE = 200;
 
   try {
-    // Find articles using Mongoose Model find()
-    // Corrected Projection: Fetch fields needed for processing AND identification (minifluxEntryId)
     const articlesToProcess = await NewsItem.find(
-      { llmProcessed: false }, 
-      'title contentSnippet url minifluxEntryId llmProcessingAttempts' // Fetch snippet and miniflux ID
+      { llmProcessed: false },
+      'minifluxEntryId' // <<< ONLY FETCH minifluxEntryId HERE
     )
     .limit(MAX_ARTICLES_TO_QUEUE)
-    .lean() 
+    .lean()
     .exec();
 
     if (articlesToProcess && articlesToProcess.length > 0) {
-      console.log(`Found ${articlesToProcess.length} articles needing LLM processing. Queuing...`);
-      articlesToProcess.forEach(article => {
-        // Corrected Check: Ensure required fields fetched are present, be lenient on contentSnippet
-        if (article.minifluxEntryId && article.title && typeof article.contentSnippet === 'string') {
-           // Map to the structure expected by processNewsKeywords (assuming it needs 'content')
-           // Also pass minifluxEntryId and attempts for the task_finish handler
-           processingQueue.push({
-               minifluxEntryId: article.minifluxEntryId, 
-               title: article.title,
-               contentSnippet: article.contentSnippet, // Corrected: Pass as contentSnippet
-               url: article.url,
-               llmProcessingAttempts: article.llmProcessingAttempts || 0
-           });
-        } else {
-          // Use `_id` if available for logging, otherwise try minifluxEntryId
-          const logId = article._id || article.minifluxEntryId || 'Unknown ID'; 
-          console.warn(`Skipping queuing article (ID: ${logId}) due to missing fields (minifluxEntryId, title, or contentSnippet).`);
+      const articlesForQueue = articlesToProcess.map(article => {
+        if (!article.minifluxEntryId) { // Simpler check now
+          console.warn(`[Cron processQueuedArticles] Skipping article with missing minifluxEntryId. Original DB _id (if fetched): ${article._id ? article._id.toString() : 'N/A'}`);
+          return null;
         }
-      });
-      console.log(`Finished queuing ${articlesToProcess.length} articles.`);
+        return { minifluxEntryId: article.minifluxEntryId.toString() }; 
+      }).filter(job => job !== null);
+
+      if (articlesForQueue.length > 0) {
+        console.log(`[Cron processQueuedArticles DEBUG] PRE-PUSH CHECK: First job in articlesForQueue: ${JSON.stringify(articlesForQueue[0])}`);
+      }
+
+      if (articlesForQueue.length > 0) {
+        articlesForQueue.forEach(job => processingQueue.push(job));
+        console.log(`Finished queuing ${articlesForQueue.length} articles individually.`);
+      } else {
+        console.log('[Cron processQueuedArticles] No valid articles to queue after filtering.');
+      }
     } else {
-      console.log('No articles found needing LLM processing in this cycle.');
+      console.log('No articles found needing LLM processing.');
     }
 
     const queueDuration = (Date.now() - queueStartTime) / 1000;
@@ -192,31 +193,22 @@ const processQueuedArticles = async () => {
     const queueDuration = (Date.now() - queueStartTime) / 1000;
     console.error(`Cron Job: Error during LLM processing queue task after ${queueDuration.toFixed(2)} seconds:`, error);
   }
-  console.log('~~~~~~~~~~~~~~~~~~~~\n');
+  console.log(`~~~~~~~~~~~~~~~~~~~~\n`);
 };
 
-// --- RENAMED and UPDATED Scheduling function ---
-// Schedule the tasks
 const scheduleCronJobs = () => {
   console.log('Scheduling cron jobs...');
-
-  // 1. Fetch and Process Miniflux Entries (Every 5 minutes)
   cron.schedule('*/5 * * * *', fetchAllSources);
   console.log('Scheduled: Fetch Miniflux entries every 5 minutes.');
-
-  // 2. Queue articles for LLM processing (Every 1 minute, offset)
-  // Runs more frequently to keep the LLM queue fed
   setTimeout(() => {
     cron.schedule('*/1 * * * *', processQueuedArticles);
     console.log('Scheduled: Queue articles for LLM processing every 1 minute (with initial delay).');
-    // Run immediately on startup after initial delay
     processQueuedArticles();
-  }, 15000); // Start 15 seconds after main fetch schedule
-
-  // 3. Update Aggregated Keyword Cache (Every 2 minutes, offset)
+  }, 15000);
   setTimeout(() => {
     cron.schedule('*/2 * * * *', async () => {
-      console.log('\n+++++++++++++++\nCron Job: Starting keyword cache update task...');
+      console.log(`\n+++++++++++++++
+Cron Job: Starting keyword cache update task...`);
       const startTime = Date.now();
       try {
         await cacheAggregatedKeywords();
@@ -226,19 +218,13 @@ const scheduleCronJobs = () => {
         const duration = (Date.now() - startTime) / 1000;
         console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error);
       }
-       console.log('+++++++++++++++\n');
+       console.log(`+++++++++++++++                 \n`);
     });
     console.log('Scheduled: Update aggregated keyword cache every 2 minutes (with initial delay).');
-    // Run immediately on startup after initial delay
     cacheAggregatedKeywords();
-  }, 30000); // Start 30 seconds after main fetch schedule (15s after LLM queue)
-
-  // Initial run for main fetch on startup
+  }, 30000);
   console.log('Running initial Miniflux fetch on startup...');
   fetchAllSources(); 
 };
 
-// --- UPDATED Export ---
 module.exports = { scheduleCronJobs };
-
-// REMOVED old export line if it existed below

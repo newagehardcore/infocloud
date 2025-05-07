@@ -375,40 +375,24 @@ router.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// <<< NEW Route to get Ollama models (Corrected Path) >>>
+// Endpoint to get available Ollama models
 router.get('/ollama-models', async (req, res) => {
-  console.log('>>> DEBUG: /status/ollama-models route HIT! <<<');
-
   try {
-    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    console.log(`>>> DEBUG: Attempting to fetch models from Ollama at: ${ollamaBaseUrl}/api/tags <<<`);
-    const response = await axios.get(`${ollamaBaseUrl}/api/tags`, { timeout: 5000 });
-
-    console.log('>>> DEBUG: Ollama response status:', response.status);
-    console.log('>>> DEBUG: Ollama response data:', JSON.stringify(response.data, null, 2));
-
-    if (response.data && Array.isArray(response.data.models)) {
-        console.log('>>> DEBUG: Successfully found models array. Sending to frontend. <<<');
-        res.json(response.data.models);
+    const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    const response = await axios.get(`${ollamaUrl}/api/tags`, { timeout: 5000 });
+    if (response.data && response.data.models && Array.isArray(response.data.models)) {
+      res.json(response.data.models.map(model => ({ name: model.name, details: model }))); // Send name and full details
     } else {
-        console.warn('>>> WARN: Ollama API response for /api/tags did not contain a models array or data was unexpected. Sending empty array to frontend. <<<', response.data);
-        res.json([]);
+      console.warn('[Ollama Models] Unexpected response structure from Ollama /api/tags:', response.data);
+      res.json([]); // Send empty array if structure is not as expected
     }
   } catch (error) {
-      console.error('>>> ERROR: Error fetching Ollama models: <<<', error.message);
-      if (error.response) {
-          console.error('>>> ERROR: Ollama error response data: <<<', error.response.data);
-          console.error('>>> ERROR: Ollama error response status: <<<', error.response.status);
-      } else if (error.request) {
-          console.error('>>> ERROR: No response received from Ollama. Request details: <<<', error.request);
-      } else {
-          console.error('>>> ERROR: Axios request setup error: <<<', error.message);
-      }
-      res.status(500).json({ error: 'Failed to fetch Ollama models', details: error.code || error.message });
+    console.error('[Ollama Models] Error fetching models from Ollama:', error.message);
+    res.status(500).json({ error: 'Failed to fetch models from Ollama', details: error.message });
   }
 });
 
-// <<< NEW Route to SET Ollama model (Corrected Path) >>>
+// Route to set the active LLM model
 router.post('/api/set-llm-model', async (req, res) => {
   const { model: newModelName } = req.body;
 
