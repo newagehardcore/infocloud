@@ -38,15 +38,15 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
         *   `GET /api/sources/config`: Retrieves configuration like bias categories and dynamically gets existing categories from the `Source` collection.
     *   Backend service (`sourceManagementService.js`) handles the database interactions (using the `Source` model) and syncs feed creation/deletion/updates with the configured Miniflux instance via its API.
 2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
-    *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API.
+    *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API. The `minifluxEntryId` from these entries is treated as a string throughout the backend processing pipeline, including storage in the `NewsItem` model and when querying `NewsItem` documents.
     *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection.
-    *   **Validation Check:** Before saving, entries are validated to ensure essential fields (including ID, title, and content from Miniflux) are present; incomplete entries are skipped to maintain data quality for subsequent LLM processing.
+    *   **Validation Check:** Before saving, entries are validated to ensure essential fields (including the string `minifluxEntryId`, title, and content from Miniflux) are present; incomplete entries are skipped to maintain data quality for subsequent LLM processing.
     *   Enriched data is bulk upserted into the MongoDB `newsitems` collection.
-    *   Processed entries are marked as read in Miniflux via API.
-    *   A separate scheduled job (`processQueuedArticles`) identifies unprocessed articles in MongoDB.
-    *   These articles are sent to `llmService.js` (via `better-queue`).
+    *   Processed entries are marked as read in Miniflux using the `markEntriesAsRead` function in `rssService.js`, which correctly converts the string `minifluxEntryId` values to numbers for this specific API interaction.
+    *   A separate scheduled job (`processQueuedArticles`) identifies unprocessed articles in MongoDB (querying by their string `minifluxEntryId`).
+    *   These articles are sent to `llmService.js` (via `better-queue`) for analysis.
     *   `llmService.js` interacts with Ollama for analysis (keywords, bias, etc.).
-    *   Results are updated back into the MongoDB `newsitems` documents.
+    *   Results from the LLM, along with incremented processing attempt counts, are updated back into the MongoDB `newsitems` documents using efficient bulk write operations that correctly structure `$set` and `$inc` operators.
 3.  **Frontend Data Request:**
     *   Frontend (`src/services/api.ts` or similar) requests data from the backend API (`/api/news` or WebSocket).
     *   Backend route (`news-backend/src/routes/news.js`) queries MongoDB for processed `newsitems`.
@@ -191,24 +191,10 @@ This typically runs:
 
 *   **Engine:** Ollama (local inference).
 *   **Tasks:** Keyword extraction, bias detection, potentially summarization.
-*   **Mechanism:** Articles are queued (`better-queue`) by `cron.js` and processed asynchronously by `llmService.js`.
+*   **Mechanism:** Articles are queued (`better-queue`) by `cron.js` for asynchronous processing. The `llmService.js` dequeues these articles, using their string `minifluxEntryId` to fetch the full `NewsItem` data from MongoDB if necessary, and then interacts with the Ollama API.
 *   **Caching:** `lru-cache` is used in `llmService.js` to avoid re-processing identical content.
 *   **Dependencies:** Requires Ollama server running and accessible.
-
-### 8.1 Key Data Integrity and Processing Fixes (Recent)
-
-Recent debugging and development efforts have addressed several critical issues in the data processing pipeline, ensuring more robust and accurate keyword generation and data handling:
-
-*   **`minifluxEntryId` Handling:**
-    *   The `NewsItem` model (`news-backend/src/models/NewsItem.js`) now correctly stores `minifluxEntryId` as a `String` (as received from Miniflux) to prevent type mismatches.
-    *   The cron job (`news-backend/src/cron.js`) that processes queued articles for LLM analysis now queries the `NewsItem` collection using `minifluxEntryId` as a string.
-    *   The `markEntriesAsRead` function in `rssService.js` correctly converts these string IDs to numbers when interacting with the Miniflux API.
-*   **`markEntriesAsRead` Function Implementation:**
-    *   The previously missing `markEntriesAsRead` function was implemented and exported in `news-backend/src/services/rssService.js`. This resolved a critical `TypeError` that occurred during the Miniflux feed processing, which could lead to articles not being marked as read and potentially reprocessed.
-*   **MongoDB Bulk Update Operations:**
-    *   The bulk update logic in `news-backend/src/cron.js` (within the `processingQueue`'s `task_finish` handler) was corrected. Previously, conflicting update operators (`$set` and `$inc`) for the same field path caused errors. The update operations are now structured correctly to apply both `$set` and `$inc` modifications to `NewsItem` documents in a single update operation per document.
-
-These changes have significantly improved the reliability of the news aggregation, LLM processing, and data storage pipeline, directly impacting the accuracy and completeness of the data available for the frontend tag cloud.
+*   **Data Integrity:** The system ensures that `minifluxEntryId` is consistently handled as a string when interfacing between Miniflux, the `NewsItem` database model, and the LLM processing queue. Updates to `NewsItem` documents post-LLM processing are performed using MongoDB bulk operations that correctly combine metadata updates (`$set`) and counter increments (`$inc`).
 
 ## 9. Important Notes for AI Assistant
 
