@@ -3,7 +3,7 @@ const { fetchAndProcessMinifluxEntries, markEntriesAsRead } = require('./service
 const fs = require('fs');
 const path = require('path');
 const Queue = require('better-queue');
-const { processNewsKeywords, cacheAggregatedKeywords } = require('./services/wordProcessingService');
+const { processNewsKeywords, aggregateKeywordsForCloud } = require('./services/wordProcessingService');
 const NewsItem = require('./models/NewsItem');
 
 // Path to the refresh feeds script
@@ -59,7 +59,7 @@ const processingQueue = new Queue(async (batch, cb) => {
     cb(err);
   }
 }, { 
-  concurrent: 8,     
+  concurrent: 1,     // <<<< REDUCED FROM 8 to 1
   batchSize: 15,     
   batchDelay: 50,    
   maxRetries: 2,     
@@ -205,26 +205,28 @@ const scheduleCronJobs = () => {
     console.log('Scheduled: Queue articles for LLM processing every 1 minute (with initial delay).');
     processQueuedArticles();
   }, 15000);
-  setTimeout(() => {
-    cron.schedule('*/2 * * * *', async () => {
-      console.log(`\n+++++++++++++++
-Cron Job: Starting keyword cache update task...`);
-      const startTime = Date.now();
-      try {
-        await cacheAggregatedKeywords();
-        const duration = (Date.now() - startTime) / 1000;
-        console.log(`Cron Job: Finished keyword cache update task in ${duration.toFixed(2)} seconds.`);
-      } catch (error) {
-        const duration = (Date.now() - startTime) / 1000;
-        console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error);
-      }
-       console.log(`+++++++++++++++                 \n`);
-    });
-    console.log('Scheduled: Update aggregated keyword cache every 2 minutes (with initial delay).');
-    cacheAggregatedKeywords();
-  }, 30000);
+
+  // Schedule Update aggregated keyword cache (removed setTimeout wrapper)
+  cron.schedule('*/2 * * * *', async () => {
+    console.log(`\n+++++++++++++++\nCron Job: Starting keyword cache update task (using aggregateKeywordsForCloud)...`);
+    const startTime = Date.now();
+    try {
+      await aggregateKeywordsForCloud();
+      const duration = (Date.now() - startTime) / 1000;
+      console.log(`Cron Job: Finished keyword cache update task in ${duration.toFixed(2)} seconds.`);
+    } catch (error) {
+      const duration = (Date.now() - startTime) / 1000;
+      console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error);
+    }
+     console.log(`+++++++++++++++                 \n`);
+  });
+  console.log('Scheduled: Update aggregated keyword cache every 2 minutes.'); // Updated log message
+
   console.log('Running initial Miniflux fetch on startup...');
   fetchAllSources(); 
+
+  console.log('Running initial keyword aggregation on startup...');
+  aggregateKeywordsForCloud(); // Explicit initial call for cache population
 };
 
 module.exports = { scheduleCronJobs };

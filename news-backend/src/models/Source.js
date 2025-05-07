@@ -1,6 +1,4 @@
-const mongoose = require('mongoose');
-const { BIAS_CATEGORIES, NEWS_CATEGORIES } = require('../utils/constants'); // Assuming categories might also be defined
-
+const mongoose = require('mongoose'); const { BIAS_CATEGORIES, NEWS_CATEGORIES } = require('../utils/constants'); // Assuming categories might also be defined
 const sourceSchema = new mongoose.Schema({
     // We can use MongoDB's default _id, but keep our own uuid if it's used elsewhere
     // If not crucial, we could remove this uuid field later.
