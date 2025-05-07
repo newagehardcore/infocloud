@@ -336,7 +336,7 @@ const App: React.FC = () => {
                 width: '100%',
               }}
             >
-              All
+              ALL
             </button>
           </li>
           {/* Existing category buttons */}
