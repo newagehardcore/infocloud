@@ -24,21 +24,23 @@ export enum PoliticalBias {
 }
 
 export enum NewsCategory {
-  News = 'News',
-  Politics = 'Politics',
-  Tech = 'Tech',
-  Science = 'Science',
-  Health = 'Health',
-  Sports = 'Sports',
-  Entertainment = 'Entertainment',
-  Economics = 'Economics',
-  Environment = 'Environment',
-  Music = 'Music',
-  Law = 'Law',
+  NEWS = 'NEWS',
+  POLITICS = 'POLITICS',
+  WORLD = 'WORLD',
+  US = 'US',
+  TECH = 'TECH',
+  SCIENCE = 'SCIENCE',
+  HEALTH = 'HEALTH',
+  SPORTS = 'SPORTS',
+  ENTERTAINMENT = 'ENTERTAINMENT',
+  ECONOMICS = 'ECONOMICS',
+  ENVIRONMENT = 'ENVIRONMENT',
+  MUSIC = 'MUSIC',
+  LAW = 'LAW',
   AI = 'AI',
-  Space = 'Space',
-  Fashion = 'Fashion',
-  Arts = 'Arts'
+  SPACE = 'SPACE',
+  FASHION = 'FASHION',
+  ARTS = 'ARTS'
 }
 
 export interface TagCloudWord {
