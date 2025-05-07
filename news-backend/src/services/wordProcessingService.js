@@ -1,39 +1,37 @@
 const natural = require('natural');
 const nlp = require('compromise');
-const { PoliticalBias } = require('../types'); // Import PoliticalBias from shared types
-const { processArticleWithRetry } = require('./llmService'); // Import LLM service
-const NewsItem = require('../models/NewsItem'); // <<< Import NewsItem model
-const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils'); // <<< Import from textUtils
+const { PoliticalBias, NewsCategory } = require('../types');
+const { processArticleWithRetry } = require('./llmService');
+const NewsItem = require('../models/NewsItem');
+const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils');
+// const { getSourcesConfiguration } = require('../config/config'); // Keep if used by other functions not shown here
 
-// In-memory cache for aggregated keywords
-let aggregatedKeywordsCache = {
+// Define Keyword Length Constants
+const MIN_KEYWORD_LENGTH = 3;
+const MAX_KEYWORD_LENGTH = 50;
+
+// --- NEW Single Keyword Cache (Map-based) ---
+let keywordCache = {
+  data: new Map(), // Map<string, { count: number, biases: PoliticalBias[], categories: NewsCategory[], items: Set<string> }>
   timestamp: null,
-  data: []
+  sourcesTimestamp: null, // Timestamp for when NEWS_SOURCE_NAMES was last updated
+  isUpdating: false // Lock to prevent concurrent full updates of keywordCache.data by aggregateKeywordsForCloud
 };
-const CACHE_TTL_MS = 5 * 60 * 1000; // Cache for 5 minutes
 
 // Counter for LLM fallbacks
 let llmFallbackCount = 0;
-
-// Function to get the current fallback count
 const getLlmFallbackCount = () => {
   return llmFallbackCount;
 };
 
-// **Expanded and Merged Stop Words List**
-// Combining basic English stop words, common news/descriptive/title words,
-// and previously problematic single words ('here', 'shop', 'you', etc.)
+// **Expanded and Merged Stop Words List** (Copied from your provided file)
 const STOP_WORDS = new Set([
-  // Basic English
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
   'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were',
   'will', 'with', 'this', 'but', 'they', 'have', 'had', 'what', 'when',
   'where', 'who', 'which', 'why', 'how', 'all', 'any', 'both', 'each', 'few',
   'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
   'same', 'so', 'than', 'too', 'very', 'can', 'just', 'should', 'now', 'she', 'him', 'her',
-
-  // Common Descriptive/Filler Words (from old frontend list & STOP_WORDS)
-  // Common verbs, articles, prepositions, etc that don't add meaningful context in a tag cloud
   'get', 'got', 'getting', 'goes', 'going', 'gone', 'come', 'came', 'coming', 'make', 'made', 'making',
   'take', 'took', 'taking', 'put', 'puts', 'putting', 'set', 'setting', 'go', 'went', 'give', 'gave',
   'giving', 'run', 'ran', 'running', 'talk', 'talks', 'talking', 'tell', 'told', 'telling', 'call',
@@ -118,19 +116,14 @@ const STOP_WORDS = new Set([
   'multimedia', 'podcast', 'audio', 'gallery', 'slideshow', 'infographic', 'advertisement',
   'sponsored', 'subscription', 'subscribe', 'donate', 'support', 'contact', 'about', 'staff',
   'corrections', 'archives', 'reduce', 'save', 'shop', 'accord', 'deal', 'issue', 'order',
-  'want', 'call', 'file', 'find', 'lose', 'make', 'write', 'help', 'set', 'need', // Included 'need'
-  "you're", "you", // Included 'you' and variants
-  // Explicitly add words from ALWAYS_FILTER_WORDS (if not already present)
+  'want', 'call', 'file', 'find', 'lose', 'make', 'write', 'help', 'set', 'need',
+  "you're", "you",
   'here',
-
-  // Time-related (ensure comprehensive)
   'today', 'yesterday', 'tomorrow', 'week', 'month', 'year', 'day', 'hour', 'minute', 'second',
   'morning', 'afternoon', 'evening', 'night', 'midnight', 'noon', 'daily', 'weekly', 'monthly', 'annual', 'biannual',
   'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
   'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
   'date', 'time', 'period', 'season', 'era', 'century', 'decade', 'moment', 'schedule',
-
-  // Verbs (ensure comprehensive)
   'says', 'said', 'say', 'saying', 'told', 'tell', 'telling', 'announced', 'announce', 'announcing',
   'reported', 'report', 'reporting', 'claimed', 'claim', 'claiming', 'stated', 'state', 'stating',
   'described', 'describe', 'describing', 'appeared', 'appear', 'appearing', 'revealed', 'reveal', 'revealing',
@@ -154,14 +147,11 @@ const STOP_WORDS = new Set([
   'pulled', 'pull', 'pulling', 'returned', 'return', 'returning', 'hoped', 'hope', 'hoping', 'paid', 'pay', 'paying',
 ]);
 
-// Words that might be meaningful in news context despite being stop words
-// (Keep this separate to allow specific stop words if they are news-relevant)
-const NEWS_SPECIFIC_WORDS = new Set([
-  'breaking', 'exclusive', 'update', 'live', 'developing', 'urgent' // Note: some are already in STOP_WORDS but NEWS_SPECIFIC takes precedence
+const NEWS_SPECIFIC_WORDS = new Set([ // (Copied from your provided file)
+  'breaking', 'exclusive', 'update', 'live', 'developing', 'urgent'
 ]);
 
-// Comprehensive list of news source names derived from rssService.js
-const NEWS_SOURCE_NAMES = new Set([
+const NEWS_SOURCE_NAMES = new Set([ // (Copied from your provided file)
   'aba', 'abc', 'above', 'ai', 'al', 'all', 'analytics', 'ap', 'ars', 'art', 'artforum', 'artnet', 'artnews', 'artsy',
   'astronomy', 'axios', 'bazaar', 'bbc', 'beast', 'billboard', 'bleacher', 'bloomberg', 'bof', 'boing', 'breitbart',
   'business', 'buzzfeed', 'caller', 'cbn', 'cbs', 'cdc', 'central', 'christian', 'climate', 'cnet', 'cnn', 'colossal',
@@ -186,25 +176,22 @@ const NEWS_SOURCE_NAMES = new Set([
   'wire', 'world', 'wsj', 'wsws', 'wwd', 'yahoo', 'yale', 'yorker', 'zdnet', 'zeitung', 'zerohedge', 'francisco',
   'chronicle', 'inquirer', 'tribune', 'bee', 'diego', 'union-tribune', 'star-ledger', 'oregonian', 'pioneer', 'press',
   'mercury', 'globe', 'denver', 'star', 'cleveland', 'plain', 'dealer', 'arizona', 'republic', 'kansas', 'city'
-  // ... rest of the list ...
 ]);
 
-// Global configuration with defaults
-const DEFAULT_CONFIG = {
-  minWordLength: 2,  // Reduced to allow more short words
-  maxWordLength: 40, // Increased to allow longer phrases
-  minPhraseWords: 2, // Minimum words for a phrase to be kept
-  maxPhraseWords: 5, // Increased to allow longer phrases
-  removeStopWords: true,  // Filter out common stop words
-  useStemming: false,     // Use stemming (disabled because it can create confusing output)
-  useLemmatization: true, // Use lemmatization for better normalization
-  minTfIdfScore: 0.001,   // Significantly reduced to allow many more terms
-  extractNounPhrases: true, // Extract noun phrases for better multi-word entities
-  maxWords: 1500 // Increased from default to allow more words in the cloud
+const DEFAULT_CONFIG = { // (Copied from your provided file)
+  minWordLength: MIN_KEYWORD_LENGTH, 
+  maxWordLength: MAX_KEYWORD_LENGTH, 
+  minPhraseWords: 2,
+  maxPhraseWords: 5,
+  removeStopWords: true,
+  useStemming: false,
+  useLemmatization: true,
+  minTfIdfScore: 0.001,
+  extractNounPhrases: true,
+  maxWords: 1500
 };
 
-// Add more descriptive words that should be kept even if they're in stop words
-const IMPORTANT_DESCRIPTIVE_WORDS = new Set([
+const IMPORTANT_DESCRIPTIVE_WORDS = new Set([ // (Copied from your provided file)
   'major', 'critical', 'breaking', 'exclusive', 'urgent', 'developing',
   'investigation', 'analysis', 'report', 'update', 'crisis', 'emergency',
   'breakthrough', 'discovery', 'controversy', 'scandal', 'reform',
@@ -215,39 +202,27 @@ const IMPORTANT_DESCRIPTIVE_WORDS = new Set([
   'collapse', 'recovery', 'revolution', 'transformation', 'innovation'
 ]);
 
-/**
- * Extracts meaningful phrases using NLP
- * Prioritizes named entities and important news constructions
- */
-const extractMeaningfulPhrases = (text) => {
+const extractMeaningfulPhrases = (text) => { // (Copied from your provided file)
   const doc = nlp(text);
   const phrases = [];
-
-  // Extract named entities - people (prioritize names of people)
   doc.match('#Person+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.length >= 3 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push({ text: phrase, weight: 1.5 }); // Higher weight for people's names
+      phrases.push({ text: phrase, weight: 1.5 });
     }
   });
-
-  // Extract organizations and companies
   doc.match('#Organization+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push({ text: phrase, weight: 1.4 }); // Higher weight for organizations
+      phrases.push({ text: phrase, weight: 1.4 });
     }
   });
-
-  // Extract locations
   doc.match('#Place+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push({ text: phrase, weight: 1.3 }); // Higher weight for places
+      phrases.push({ text: phrase, weight: 1.3 });
     }
   });
-
-  // Extract topics and issues (noun phrases with adjectives)
   doc.match('#Adjective+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
@@ -255,583 +230,297 @@ const extractMeaningfulPhrases = (text) => {
       phrases.push({ text: phrase, weight: 1.0 });
     }
   });
-
-  // Extract active events (verb phrases)
   doc.match('#Noun+ #Verb+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
         phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push({ text: phrase, weight: 1.1 }); // Slightly higher weight for actions
+      phrases.push({ text: phrase, weight: 1.1 });
     }
   });
-  
-  // Extract special patterns that often indicate newsworthy events
-  // E.g., "President announces", "Supreme Court rules"
   doc.match('(president|minister|official|court|government|senate|congress|police|military|forces) #Verb+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= 2 && phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
-      phrases.push({ text: phrase, weight: 1.5 }); // Higher weight for official actions
+      phrases.push({ text: phrase, weight: 1.5 });
     }
   });
-
   return phrases;
 };
 
-/**
- * Determines if a word/phrase should be kept for the tag cloud
- * Simplified filtering logic to focus on meaningful, informative words/phrases
- * while avoiding redundancy and excessive filtering
- */
-const shouldKeepWord = (phrase, config) => {
-  // Remove HTML and check if anything remains
+const shouldKeepWord = (phrase, config) => { // (Copied from your provided file)
   const cleanPhrase = stripHtml(phrase);
   if (!cleanPhrase) return false;
-  
   const lowerPhrase = cleanPhrase.toLowerCase();
   const words = lowerPhrase.split(/\s+/).filter(w => w.length > 0);
-  
-  // Quick length validation
   if (words.length === 0) return false;
-  
-  // Always keep important descriptive words
-  if (IMPORTANT_DESCRIPTIVE_WORDS.has(lowerPhrase)) {
-    return true;
-  }
-
-  // ==== STAGE 1: Quick rejects (fast pattern matching) ====
-  
-  // Reject obvious HTML/URL elements that shouldn't be in a word cloud
-  if (lowerPhrase.includes('href=') || 
-      lowerPhrase.includes('src=') ||
-      lowerPhrase.includes('http:') ||
-      lowerPhrase.includes('https:') ||
-      lowerPhrase.includes('www.') ||
-      lowerPhrase.includes('@') ||
-      lowerPhrase.includes('...')) {
-    return false;
-  }
-  
-  // Reject UI navigation text that shouldn't be in a news tag cloud
-  if (lowerPhrase.includes('continue reading') ||
-      lowerPhrase.includes('read more') ||
-      lowerPhrase.includes('sign in') ||
-      lowerPhrase.includes('sign up') ||
-      lowerPhrase.includes('subscribe') ||
-      lowerPhrase.includes('click here') ||
-      lowerPhrase.includes('tap here')) {
-    return false;
-  }
-  
-  // Reject code-like patterns
-  if (lowerPhrase.includes('function') || 
-      lowerPhrase.includes('var ') ||
-      lowerPhrase.includes('const ') ||
-      lowerPhrase.includes('class ') ||
-      lowerPhrase.includes('javascript')) {
-    return false;
-  }
-
-  // ==== STAGE 2: Handle differently based on phrase length ====
-  
-  // Single word handling
+  if (IMPORTANT_DESCRIPTIVE_WORDS.has(lowerPhrase)) return true;
+  if (lowerPhrase.includes('href=') || lowerPhrase.includes('src=') || lowerPhrase.includes('http:') || lowerPhrase.includes('https:') || lowerPhrase.includes('www.') || lowerPhrase.includes('@') || lowerPhrase.includes('...')) return false;
+  if (lowerPhrase.includes('continue reading') || lowerPhrase.includes('read more') || lowerPhrase.includes('sign in') || lowerPhrase.includes('sign up') || lowerPhrase.includes('subscribe') || lowerPhrase.includes('click here') || lowerPhrase.includes('tap here')) return false;
+  if (lowerPhrase.includes('function') || lowerPhrase.includes('var ') || lowerPhrase.includes('const ') || lowerPhrase.includes('class ') || lowerPhrase.includes('javascript')) return false;
   if (words.length === 1) {
     const word = words[0];
-    
-    // Keep proper nouns regardless of other rules
-    if (isProperNoun(word)) {
-      return true;
-    }
-    
-    // Basic length validation
-    if (word.length < config.minWordLength || word.length > config.maxWordLength) {
-      return false;
-    }
-    
-    // Reject just numbers, single letters, or codes like a1, b2
-    if (/^\d+$/.test(word) || /^[a-z]$/.test(word) || /^[a-z]\d+$/.test(word)) {
-      return false;
-    }
-    
-    // Reject news source names to avoid them dominating the cloud
-    if (NEWS_SOURCE_NAMES.has(word)) {
-      return false;
-    }
-    
-    // Remove stop words unless they're news-specific
-    if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) {
-      return false;
-    }
-    
-    // Require at least one letter (not just symbols or numbers)
+    if (isProperNoun(word)) return true;
+    if (word.length < config.minWordLength || word.length > config.maxWordLength) return false;
+    if (/^\d+$/.test(word) || /^[a-z]$/.test(word) || /^[a-z]\d+$/.test(word)) return false;
+    if (NEWS_SOURCE_NAMES.has(word)) return false;
+    if (config.removeStopWords && STOP_WORDS.has(word) && !NEWS_SPECIFIC_WORDS.has(word)) return false;
     return /[a-zA-Z]/.test(word);
-  } 
-  
-  // Multi-word phrase handling
-  else {
-    // Validate phrase length
-    if (words.length < config.minPhraseWords || words.length > config.maxPhraseWords) {
-      return false;
-    }
-    
-    // Reject phrases with meaningless prefixes/suffixes
+  } else {
+    if (words.length < config.minPhraseWords || words.length > config.maxPhraseWords) return false;
     const firstWord = words[0];
     const lastWord = words[words.length - 1];
-    
     const meaninglessPrefixes = ['a', 'an', 'the', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'am', 'is', 'are', 'was', 'were', 'be', 'been'];
     const meaninglessSuffixes = ['etc', 'so', 'to', 'for', 'of', 'by', 'with', 'in', 'on', 'at'];
-    
-    if (meaninglessPrefixes.includes(firstWord) && words.length <= 2) {
-      return false;
-    }
-    
-    if (meaninglessSuffixes.includes(lastWord) && words.length <= 2) {
-      return false;
-    }
-    
-    // For 2-word phrases, require at least one non-stop word or proper noun
-    if (words.length === 2) {
-      return words.some(w => !STOP_WORDS.has(w) || isProperNoun(w) || NEWS_SPECIFIC_WORDS.has(w));
-    }
-    
-    // For 3+ word phrases, they're likely meaningful, so keep them
-    // unless they're composed entirely of stop words
+    if (meaninglessPrefixes.includes(firstWord) && words.length <= 2) return false;
+    if (meaninglessSuffixes.includes(lastWord) && words.length <= 2) return false;
+    if (words.length === 2) return words.some(w => !STOP_WORDS.has(w) || isProperNoun(w) || NEWS_SPECIFIC_WORDS.has(w));
     return !words.every(w => STOP_WORDS.has(w) && !NEWS_SPECIFIC_WORDS.has(w) && !isProperNoun(w));
   }
 };
 
-/**
- * Processes news items to generate refined keywords using LLM and NLP techniques
- * @param {Array<Object>} newsItems - Array of news item objects
- * @param {Object} config - Configuration options
- * @returns {Promise<Array<object>>} An array of objects, each containing the original ID, bias, and keywords.
- */
-async function processNewsKeywords(newsItems, config = DEFAULT_CONFIG) {
-  if (!Array.isArray(newsItems) || newsItems.length === 0) {
-    console.log("[Word Processing Service] No news items to process keywords for.");
-    return [];
+const combineKeywords = (llmKeywords, traditionalKeywords) => { // (Copied from your provided file)
+  const llmKeywordSet = new Set(llmKeywords.filter(k => typeof k === 'string').map(k => k.toLowerCase()));
+  const uniqueTraditionalKeywords = traditionalKeywords
+    .filter(k => !llmKeywordSet.has(k.text.toLowerCase()))
+    .map(keyword => {
+      const wordCount = keyword.text.split(/\s+/).length;
+      const isMultiWord = wordCount > 1;
+      const isHighValue = keyword.value > 1.3;
+      if (isMultiWord) return { ...keyword, value: keyword.value * 1.2 };
+      if (!isMultiWord && !isHighValue) return { ...keyword, value: keyword.value * 0.8 };
+      return keyword;
+    })
+    .sort((a, b) => {
+      const aWords = a.text.split(/\s+/).length;
+      const bWords = b.text.split(/\s+/).length;
+      return (bWords - aWords) || (b.value - a.value);
+    })
+    .slice(0, Math.min(llmKeywords.length, 30));
+  const uniqueTraditionalKeywordStrings = uniqueTraditionalKeywords.map(kw => kw.text);
+  const combined = [...llmKeywords, ...uniqueTraditionalKeywordStrings];
+  const casingMap = new Map();
+  llmKeywords.forEach(k => { if (typeof k === 'string') casingMap.set(k.toLowerCase(), k); });
+  uniqueTraditionalKeywords.forEach(kwObj => { if (typeof kwObj.text === 'string') { if (!casingMap.has(kwObj.text.toLowerCase())) casingMap.set(kwObj.text.toLowerCase(), kwObj.text); } });
+  const uniqueLowercaseKeywords = Array.from(new Set(combined.filter(k => typeof k === 'string').map(k => k.toLowerCase())));
+  return uniqueLowercaseKeywords.map(lk => casingMap.get(lk) || lk);
+};
+
+
+function filterAndValidateKeyword(originalKeyword) {
+  let keyword = originalKeyword.toLowerCase().trim();
+  keyword = stripHtml(keyword);
+
+  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) return null;
+  if (/\d/.test(keyword) && keyword.length < 5) return null; // Basic check for short numeric strings
+  if (STOP_WORDS.has(keyword) || NEWS_SPECIFIC_WORDS.has(keyword) || NEWS_SOURCE_NAMES.has(keyword)) return null;
+  
+  // Lemmatize (if not a proper noun, to avoid changing names like "Biden" to "biden")
+  if (!isProperNoun(keyword)) {
+    keyword = lemmatizeWord(keyword);
   }
+  
+  // Re-check length and stop words after lemmatization
+  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) return null;
+  if (STOP_WORDS.has(keyword)) return null;
 
-  console.log(`[Word Processing Service] Starting keyword processing for ${newsItems.length} news items.`);
-  const processedItems = [];
-  let itemsProcessedCount = 0;
-  const totalItems = newsItems.length;
+  return keyword;
+}
 
-  for (const item of newsItems) {
-    if (!item || !item.title || !item.contentSnippet) {
-      console.warn(`[Word Processing Service] Skipping item due to missing title or contentSnippet. Item ID: ${item?._id || 'N/A'}`);
-      processedItems.push({
-        ...item,
-        keywords: item.keywords || [],
-        bias: item.bias || PoliticalBias.Unknown,
-        llmProcessed: item.llmProcessed || false
-      });
+function updateGlobalCacheWithSingleItem(processedNewsItem) {
+  if (!processedNewsItem || !processedNewsItem.keywords || !processedNewsItem.minifluxEntryId) {
+    console.warn('[Cache] Attempted to update cache with invalid item:', processedNewsItem ? processedNewsItem.minifluxEntryId : 'undefined item');
+    return;
+  }
+  
+  const itemBias = processedNewsItem.bias || PoliticalBias.Unknown;
+  // Use source.category and fallback to UNKNOWN if not present
+  const itemCategory = (processedNewsItem.source && processedNewsItem.source.category)
+    ? processedNewsItem.source.category
+    : NewsCategory.UNKNOWN;
+  const itemId = processedNewsItem._id ? processedNewsItem._id.toString() : processedNewsItem.minifluxEntryId.toString();
+
+  (processedNewsItem.keywords || []).forEach(keywordText => {
+    const validatedKeyword = filterAndValidateKeyword(keywordText);
+    if (validatedKeyword) {
+      if (keywordCache.data.has(validatedKeyword)) {
+        const existingEntry = keywordCache.data.get(validatedKeyword);
+        existingEntry.count += 1;
+        existingEntry.items.add(itemId);
+        if (itemBias) existingEntry.biases.push(itemBias);
+        // Add category to the set, then convert set to array for storage
+        const categorySet = new Set(existingEntry.categories || []);
+        categorySet.add(itemCategory);
+        existingEntry.categories = Array.from(categorySet);
+
+      } else {
+        keywordCache.data.set(validatedKeyword, {
+          count: 1,
+          biases: itemBias ? [itemBias] : [],
+          categories: itemCategory ? [itemCategory] : [], // Initialize categories as an array
+          items: new Set([itemId])
+        });
+        }
+    }
+  });
+  keywordCache.timestamp = new Date();
+  // console.log(`[Cache] Incremental update for item ${itemId}. Keywords added/updated: ${processedNewsItem.keywords.length}. Cache size: ${keywordCache.data.size}`);
+}
+
+async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
+  console.log(`[Word Processing Service] Starting batch processing for ${newsItemsFromDB.length} items.`);
+  const processedResults = [];
+  let llmFallbackCountForBatch = 0;
+
+  for (const item of newsItemsFromDB) {
+    if (!item || !item.title || !item.contentSnippet || !item._id) {
+      console.warn('[Word Processing] Skipping invalid item in batch:', item ? item._id : 'undefined item');
+      processedResults.push({ ...item, keywords: item.keywords || [], llmProcessed: item.llmProcessed || false, llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1, processedAt: new Date() });
       continue;
     }
 
-    const title = item.title;
-    let firstSentence = item.contentSnippet.split('.')[0];
-    if (firstSentence.length < 50 && item.contentSnippet.length > firstSentence.length) {
-        firstSentence = item.contentSnippet.substring(0, 250);
-    } else if (firstSentence.length > 250) {
-        firstSentence = firstSentence.substring(0, 250);
-    }
-
+    const title = stripHtml(item.title);
+    const firstSentence = stripHtml(item.contentSnippet.split('.')[0] || '');
     let llmResult = null;
     let itemBias = item.bias || (item.source && item.source.bias ? item.source.bias : PoliticalBias.Unknown);
+    let keywordsToUse = item.keywords || [];
+    let llmSuccess = false;
 
     try {
       llmResult = await processArticleWithRetry(title, firstSentence, itemBias);
       
-      if (!llmResult) {
-        console.warn(`[Word Processing Service] LLM processing for "${title}" returned null/undefined. Using existing bias: ${itemBias}`);
-        llmResult = { bias: itemBias, keywords: [] };
+      if (llmResult && llmResult.keywords && llmResult.keywords.length > 0) {
+        keywordsToUse = llmResult.keywords;
+        itemBias = llmResult.bias || itemBias;
+        llmSuccess = true;
+      } else if (llmResult && (!llmResult.keywords || llmResult.keywords.length === 0)) {
+        llmFallbackCountForBatch++;
+        const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
+          .map(p => p.text)
+          .filter(k => shouldKeepWord(k, config)); 
+        keywordsToUse = traditionalKeywords.slice(0, 10); 
+        llmSuccess = false; // Explicitly false, even if traditional keywords found
+      } else {
+        // LLM call failed or returned null/undefined
+        llmFallbackCountForBatch++;
+        const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
+          .map(p => p.text)
+          .filter(k => shouldKeepWord(k, config));
+        keywordsToUse = traditionalKeywords.slice(0, 10);
+        llmSuccess = false;
       }
-
     } catch (error) {
-      console.error(`[Word Processing Service] Error during LLM processing for "${title}": ${error.message}. Falling back to existing bias.`);
-      llmResult = { bias: itemBias, keywords: [] };
+      console.error(`Error processing article ${item._id} with LLM:`, error.message);
+      llmFallbackCountForBatch++;
+      const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
+        .map(p => p.text)
+        .filter(k => shouldKeepWord(k, config));
+      keywordsToUse = traditionalKeywords.slice(0, 10);
+      llmSuccess = false;
     }
 
-    const traditionalKeywords = extractMeaningfulPhrases(item.contentSnippet)
-                                  .map(kwObj => ({ text: kwObj.text, value: kwObj.weight }));
-    
-    const combinedKeywords = combineKeywords(llmResult.keywords, traditionalKeywords);
-
-    // Determine final bias, respecting existing bias if LLM was only for keywords
-    const finalBias = llmResult.bias; // llmResult.bias already handles this logic
-
-    // Log the source of bias determination (already present, good)
-    if (itemBias !== PoliticalBias.Unknown && finalBias === itemBias) {
-        console.log(`[Word Processing Service] LLM processing for "${title}": Bias (${itemBias}) confirmed from source/existing. Keywords: [${llmResult.keywords.join(', ')}]`);
-    } else if (itemBias !== PoliticalBias.Unknown && finalBias !== itemBias) {
-        console.log(`[Word Processing Service] LLM processing for "${title}": Bias changed from ${itemBias} to ${finalBias}. Keywords: [${llmResult.keywords.join(', ')}]`);
-    } else {
-        console.log(`[Word Processing Service] LLM processing for "${title}": Bias determined as ${finalBias}. Keywords: [${llmResult.keywords.join(', ')}]`);
-    }
-
-    // Construct a new, minimal object for the result
-    const itemToPush = {
-      minifluxEntryId: item.minifluxEntryId,
-      _id: item._id, // Include for logging or if needed by other parts, though cron uses minifluxEntryId
-      title: item.title, // For logging context
-      keywords: combinedKeywords,
-      bias: finalBias,
-      processedAt: new Date(),
-      llmProcessed: true // Explicitly set to true
-      // llmProcessingAttempts is handled by $inc in cron.js, so not needed here
+    const finalKeywords = Array.from(new Set(keywordsToUse.map(k => filterAndValidateKeyword(k)).filter(Boolean)));
+    const processedItem = {
+      ...item, // Spread original item data (like minifluxEntryId, _id, etc.)
+      title: item.title, // ensure original title is preserved if needed by other parts
+      contentSnippet: item.contentSnippet, // ensure original snippet is preserved
+      keywords: finalKeywords,
+      bias: itemBias,
+      category: item.category, // Keep original category for the item itself
+      llmProcessed: llmSuccess,
+      llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1,
+      processedAt: new Date()
     };
-
-    processedItems.push(itemToPush);
-
-    itemsProcessedCount++;
-    if (itemsProcessedCount % 10 === 0 || itemsProcessedCount === totalItems) {
-      console.log(`[Word Processing Service] Progress: ${itemsProcessedCount}/${totalItems} items processed for keywords.`);
-    }
-  } // end for loop
-
-  console.log("[Word Processing Service] Finished keyword processing.");
-  await cacheAggregatedKeywords(); // Update cache after processing
-  return processedItems;
+    
+    updateGlobalCacheWithSingleItem(processedItem); 
+    processedResults.push(processedItem);
+  }
+  
+  if (llmFallbackCountForBatch > 0) {
+    console.log(`[Word Processing Service] LLM fallback used for ${llmFallbackCountForBatch} items in this batch.`);
+  }
+  console.log(`[Word Processing Service] Finished batch processing. ${processedResults.length} items processed and cache updated.`);
+  return processedResults;
 }
 
-/**
- * Aggregates keywords from a list of news items for the tag cloud.
- * Calculates frequency counts for each keyword, with bias information.
- * Enhanced to prioritize multi-word phrases for better storytelling.
- *
- * @param {Array<Object>} newsItems - Array of news item objects, each expected to have a `keywords` array field.
- * @param {number} maxWords - The maximum number of words to return for the cloud.
- * @returns {Array<{text: string, value: number, bias: PoliticalBias, category: string}>} - Array of objects for the tag cloud, including bias and category.
- */
-function aggregateKeywordsForCloud(newsItems, maxWords = 1000) {
-  if (!newsItems || newsItems.length === 0) {
-    return [];
+async function aggregateKeywordsForCloud() {
+  if (keywordCache.isUpdating) {
+    console.log('[Cache] Full aggregation already in progress. Skipping.');
+    return;
   }
-
-  const wordData = new Map();
-  console.log(`[aggregateKeywordsForCloud] Starting aggregation for ${newsItems?.length} items.`);
-
-  if (newsItems && newsItems.length > 0) {
-    console.log('[aggregateKeywordsForCloud] Inspecting first news item for aggregation:', JSON.stringify(newsItems[0], (key, value) => key === 'content' || key === 'description' ? '[TRUNCATED]' : value, 2));
-  }
-
-  newsItems.forEach((item, index) => {
-    // Ensure bias exists, default to Unknown if not. Read from item.bias directly.
-    const itemBias = item.bias || PoliticalBias.Unknown;
-    const itemCategory = item.source?.category || 'UNKNOWN'; // <<< Get item category, default to UNKNOWN
-    if (!item.bias) { // Check item.bias directly
-      console.warn(`Item is missing bias information: ${item.id || 'N/A'}`);
+  keywordCache.isUpdating = true;
+  console.log('[WordProcessingService] Starting full keyword aggregation for global cache...');
+  
+  try {
+    const allNewsItems = await NewsItem.find({}).lean().exec(); 
+    if (!allNewsItems || allNewsItems.length === 0) {
+      console.log('[WordProcessingService] No news items found in DB for cache aggregation.');
+      keywordCache.data = new Map();
+      keywordCache.timestamp = new Date();
+      keywordCache.isUpdating = false;
+      return;
     }
+    console.log(`[aggregateKeywordsForCloud] Found ${allNewsItems.length} items for full cache aggregation.`);
 
-    if (item.keywords && Array.isArray(item.keywords)) {
-      // Log keywords for the current item
-      if (index < 5) { // Log first 5 items' keywords to avoid excessive logging
-        console.log(`[aggregateKeywordsForCloud] Processing item ${index} (ID: ${item.id}) keywords:`, JSON.stringify(item.keywords));
-      }
+    const tempKeywordMap = new Map(); // Map<string, { count: number, biases: Set<PoliticalBias>, categories: Set<NewsCategory>, items: Set<string> }>
 
-      // Process each keyword from this item
-      item.keywords.forEach(keyword => {
-        // Check if keyword is an object with a 'text' property, or just a string
-        const keywordText = typeof keyword === 'object' && keyword !== null && typeof keyword.text === 'string'
-                          ? keyword.text
-                          : typeof keyword === 'string' ? keyword : null;
+    allNewsItems.forEach(item => {
+      const itemBias = item.bias || PoliticalBias.Unknown;
+      // Use source.category and fallback to UNKNOWN if not present
+      const itemCategory = (item.source && item.source.category)
+        ? item.source.category
+        : NewsCategory.UNKNOWN;
+      const itemId = item._id ? item._id.toString() : item.minifluxEntryId.toString();
 
-        if (keywordText) { // Proceed if we extracted a valid string
-          // Clean and normalize the keyword
-          const cleanKeyword = stripHtml(keywordText);
-          if (!cleanKeyword || cleanKeyword.length < 2) return; // Skip empty or very short keywords
-
-          const keywordKey = cleanKeyword.trim(); // Use original casing as key
-
-          // Skip keywords that contain problematic patterns (simplified check to allow more words)
-          if (keywordKey.toLowerCase().includes('href=') || // Check lowercase for patterns
-              keywordKey.toLowerCase().includes('src=') ||
-              keywordKey.toLowerCase().includes('http:') ||
-              keywordKey.toLowerCase().includes('https:')) {
-            return;
-          }
-
-          // Add or update the keyword in our map
-          if (!wordData.has(keywordKey)) { // Use original casing key
-            // First time seeing this keyword, store its data
-            wordData.set(keywordKey, { // Use original casing key
-              value: 1, // Raw frequency count
-              bias: itemBias, // Assign initial bias
-              biasCounts: { [itemBias]: 1 }, // Track bias occurrences
-              category: itemCategory, // <<< Assign initial category
-              categoryCounts: { [itemCategory]: 1 }, // <<< Track category occurrences
-              // <<< Track unique documents and sources >>>
-              docIds: new Set([item.id || item.minifluxEntryId]), // Use item ID or Miniflux ID
-              sourceNames: new Set([item.source?.name].filter(Boolean)) // Track source names
-            });
+      (item.keywords || []).forEach(keywordText => {
+        const validatedKeyword = filterAndValidateKeyword(keywordText);
+        if (validatedKeyword) {
+          if (tempKeywordMap.has(validatedKeyword)) {
+            const entry = tempKeywordMap.get(validatedKeyword);
+            entry.count += 1;
+            entry.items.add(itemId);
+            if (itemBias) entry.biases.add(itemBias);
+            if (itemCategory) entry.categories.add(itemCategory); // Add to set
           } else {
-            // Already seen, update counts and bias tracking
-            const currentData = wordData.get(keywordKey); // Use original casing key
-            currentData.value += 1; // Increment raw frequency
-
-            // <<< Add current doc ID and source name >>>
-            currentData.docIds.add(item.id || item.minifluxEntryId);
-            if (item.source?.name) {
-              currentData.sourceNames.add(item.source.name);
-            }
-
-            // Update bias tracking
-            if (!currentData.biasCounts[itemBias]) {
-              currentData.biasCounts[itemBias] = 1;
-            } else {
-              currentData.biasCounts[itemBias] += 1;
-            }
-            
-            // <<< Update category tracking >>>
-            if (!currentData.categoryCounts[itemCategory]) {
-              currentData.categoryCounts[itemCategory] = 1;
-            } else {
-              currentData.categoryCounts[itemCategory] += 1;
-            }
-
-            // Recalculate dominant bias
-            let maxBiasCount = 0;
-            let dominantBias = currentData.bias;
-            Object.entries(currentData.biasCounts).forEach(([bias, count]) => {
-              if (count > maxBiasCount) {
-                maxBiasCount = count;
-                dominantBias = bias;
-              }
+            tempKeywordMap.set(validatedKeyword, {
+              count: 1,
+              biases: itemBias ? new Set([itemBias]) : new Set(),
+              categories: itemCategory ? new Set([itemCategory]) : new Set(), // Initialize as Set
+              items: new Set([itemId])
             });
-            currentData.bias = dominantBias;
-            
-            // <<< Recalculate dominant category >>>
-            let maxCategoryCount = 0;
-            let dominantCategory = currentData.category;
-            Object.entries(currentData.categoryCounts).forEach(([category, count]) => {
-              if (count > maxCategoryCount) {
-                maxCategoryCount = count;
-                dominantCategory = category;
-              }
-            });
-            currentData.category = dominantCategory;
           }
         }
       });
-    }
-  });
+    });
 
-  // Log the size of wordData after processing all items and before filtering
-  console.log(`[aggregateKeywordsForCloud] Initial wordData map size before filtering: ${wordData.size}`);
+    // Convert sets to arrays for the final cache structure
+    const newCacheData = new Map();
+    tempKeywordMap.forEach((value, key) => {
+      newCacheData.set(key, {
+        ...value,
+        biases: Array.from(value.biases),
+        categories: Array.from(value.categories) // Convert categories set to array
+      });
+    });
 
-  let filteredOutCount = 0;
-  const initialKeywordArrayForFiltering = Array.from(wordData.entries()).map(([text, data]) => {
-    const docCount = data.docIds.size;
-    return { text, value: data.value * Math.log10(1.1 + docCount), rawValue: data.value, docCount, sourceCount: data.sourceNames.size, bias: data.bias, category: data.category };
-  });
-
-  const mappedKeywords = initialKeywordArrayForFiltering
-    .filter(item => {
-      const originalText = item.text;
-      // --- Filtering Stage ---
-      if (!item.text) {
-        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Empty text. Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-
-      // Define these once at the top of the filter callback scope
-      const lowerText = item.text.toLowerCase().trim(); 
-      const words = item.text.split(' '); 
-      const wordCount = words.length;
-
-      // Refined NEWS_SOURCE_NAMES Filter:
-      // Filter out the keyword if the ENTIRE normalized phrase is in NEWS_SOURCE_NAMES.
-      if (NEWS_SOURCE_NAMES.has(lowerText)) {
-        if (filteredOutCount < 10) console.log(`[aggregateKeywordsForCloud FILTERING] Out: Keyword matches a NEWS_SOURCE_NAME. Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-
-      // Existing filters (HTML entities, word count, text length, all stop words)
-      if (/&#\d+;/.test(item.text) || /&[a-zA-Z]+;/.test(item.text)) {
-        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: HTML entity. Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-
-      if (wordCount < 1 || wordCount > 5) {
-        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Word count (${wordCount}). Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-
-      if (item.text.length < 2 || item.text.length > 50) {
-        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: Text length (${item.text.length}). Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-
-      if (wordCount > 1 && words.every(w => STOP_WORDS.has(w.toLowerCase()))) {
-        // console.log(`[aggregateKeywordsForCloud FILTERING] Out: All stop words. Original: ${originalText}`);
-        filteredOutCount++;
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => b.value - a.value)
-    .slice(0, maxWords);
-  console.log(`[aggregateKeywordsForCloud] Total keywords filtered out: ${filteredOutCount}`);
-  console.log(`[aggregateKeywordsForCloud] Aggregated ${mappedKeywords.length} unique keywords with bias from ${newsItems.length} items.`);
-  return mappedKeywords;
-}
-
-/**
- * Combine keywords from LLM and traditional NLP processing
- * Strongly prioritizes LLM multi-word phrases while preserving high-value traditional keywords
- * @param {Array<Object>} llmKeywords - Keywords from LLM
- * @param {Array<Object>} traditionalKeywords - Keywords from traditional NLP
- * @returns {Array<Object>} - Combined keywords
- */
-function combineKeywords(llmKeywords, traditionalKeywords) {
-  // Create a set from LLM keywords for quick lookup
-  // Add extra filter for robustness, ensuring only strings are mapped
-  const llmKeywordSet = new Set(llmKeywords.filter(k => typeof k === 'string').map(k => k.toLowerCase()));
-  
-  // Filter traditional keywords to only keep those not already in LLM keywords
-  // and prioritize high-value multi-word phrases from traditional method
-  const uniqueTraditionalKeywords = traditionalKeywords
-    .filter(k => !llmKeywordSet.has(k.text.toLowerCase()))
-    // Prioritize traditional multi-word entities
-    .map(keyword => {
-      const wordCount = keyword.text.split(/\s+/).length;
-      // For traditional keywords, only keep multi-words with good weight
-      // or single words with high weight (indicating importance)
-      const isMultiWord = wordCount > 1;
-      const isHighValue = keyword.value > 1.3;
-      
-      // Boost multi-word phrases from traditional NLP
-      if (isMultiWord) {
-        return {
-          ...keyword,
-          value: keyword.value * 1.2 // 20% boost for multi-word phrases
-        };
-      }
-      
-      // Slightly reduce weight of single words to favor phrases
-      if (!isMultiWord && !isHighValue) {
-        return {
-          ...keyword,
-          value: keyword.value * 0.8 // 20% reduction for single words
-        };
-      }
-      
-      return keyword;
-    })
-    // For traditional keywords, prioritize phrases more strongly
-    .sort((a, b) => {
-      const aWords = a.text.split(/\s+/).length;
-      const bWords = b.text.split(/\s+/).length;
-      // Sort by word count (descending) then by value (descending)
-      return (bWords - aWords) || (b.value - a.value);
-    })
-    // Limit the number of traditional keywords to prevent overwhelming the LLM ones
-    .slice(0, Math.min(llmKeywords.length, 30));
-  
-  // Extract just the text from the traditional keywords
-  const uniqueTraditionalKeywordStrings = uniqueTraditionalKeywords.map(kw => kw.text);
-
-  // Combine, strongly prioritizing LLM keywords (they come first in the array)
-  // Ensure all keywords are strings and the final list is unique, attempting to preserve original casing.
-  const combined = [...llmKeywords, ...uniqueTraditionalKeywordStrings];
-  
-  // Create a map to store original casings based on lowercase versions
-  const casingMap = new Map();
-  llmKeywords.forEach(k => {
-    if (typeof k === 'string') { // Ensure k is a string
-        casingMap.set(k.toLowerCase(), k);
-    }
-  });
-  uniqueTraditionalKeywords.forEach(kwObj => { // kwObj is {text, value}
-    if (typeof kwObj.text === 'string') { // Ensure kwObj.text is a string
-        if (!casingMap.has(kwObj.text.toLowerCase())) { // Prioritize LLM casing if conflict
-            casingMap.set(kwObj.text.toLowerCase(), kwObj.text);
-        }
-    }
-  });
-
-  // Get unique lowercase keywords, then map back to original casing
-  const uniqueLowercaseKeywords = Array.from(new Set(combined.filter(k => typeof k === 'string').map(k => k.toLowerCase())));
-  
-  return uniqueLowercaseKeywords.map(lk => casingMap.get(lk) || lk); // Fallback to lowercase if original somehow not found
-}
-
-// <<< New Function: cacheAggregatedKeywords >>>
-/**
- * Fetches recently processed news items, aggregates keywords, and caches the result.
- */
-async function cacheAggregatedKeywords() {
-  console.log('[WordProcessingService] Starting keyword aggregation cache update...');
-  try {
-    const lookbackMinutes = 1440;
-    const cutoffDate = new Date(Date.now() - lookbackMinutes * 60 * 1000);
-
-    const recentItems = await NewsItem.find({
-      llmProcessed: true,
-      processedAt: { $gte: cutoffDate },
-      'keywords.0': { $exists: true }
-    }).lean();
-
-    if (!recentItems || recentItems.length === 0) {
-      console.log('[WordProcessingService] No recently processed items found to update keyword cache within the last ' + lookbackMinutes + ' minutes.');
-      return;
-    }
-
-    console.log(`[WordProcessingService] Found ${recentItems.length} recent items for cache aggregation. Inspecting first few (up to 2):`);
-    // Log the first 2 items fetched, showing crucial fields like keywords, llmProcessed, updatedAt
-    for (let i = 0; i < Math.min(recentItems.length, 2); i++) {
-      const item = recentItems[i];
-      console.log(`[WordProcessingService] Item ${i + 1} for cache: id=${item._id}, minifluxEntryId=${item.minifluxEntryId}, llmProcessed=${item.llmProcessed}, updatedAt=${item.updatedAt}, keywords=${JSON.stringify(item.keywords)}, bias=${item.bias}, category=${item.category}`);
-    }
-
-    const aggregatedData = aggregateKeywordsForCloud(recentItems, 1000);
-
-    // Update the cache
-    aggregatedKeywordsCache = {
-      timestamp: new Date(),
-      data: aggregatedData
-    };
-
-    console.log(`[WordProcessingService] Keyword cache updated successfully with ${aggregatedData.length} keywords at ${aggregatedKeywordsCache.timestamp.toISOString()}.`);
+    keywordCache.data = newCacheData;
+    keywordCache.timestamp = new Date();
+    console.log(`[WordProcessingService] Global keywordCache updated by aggregateKeywordsForCloud: ${keywordCache.data.size} unique keywords from ${allNewsItems.length} items at ${keywordCache.timestamp.toISOString()}.`);
 
   } catch (error) {
-    console.error('[WordProcessingService] Error updating keyword aggregation cache:', error);
+    console.error('[WordProcessingService] Error during full keyword aggregation:', error);
+  } finally {
+    keywordCache.isUpdating = false;
   }
 }
 
-// <<< New Function: getCachedAggregatedKeywords >>>
-/**
- * Returns the cached aggregated keywords if available and not stale.
- */
-function getCachedAggregatedKeywords() {
-  const now = Date.now();
-  if (aggregatedKeywordsCache.timestamp && (now - aggregatedKeywordsCache.timestamp.getTime() < CACHE_TTL_MS) && aggregatedKeywordsCache.data.length > 0) {
-    console.log(`[WordProcessingService] Serving ${aggregatedKeywordsCache.data.length} keywords from cache (timestamp: ${aggregatedKeywordsCache.timestamp.toISOString()}).`);
-    return aggregatedKeywordsCache.data;
-  } else {
-    console.log('[WordProcessingService] Cache miss or stale. No cached keywords served.');
-    // Optionally trigger an immediate update if cache is stale?
-    // cacheAggregatedKeywords(); // Be careful with async calls here
-    return null; // Indicate cache miss
-  }
+function getKeywordCache() {
+  return { data: keywordCache.data, timestamp: keywordCache.timestamp };
 }
 
 module.exports = {
   processNewsKeywords,
   aggregateKeywordsForCloud,
-  cacheAggregatedKeywords, // <<< Export new function
-  getCachedAggregatedKeywords, // <<< Export new getter
-  getLlmFallbackCount, // Export the getter function
-  DEFAULT_CONFIG,
-  combineKeywords, // Ensure existing exports remain
-  stripHtml, 
-  shouldKeepWord,
-  extractMeaningfulPhrases,
-  isProperNoun,
-  lemmatizeWord
+  getKeywordCache,
+  getLlmFallbackCount, 
+  updateGlobalCacheWithSingleItem, 
+  filterAndValidateKeyword 
 }; 

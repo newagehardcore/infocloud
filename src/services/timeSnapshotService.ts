@@ -19,13 +19,17 @@ const processNewsToWords = async (news: NewsItem[]): Promise<TagCloudWord[]> => 
         if (!existingWord.newsIds.includes(item.id)) {
           existingWord.newsIds.push(item.id);
         }
+        // Also ensure the category is added to the existing word's categories array
+        if (item.category && !existingWord.categories.includes(item.category)) {
+          existingWord.categories.push(item.category);
+        }
       } else {
         wordMap.set(normalizedWord, {
           text: normalizedWord,
           value: 1,
-          bias: item.source.bias,
+          biases: [item.source.bias],
           newsIds: [item.id],
-          category: item.category
+          categories: [item.category] // Changed to 'categories' and wrapped in an array
         });
       }
     }

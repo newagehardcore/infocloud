@@ -204,11 +204,18 @@ const TagCloud3D: React.FC<{
   // Debug log when words change
   useEffect(() => {
     if (words.length > 0) {
-      console.log(`TagCloud3D received ${words.length} words with biases:`, 
-        words.reduce((acc, word) => {
-          acc[word.bias] = (acc[word.bias] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>));
+      console.log(`TagCloud3D received ${words.length} words. Sample biases (first word):`, 
+        words[0]?.biases); // Log the biases array of the first word
+      // Example of how to count occurrences of each bias across all words:
+      const biasCounts = words.reduce((acc, word) => {
+        if (word.biases) {
+          word.biases.forEach(b => {
+            acc[b] = (acc[b] || 0) + 1;
+          });
+        }
+        return acc;
+      }, {} as Record<PoliticalBias, number>);
+      console.log('Bias distribution:', biasCounts);
     }
   }, [words]);
   

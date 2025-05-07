@@ -206,13 +206,14 @@ const App: React.FC = () => {
 
     // 1. Filter by enabled biases
     if (enabledBiases.size < Object.values(PoliticalBias).length) { // Only filter if not all biases are enabled
-        filtered = filtered.filter(word => enabledBiases.has(word.bias));
+        filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
     }
     
     // 2. Filter by selected category (if not 'all')
     if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
         const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
-        filtered = filtered.filter(word => word.category === upperCaseCategory);
+        // Check if the word's categories array includes the selected category
+        filtered = filtered.filter(word => word.categories && word.categories.includes(upperCaseCategory as NewsCategory));
     }
 
     console.log(`Displaying ${filtered.length} words after filtering.`);
@@ -379,7 +380,7 @@ const App: React.FC = () => {
               key={win.wordData.text}
               data={{ wordData: win.wordData, newsItems: win.newsItems }}
               position={win.position}
-              clickedWordBias={win.wordData.bias}
+              clickedWordBias={win.wordData.biases && win.wordData.biases.length > 0 ? win.wordData.biases[0] : PoliticalBias.Unknown}
               onClose={() => handleCloseNewsWindow(win.wordData.text)}
               onMove={pos => handleMoveNewsWindow(win.wordData.text, pos)}
             />

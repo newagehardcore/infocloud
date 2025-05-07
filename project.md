@@ -39,7 +39,7 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
     *   Backend service (`sourceManagementService.js`) handles the database interactions (using the `Source` model) and syncs feed creation/deletion/updates with the configured Miniflux instance via its API.
 2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
     *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API. The `minifluxEntryId` from these entries is treated as a string throughout the backend processing pipeline, including storage in the `NewsItem` model and when querying `NewsItem` documents.
-    *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection.
+    *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection. The `NewsItem.source.category` field is critical here and is validated against the `NewsCategory` enum defined in `news-backend/src/types/index.js`.
     *   **Validation Check:** Before saving, entries are validated to ensure essential fields (including the string `minifluxEntryId`, title, and content from Miniflux) are present; incomplete entries are skipped to maintain data quality for subsequent LLM processing.
     *   Enriched data is bulk upserted into the MongoDB `newsitems` collection.
     *   Processed entries are marked as read in Miniflux using the `markEntriesAsRead` function in `rssService.js`, which correctly converts the string `minifluxEntryId` values to numbers for this specific API interaction.
@@ -47,10 +47,15 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
     *   These articles are sent to `llmService.js` (via `better-queue`) for analysis.
     *   `llmService.js` interacts with Ollama for analysis (keywords, bias, etc.).
     *   Results from the LLM, along with incremented processing attempt counts, are updated back into the MongoDB `newsitems` documents using efficient bulk write operations that correctly structure `$set` and `$inc` operators.
+    *   **Keyword Cache Generation (`wordProcessingService.js`):**
+        *   Keywords from processed articles are aggregated into a global cache (`keywordCache`).
+        *   Crucially, the `categories` associated with each keyword in this cache are derived from the `NewsItem.source.category` field of the articles the keyword appears in. If `source.category` is not available, it defaults to `NewsCategory.UNKNOWN`. This ensures that the cache reflects the specific categories of the news items.
+        *   The `NewsCategory` enum in `news-backend/src/types/index.js` serves as the reference for valid categories and includes values like "NEWS", "POLITICS", "TECH", "ENTERTAINMENT", etc.
 3.  **Frontend Data Request:**
-    *   Frontend (`src/services/api.ts` or similar) requests data from the backend API (`/api/news` or WebSocket).
-    *   Backend route (`news-backend/src/routes/news.js`) queries MongoDB for processed `newsitems`.
-    *   Data (including keywords, bias) is returned to the frontend.
+    *   Frontend (`src/services/api.ts` or similar) requests data from the backend API (`/api/news` or WebSocket), potentially including a category filter.
+    *   Backend route (`news-backend/src/routes/news.js`) queries MongoDB for processed `newsitems` and retrieves keywords from the `keywordCache` in `wordProcessingService.js`.
+    *   If a category filter is applied, keywords are filtered based on their `categories` array (which now contains the specific `source.category` values).
+    *   Data (including filtered keywords, bias) is returned to the frontend.
 4.  **Frontend Rendering:**
     *   React components (`src/components/`) use the fetched data.
     *   `TagCloud.tsx` (or similar, potentially `TagCloud3DOptimized.tsx` though name might differ) uses the processed keyword data to render the interactive 3D visualization.
@@ -201,8 +206,8 @@ This typically runs:
 *   **Primary Source of Truth:** This `project.md` file. Refer to it for architecture, data flow, and key components.
 *   **Verify Assumptions:** The codebase evolves. If instructed changes conflict with this document, verify against the current code (`src/` and `news-backend/src/`) before proceeding. Ask for clarification if discrepancies arise.
 *   **Focus on Backend/Frontend Separation:** Maintain the client-server boundary.
-*   **LLM Usage:** Changes related to text analysis likely involve `news-backend/src/services/llmService.js` and potentially `news-backend/src/services/wordProcessingService.js`.
-*   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection.** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
+*   **LLM Usage:** Changes related to text analysis likely involve `news-backend/src/services/llmService.js` and potentially `news-backend/src/services/wordProcessingService.js`. The `wordProcessingService.js` is also responsible for building the global keyword cache, associating keywords with categories derived from `NewsItem.source.category`.
+*   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection, which defines `source.category` validated against the `NewsCategory` enum (in `news-backend/src/types/index.js`).** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
 *   **State Management (Frontend):** Check `src/contexts/` or `src/hooks/` for primary state management patterns.
 *   **Visualization:** The core 3D cloud is likely rendered by a component in `src/components/` using data passed as props.
 
@@ -215,7 +220,7 @@ This typically runs:
         *   `/routes`: Express route definitions (`news.js`, `sources.js`, `statusRoutes.js`).
         *   `/services`: Core logic (`rssService.js`, `llmService.js`, `wordProcessingService.js`, `cron.js`, `sourceManagementService.js`).
         *   `/scripts`: Utility/startup/migration scripts (`startup.js`, `start-dev.js`, `migrate-sources-to-db.js`, etc.).
-        *   `/types`: Shared TypeScript type definitions (Enums for `PoliticalBias`, `NewsCategory`).
+        *   `/types`: Shared type definitions, including Enums for `PoliticalBias` and an expanded `NewsCategory` (e.g., `index.js`).
         *   `app.js`: Express application entry point.
     *   `/public`: Static files (`admin.html`).
     *   `.env`: Environment variables.

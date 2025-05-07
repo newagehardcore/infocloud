@@ -19,6 +19,10 @@ const NewsCategory = {
     BUSINESS: 'BUSINESS', // Added based on potential needs
     SPORTS: 'SPORTS',     // Added based on potential needs
     WORLD: 'WORLD',       // Added based on potential needs
+    ENTERTAINMENT: 'ENTERTAINMENT', // Added from admin panel observation
+    ENVIRONMENT: 'ENVIRONMENT',   // Added from admin panel observation
+    HEALTH: 'HEALTH',           // Added from admin panel observation
+    US: 'US',                 // Added from admin panel observation
     UNKNOWN: 'UNKNOWN'    // Added for fallback
     // Add other categories as needed
 };

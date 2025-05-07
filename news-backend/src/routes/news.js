@@ -3,9 +3,7 @@ const router = express.Router();
 const { ObjectId } = require('mongodb'); // May still be needed if manipulating _id directly elsewhere, but likely not for queries now.
 const { fetchNews } = require('../miniflux/fetchEntries');
 const {
-  aggregateKeywordsForCloud,
-  getCachedAggregatedKeywords,
-  cacheAggregatedKeywords
+  getKeywordCache
 } = require('../services/wordProcessingService');
 const { PoliticalBias } = require('../types');
 const NewsItem = require('../models/NewsItem'); // Import the Mongoose model
@@ -32,7 +30,7 @@ router.get('/', async (req, res) => {
   try {
     // --- Determine Filters --- 
     const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all') 
-      ? req.query.category 
+      ? req.query.category // Keep original case for comparison with enum potentially
       : null;
       
     let selectedBiases = [];
@@ -67,7 +65,7 @@ router.get('/', async (req, res) => {
     });
 
     const resultsByBias = await Promise.all(queryPromises);
-    const combinedNews = resultsByBias.flat(); // Combine results from all queries
+    let combinedNews = resultsByBias.flat(); // Combine results from all queries
 
     // Re-sort the combined list by publication date (most recent first)
     combinedNews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
@@ -77,20 +75,37 @@ router.get('/', async (req, res) => {
 
     console.log(`Total items fetched: ${combinedNews.length}, returning: ${finalNews.length}`);
 
-    // --- Aggregating Keywords for Tag Cloud (Use Cache First) ---
-    let wordsForCloud = getCachedAggregatedKeywords(); // Try cache
+    // --- Get Keywords for Tag Cloud from Global Cache --- 
+    let wordsForCloud = [];
+    const cachedKeywordsResult = getKeywordCache();
 
-    if (!wordsForCloud) { // Cache miss or stale
-      console.log('[GET /api/news] Cache miss/stale. Calculating keywords on the fly...');
-      const newsWithKeywords = finalNews.filter(item => item.keywords && item.keywords.length > 0);
-      wordsForCloud = aggregateKeywordsForCloud(newsWithKeywords, 500);
+    if (cachedKeywordsResult && cachedKeywordsResult.data && cachedKeywordsResult.data.size > 0) {
+      wordsForCloud = Array.from(cachedKeywordsResult.data.entries()).map(([text, keywordData]) => ({
+        text,
+        value: keywordData.count,
+        biases: keywordData.biases || [],
+        categories: keywordData.categories || [] // Ensure categories array is present
+      }));
 
-      // Trigger an async update of the cache, but don't wait for it
-      cacheAggregatedKeywords().catch(err => {
-        console.error('[GET /api/news] Error triggering background cache update after miss:', err);
-      });
+      // Filter by category if a specific category is requested
+      if (categoryFilter) {
+        const upperCategoryFilter = categoryFilter.toUpperCase();
+        wordsForCloud = wordsForCloud.filter(word => 
+          word.categories && word.categories.some(cat => cat.toUpperCase() === upperCategoryFilter)
+        );
+        console.log(`[GET /api/news] Filtered keywords by category '${categoryFilter}'. ${wordsForCloud.length} words remain.`);
+      }
+
+      wordsForCloud.sort((a, b) => b.value - a.value);
+      wordsForCloud = wordsForCloud.slice(0, 1000);
+
+      if (wordsForCloud.length > 0) {
+        console.log(`[GET /api/news] Sample of wordsForCloud being sent (first 3):`, JSON.stringify(wordsForCloud.slice(0, 3), null, 2));
+      }
+
+      console.log(`[GET /api/news] Serving ${wordsForCloud.length} keywords from global cache (timestamp: ${cachedKeywordsResult.timestamp}).`);
     } else {
-      console.log('[GET /api/news] Serving keywords from cache.');
+      console.log('[GET /api/news] Global keyword cache is empty or not yet populated. Returning empty keywords list.');
     }
 
     // Return the balanced, prioritized & capped data

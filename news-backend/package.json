@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/scripts/startup.js",
-    "dev": "nodemon src/scripts/start-dev.js",
+    "dev": "OLLAMA_API_URL=http://localhost:11434 nodemon src/scripts/start-dev.js",
     "dev:simple": "node clear-db.js && nodemon src/app.js",
     "services:start": "node src/scripts/startup.js",
     "test": "echo \"Error: no test specified\" && exit 1",

@@ -38,7 +38,7 @@ const StarfieldTags: React.FC<{
           word={word}
           position={validPositions[i]}
           fontSize={fontSizes.get(word.text) ?? MIN_FONT_SIZE}
-          color={getBiasColor(word.bias)}
+          color={getBiasColor(word.biases && word.biases.length > 0 ? word.biases[0] : PoliticalBias.Unknown)}
           onClick={onWordClick}
           isSelected={selectedWord === word.text}
           isNew={newWords.has(word.text)}

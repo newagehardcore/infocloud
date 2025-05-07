@@ -10,6 +10,10 @@ const { lemmatizeWord } = require('../utils/textUtils');
 const fs = require('fs');
 const path = require('path');
 
+// Determine Ollama API URL
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://host.docker.internal:11434';
+console.log(`[LLM Service] Using Ollama API URL: ${OLLAMA_API_URL}`);
+
 // <<< Read LLM config >>>
 let activeModel = 'llama3:8b'; // Default fallback
 const configPath = path.join(__dirname, '..', '..', 'config', 'llmConfig.json');
@@ -109,7 +113,7 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
   promptInstruction += " from the provided headline and optional first sentence.";
 
   try {
-    const response = await axios.post('http://localhost:11434/api/generate', {
+    const response = await axios.post(`${OLLAMA_API_URL}/api/generate`, {
       model: activeModel,
       format: "json", // Enforce JSON output format
       prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\n${requestingBias ? "**BIAS CLASSIFICATION GUIDE:**\n* \"Left\" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism\n* \"Liberal\" - Progressive-leaning but more moderate, supportive of government programs, social reform\n* \"Centrist\" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments\n* \"Conservative\" - Traditional values, limited government, business-friendly, incremental change\n* \"Right\" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs\n* \"Unknown\" - No clear political leaning detectable or not applicable to political spectrum\n\n" : "" }Respond with valid JSON only in this exact format:\n${jsonStructureExample}`,

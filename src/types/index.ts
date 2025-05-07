@@ -44,9 +44,9 @@ export enum NewsCategory {
 export interface TagCloudWord {
   text: string;
   value: number; // frequency/importance
-  bias: PoliticalBias;
+  biases: PoliticalBias[];
   newsIds: string[]; // IDs of news items containing this word
-  category: NewsCategory;
+  categories: NewsCategory[];
   variants?: Set<string>; // Optional set of variant forms of this word
 }
 
