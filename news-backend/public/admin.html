@@ -148,22 +148,39 @@
 
         .llm-selector-container, #db-actions-container {
             background-color: var(--input-bg-color);
-            padding: var(--padding-normal);
+            padding: var(--padding-tight) var(--padding-normal); /* Reduced padding */
             border: var(--border-width) solid var(--border-color);
             border-radius: var(--border-radius-sharp);
+            display: flex; /* Added for horizontal layout */
+            align-items: center; /* Vertically align items */
+            gap: var(--padding-tight); /* Space between items */
         }
-        .llm-selector-container label, #db-actions-container h3 {
-            display: block;
-            color: var(--text-color);
-            margin-bottom: var(--padding-tight);
-            font-size: var(--font-size-normal);
+        .llm-selector-container label {
+            margin-bottom: 0; /* Remove bottom margin from label */
+            margin-right: var(--padding-tight);
+            white-space: nowrap;
+        }
+        .llm-selector-container select {
+            flex-grow: 1; /* Allow select to take available space */
+            margin-bottom: 0; /* Remove bottom margin if any from global styles */
         }
          #db-actions-container h3 {
             color: var(--primary-accent-color);
             font-size: var(--font-size-normal);
-            margin-bottom: var(--padding-normal);
-            padding-bottom: var(--padding-tight);
-            border-bottom: var(--border-width) solid var(--border-color);
+            margin: 0 var(--padding-normal) 0 0; /* Adjust margin */
+            padding-bottom: 0; /* Remove padding */
+            border-bottom: none; /* Remove border */
+            white-space: nowrap;
+         }
+         #db-actions-container button {
+            margin-left: var(--padding-tight); /* Add some space between buttons */
+         }
+         #dbActionStatus {
+            width: 100%; /* Make status take full width below */
+            text-align: left; /* Align to left below buttons */
+            margin-top: var(--padding-tight);
+            font-size: var(--font-size-small);
+            flex-basis: 100%; /* Ensure it wraps to the next line */
          }
 
 
@@ -456,45 +473,27 @@
         <div class="main-content-area">
             <div class="left-column">
                 <div class="accordion-section">
-                    <div class="accordion-header">1. Database Statistics <span class="arrow">▶</span></div>
+                    <div class="accordion-header">Tag Statistics <span id="totalUniqueTagsHeader" style="font-weight: normal; color: var(--text-color); margin-left: 8px;">(Total: -)</span> <span class="arrow">▶</span></div>
                     <div class="accordion-content">
-                        <div id="dbStats">
-                            <!-- DB stats will be populated here by JS -->
-                            <div class="stat-item"><strong>Total Articles:</strong> <span id="totalArticlesStat">-</span></div>
-                            <div class="stat-item"><strong>Processed by LLM:</strong> <span id="processedArticlesStat">-</span></div>
-                            <div class="stat-item"><strong>LLM Queue (approx):</strong> <span id="queueSizeStat">-</span></div>
-                            <div class="stat-item"><strong>LLM Fallback Count:</strong> <span id="llmFallbackStat">-</span> 
-                                <div class="stat-bar-container"><div id="llmFallbackBar" class="stat-bar"></div></div>
-                            </div>
-                            <div class="stat-item"><strong>CPU Usage (Process):</strong> <span id="cpuUsageStat">-</span></div>
-                            <div class="stat-item"><strong>Memory Usage (Process):</strong> <span id="memoryUsageStat">-</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="accordion-section">
-                    <div class="accordion-header">2. Tag Statistics <span class="arrow">▶</span></div>
-                    <div class="accordion-content">
-                        <div id="tagStats">
-                            <div class="stat-item"><strong>Total Unique Tags:</strong> <span id="totalUniqueTags">-</span></div>
-                        </div>
-                        <div id="biasStatsContainer" class="mt-1">
+                        <div id="tagStatsContainer" style="display: flex; flex-direction: row; gap: var(--padding-loose);">
+                            <div id="biasStatsContainer" style="flex: 1;">
                             <strong>Tags by Bias:</strong>
                             <div id="biasStats" style="padding-left: var(--padding-normal);">
                                 <!-- Bias stats here -->
                             </div>
                         </div>
-                        <div id="categoryStatsContainer" class="mt-1">
+                            <div id="categoryStatsContainer" style="flex: 1;">
                             <strong>Tags by Category:</strong>
                             <div id="categoryStats" style="padding-left: var(--padding-normal);">
                                 <!-- Category stats here -->
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="accordion-section">
-                    <div class="accordion-header">3. Source Management <span class="arrow">▶</span></div>
+                    <div class="accordion-header">Source Management <span id="totalSourcesHeader" style="font-weight: normal; color: var(--text-color); margin-left: 8px;">(Total: -)</span> <span class="arrow">▶</span></div>
                     <div class="accordion-content">
                         <button id="showAddSourceModalButton" class="mt-1 mb-1">Add New Source</button>
                         <div style="margin-bottom: var(--padding-normal);">
@@ -516,11 +515,6 @@
                                 <!-- Source rows will be populated by JS -->
                             </tbody>
                         </table>
-                         <div id="paginationControls" class="mt-1 text-center">
-                            <button id="prevPageButton" disabled>&lt; Prev</button>
-                            <span id="currentPageSpan" style="margin: 0 var(--padding-normal);">Page 1</span>
-                            <button id="nextPageButton">Next &gt;</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -590,7 +584,9 @@
         const biasSelect = document.getElementById('sourceBias');
         const addSourceStatus = document.getElementById('modalError');
         const actionStatus = document.getElementById('dbActionStatus');
-        const tagStatsContent = document.getElementById('tagStats');
+        const tagStatsContent = document.getElementById('tagStatsContainer');
+        const totalUniqueTagsHeaderSpan = document.getElementById('totalUniqueTagsHeader');
+        const totalSourcesHeaderSpan = document.getElementById('totalSourcesHeader');
         const sourceSearchInput = document.getElementById('sourceSearchInput');
         const llmModelSelect = document.getElementById('llmModelSelect');
         const modelUpdateStatus = document.getElementById('setLlmModelButton');
@@ -604,6 +600,14 @@
         const forceRefreshButton = document.getElementById('forceRefreshButton');
         const fixCategoriesButton = document.getElementById('fixUnknownCategoriesButton');
         const logStreamDiv = document.getElementById('logStream'); // Added for log stream
+
+        // Modal elements
+        const sourceModal = document.getElementById('sourceModal');
+        const showAddSourceModalButton = document.getElementById('showAddSourceModalButton');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const modalTitle = document.getElementById('modalTitle');
+        // const sourceForm = document.getElementById('sourceForm'); // Already defined as addSourceForm
+        const modalError = document.getElementById('modalError');
 
         let sourcesData = [];
         let currentLlmModel = '';
@@ -940,7 +944,6 @@
         async function loadSources() { 
              // ... (Keep implementation here) ...
              sourcesList.innerHTML = '<tr><td colspan="7">Loading sources...</td></tr>';
-            sourceCountSpan.textContent = '...';
             console.log("🔄 Loading sources...");
             try {
                 const timestamp = Date.now();
@@ -967,14 +970,24 @@
             } catch (error) {
                 console.error('❌ Error fetching sources:', error);
                 sourcesList.innerHTML = `<tr><td colspan="7">Error loading sources: ${error.message}</td></tr>`;
-                sourceCountSpan.textContent = 'Error';
+                if (totalSourcesHeaderSpan) {
+                    totalSourcesHeaderSpan.textContent = `(Total: Error)`;
+                }
             }
          }
         function renderSourcesTable(sourcesToRender = allSources) { 
              // ... (Keep implementation here) ...
              console.log("🔄 Rendering sources table with", sourcesToRender.length, "sources");
             sourcesList.innerHTML = '';
-            sourceCountSpan.textContent = sourcesToRender.length;
+            // Update header count: if sourcesToRender is the same as allSources, show allSources.length.
+            // Otherwise, it's a filtered view, so show sourcesToRender.length.
+            if (totalSourcesHeaderSpan) {
+                if (sourcesToRender === allSources) {
+                    totalSourcesHeaderSpan.textContent = `(Total: ${allSources.length})`;
+                } else {
+                    totalSourcesHeaderSpan.textContent = `(Filtered: ${sourcesToRender.length} / Total: ${allSources.length})`;
+                }
+            }
             if (sourcesToRender.length === 0) {
                 sourcesList.innerHTML = '<tr><td colspan="6">No sources match search or none exist.</td></tr>'; // Adjusted colspan
                 return;
@@ -1147,6 +1160,7 @@
                 sourceActionStatus.textContent = `Source "${result.name}" added successfully. (Miniflux ID: ${result.miniflux_feed_id})`;
                 sourceActionStatus.className = 'success';
                 addSourceForm.reset();
+                if(sourceModal) sourceModal.style.display = 'none'; // Close modal on success
                 loadSources();
             } catch (error) {
                 console.error('Error adding source:', error);
@@ -1209,37 +1223,55 @@
 
         // --- Tag Statistics Logic ---
         async function loadTagStats() { 
-            // Use the globally defined tagStatsContent
-            if (!tagStatsContent) { 
-                console.error("Error: Could not find 'tagStats' (using tagStatsContent var)"); 
-                return; 
+            const biasStatsEl = document.getElementById('biasStats');
+            const categoryStatsEl = document.getElementById('categoryStats');
+
+            if (biasStatsEl) {
+                biasStatsEl.innerHTML = '<p>Loading statistics...</p>';
+            } else {
+                console.error("Error: Could not find 'biasStats' element for loading message.");
             }
-            tagStatsContent.innerHTML = '<p>Loading statistics...</p>';
+            if (categoryStatsEl) {
+                categoryStatsEl.innerHTML = '<p>Loading statistics...</p>';
+            } else {
+                console.error("Error: Could not find 'categoryStats' element for loading message.");
+            }
+
             try {
                 const response = await fetch(`${API_BASE_URL}/status/api/admin/tag-stats`);
                      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const stats = await response.json();
-                displayTagStats(stats); // displayTagStats will also use the global tagStatsContent
+                displayTagStats(stats);
                  } catch (error) {
                 console.error('Error loading tag statistics:', error);
-                tagStatsContent.innerHTML = `<p class="error">Error loading tag statistics: ${error.message}</p>`;
+                if (biasStatsEl) biasStatsEl.innerHTML = `<p class="error">Error loading statistics: ${error.message}</p>`;
+                if (categoryStatsEl) categoryStatsEl.innerHTML = `<p class="error">Error loading statistics: ${error.message}</p>`;
             }
          }
         function displayTagStats(stats) { 
-             // Use the globally defined tagStatsContent
+             // const tagStatsContent = document.getElementById('tagStatsContainer'); // Already global
              if (!tagStatsContent) { 
-                 console.error("Error: tagStatsContent element not found in displayTagStats"); 
+                 console.error("Error: tagStatsContainer element not found in displayTagStats"); 
                  return; 
              }
-             if (!stats || typeof stats !== 'object') {
-                 tagStatsContent.innerHTML = '<p class="error">Invalid stats format.</p>'; return;
-             }
-            let html = ``;
-            html += `<p><strong>Total Unique Tags:</strong> ${stats.totalUniqueTags !== undefined ? stats.totalUniqueTags : '(N/A)'}</p>`;
-            
-            // Reference the correct containers for bias and category stats from the HTML
+
             const biasStatsEl = document.getElementById('biasStats');
             const categoryStatsEl = document.getElementById('categoryStats');
+
+             if (!stats || typeof stats !== 'object') {
+                 if (biasStatsEl) biasStatsEl.innerHTML = '<p class="error">Invalid stats format.</p>';
+                 if (categoryStatsEl) categoryStatsEl.innerHTML = '<p class="error">Invalid stats format.</p>';
+                 return;
+             }
+            
+            // Update the total unique tags in the header
+            if (totalUniqueTagsHeaderSpan) {
+                totalUniqueTagsHeaderSpan.textContent = `(Total: ${stats.totalUniqueTags !== undefined ? stats.totalUniqueTags : '-'})`;
+            }
+            
+            if (biasStatsEl) biasStatsEl.innerHTML = ''; // Clear previous
+            if (categoryStatsEl) categoryStatsEl.innerHTML = ''; // Clear previous
+
 
             if (stats.byBias && Object.keys(stats.byBias).length > 0) {
                 let biasHtml = '<ul>';
@@ -1265,22 +1297,6 @@
                 if (categoryStatsEl) categoryStatsEl.innerHTML = categoryHtml;
             } else {
                 if (categoryStatsEl) categoryStatsEl.innerHTML = '<p>(N/A)</p>';
-            }
-            
-            // Update total unique tags directly in its span
-            const totalUniqueTagsSpan = document.getElementById('totalUniqueTags');
-            if (totalUniqueTagsSpan) {
-                totalUniqueTagsSpan.textContent = stats.totalUniqueTags !== undefined ? stats.totalUniqueTags : '-';
-            }
-
-            // The main tagStats container might just hold the total, or you can adjust structure
-            // For now, let's ensure the main tagStatsContent (which is the div with id='tagStats') primarily shows the total unique tags.
-            // The bias and category stats are now rendered into their specific divs.
-            if (tagStatsContent.firstChild && tagStatsContent.firstChild.id === 'totalUniqueTags') {
-                // Already structured with totalUniqueTags span directly inside tagStats div.
-            } else {
-                // If not, reconstruct to ensure total unique tags is shown
-                tagStatsContent.innerHTML = `<div class="stat-item"><strong>Total Unique Tags:</strong> <span id="totalUniqueTags">${stats.totalUniqueTags !== undefined ? stats.totalUniqueTags : '-'}</span></div>`;
             }
          }
 
@@ -1322,22 +1338,32 @@
          function setupAccordions() {
              document.querySelectorAll('.accordion-header').forEach(button => {
                 const content = button.nextElementSibling;
+                const sectionTitle = button.textContent || "";
 
-                // Open by default directly
-                button.classList.add('active');
-                content.classList.add('active');
-                content.style.maxHeight = 'none'; // Allow natural height
-                content.style.paddingTop = "var(--padding-normal)";
-                content.style.paddingBottom = "var(--padding-normal)";
+                // Default states: Tag Stats closed, Source Management open
+                if (sectionTitle.includes("Tag Statistics")) {
+                    // Start closed
+                    button.classList.remove('active');
+                    content.classList.remove('active');
+                    content.style.maxHeight = '0px';
+                    content.style.paddingTop = '0';
+                    content.style.paddingBottom = '0';
+                } else { // For Source Management and any others, start open
+                    button.classList.add('active');
+                    content.classList.add('active');
+                    content.style.maxHeight = 'none'; 
+                    content.style.paddingTop = "var(--padding-normal)";
+                    content.style.paddingBottom = "var(--padding-normal)";
+                }
 
                 // Add click listener for subsequent interactions
                  button.addEventListener('click', () => {
                      button.classList.toggle('active');
                      content.classList.toggle('active');
                      if (content.classList.contains('active')) {
-                         content.style.maxHeight = 'none'; // Ensure it can calculate full height
+                         content.style.maxHeight = 'none'; 
                          const scrollHeight = content.scrollHeight;
-                         content.style.maxHeight = '0'; // Reset for transition
+                         content.style.maxHeight = '0'; 
                          setTimeout(() => { 
                              content.style.maxHeight = scrollHeight + "px"; 
                              content.style.paddingTop = "var(--padding-normal)";
@@ -1446,6 +1472,29 @@
              purgeDbButton?.addEventListener('click', () => { if (confirm('Are you SURE? This will delete ALL news items!')) { handleDbAction('purge-db'); } });
              forceRefreshButton?.addEventListener('click', () => handleDbAction('force-refresh'));
              fixCategoriesButton?.addEventListener('click', () => { if (confirm('Fix categories?')) { handleDbAction('fix-categories'); } });
+
+            // Modal Event Listeners
+            showAddSourceModalButton?.addEventListener('click', () => {
+                if (sourceModal) {
+                    sourceModal.style.display = 'block';
+                    if (modalTitle) modalTitle.textContent = 'Add New Source';
+                    addSourceForm.reset(); // Reset form fields
+                    if(document.getElementById('sourceId')) document.getElementById('sourceId').value = ''; // Clear hidden ID
+                    if (modalError) modalError.textContent = ''; // Clear any previous error messages
+                }
+            });
+
+            closeModalButton?.addEventListener('click', () => {
+                if (sourceModal) {
+                    sourceModal.style.display = 'none';
+                }
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === sourceModal) {
+                    sourceModal.style.display = 'none';
+                }
+            });
 
         });
 
