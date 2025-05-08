@@ -19,9 +19,9 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 *   **3D Tag Cloud Visualization:** Uses Three.js to render news keywords. Word size often corresponds to frequency/importance, and color may indicate source bias or other metadata.
 *   **Real-time Updates:** (Potentially via WebSocket or frequent polling) The tag cloud should update dynamically as new news data is processed.
 *   **Interactive Exploration:** Clicking on words/tags likely triggers actions like showing related articles or details (functionality might be evolving).
-*   **Backend Data Processing:** Handles RSS feed aggregation (via Miniflux API), data enrichment (keywords, bias analysis via LLM), and storage (MongoDB).
-*   **Source Management:** System for managing RSS source URLs, categories, and metadata (stored in MongoDB), synchronizing feeds with Miniflux.
-*   **LLM Integration:** Leverages a local Ollama instance for advanced text analysis (keyword extraction, bias detection, etc.).
+*   **Backend Data Processing:** Handles RSS feed aggregation (via Miniflux API), data enrichment (keywords via LLM), and storage (MongoDB). Article bias is determined solely by the manually set bias of its parent Source.
+*   **Source Management:** System for managing RSS source URLs, categories, and metadata (including definitive political bias, stored in MongoDB), synchronizing feeds with Miniflux.
+*   **LLM Integration:** Leverages a local Ollama instance for advanced text analysis (primarily keyword extraction).
 *   **Responsive Design:** Aims to work on both desktop and mobile (potentially with different views).
 
 ## 3. Architecture & Data Flow
@@ -33,24 +33,22 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
     *   Frontend JavaScript sends API requests to `news-backend` (`sourceRoutes.js`):
         *   `GET /api/sources`: Retrieve the current list of sources from the MongoDB `Source` collection.
         *   `POST /api/sources`: Add a new source to the MongoDB `Source` collection and create the feed in Miniflux.
-        *   `PUT /api/sources/:id`: Update a source's details (name, category, bias) in the MongoDB `Source` collection (and update category in Miniflux if changed).
+        *   `PUT /api/sources/:id`: Update a source's details (name, category, bias) in the MongoDB `Source` collection. Changes to bias or category trigger updates to associated `NewsItem` documents and a keyword cache refresh.
         *   `DELETE /api/sources/:id`: Remove a source from the MongoDB `Source` collection and delete the corresponding feed from Miniflux.
         *   `GET /api/sources/config`: Retrieves configuration like bias categories and dynamically gets existing categories from the `Source` collection.
     *   Backend service (`sourceManagementService.js`) handles the database interactions (using the `Source` model) and syncs feed creation/deletion/updates with the configured Miniflux instance via its API.
 2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
     *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API. The `minifluxEntryId` from these entries is treated as a string throughout the backend processing pipeline, including storage in the `NewsItem` model and when querying `NewsItem` documents.
-    *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection. The `NewsItem.source.category` field is critical here and is validated against the `NewsCategory` enum defined in `news-backend/src/types/index.js`.
+    *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection. The `NewsItem.source.bias` and `NewsItem.source.category` fields are populated directly from the `Source` document. The top-level `NewsItem.bias` is also set to mirror `NewsItem.source.bias`.
     *   **Validation Check:** Before saving, entries are validated to ensure essential fields (including the string `minifluxEntryId`, title, and content from Miniflux) are present; incomplete entries are skipped to maintain data quality for subsequent LLM processing.
     *   Enriched data is bulk upserted into the MongoDB `newsitems` collection.
     *   Processed entries are marked as read in Miniflux using the `markEntriesAsRead` function in `rssService.js`, which correctly converts the string `minifluxEntryId` values to numbers for this specific API interaction.
     *   A separate scheduled job (`processQueuedArticles`) identifies unprocessed articles in MongoDB (querying by their string `minifluxEntryId`).
-    *   These articles are sent to `llmService.js` (via `better-queue`) for analysis.
-    *   `llmService.js` interacts with Ollama for analysis (keywords, bias, etc.).
-    *   Results from the LLM, along with incremented processing attempt counts, are updated back into the MongoDB `newsitems` documents using efficient bulk write operations that correctly structure `$set` and `$inc` operators.
+    *   These articles are sent to `llmService.js` (via `better-queue`) for keyword extraction. The `llmService.js` no longer determines bias.
+    *   Results from the LLM (keywords), along with incremented processing attempt counts, are updated back into the MongoDB `newsitems` documents. The `NewsItem.bias` field is updated based on `NewsItem.source.bias` during this step by `wordProcessingService.js`.
     *   **Keyword Cache Generation (`wordProcessingService.js`):**
         *   Keywords from processed articles are aggregated into a global cache (`keywordCache`).
-        *   Crucially, the `categories` associated with each keyword in this cache are derived from the `NewsItem.source.category` field of the articles the keyword appears in. If `source.category` is not available, it defaults to `NewsCategory.UNKNOWN`. This ensures that the cache reflects the specific categories of the news items.
-        *   The `NewsCategory` enum in `news-backend/src/types/index.js` serves as the reference for valid categories and includes values like "NEWS", "POLITICS", "TECH", "ENTERTAINMENT", etc.
+        *   The `biases` and `categories` associated with each keyword in this cache are derived from the `NewsItem.source.bias` and `NewsItem.source.category` fields of the articles the keyword appears in. If `source.category` is not available, it defaults to `NewsCategory.UNKNOWN`.
 3.  **Frontend Data Request:**
     *   Frontend (`src/services/api.ts` or similar) requests data from the backend API (`/api/news` or WebSocket), potentially including a category filter.
     *   Backend route (`news-backend/src/routes/news.js`) queries MongoDB for processed `newsitems` and retrieves keywords from the `keywordCache` in `wordProcessingService.js`.
@@ -195,19 +193,19 @@ This typically runs:
 ## 8. LLM Integration Details
 
 *   **Engine:** Ollama (local inference).
-*   **Tasks:** Keyword extraction, bias detection, potentially summarization.
-*   **Mechanism:** Articles are queued (`better-queue`) by `cron.js` for asynchronous processing. The `llmService.js` dequeues these articles, using their string `minifluxEntryId` to fetch the full `NewsItem` data from MongoDB if necessary, and then interacts with the Ollama API.
-*   **Caching:** `lru-cache` is used in `llmService.js` to avoid re-processing identical content.
+*   **Tasks:** Primarily keyword extraction. Bias detection is no longer performed by the LLM; bias is sourced directly from the admin-defined `Source.bias`. Potentially summarization.
+*   **Mechanism:** Articles are queued (`better-queue`) by `cron.js` for asynchronous processing. The `llmService.js` dequeues these articles, using their string `minifluxEntryId` to fetch the full `NewsItem` data from MongoDB if necessary, and then interacts with the Ollama API for keyword extraction.
+*   **Caching:** `lru-cache` is used in `llmService.js` to avoid re-processing identical content for keyword extraction.
 *   **Dependencies:** Requires Ollama server running and accessible.
-*   **Data Integrity:** The system ensures that `minifluxEntryId` is consistently handled as a string when interfacing between Miniflux, the `NewsItem` database model, and the LLM processing queue. Updates to `NewsItem` documents post-LLM processing are performed using MongoDB bulk operations that correctly combine metadata updates (`$set`) and counter increments (`$inc`).
+*   **Data Integrity:** The system ensures that `minifluxEntryId` is consistently handled as a string when interfacing between Miniflux, the `NewsItem` database model, and the LLM processing queue. Updates to `NewsItem` documents post-LLM processing are performed using MongoDB bulk operations. The article's bias is always derived from its `Source` document.
 
 ## 9. Important Notes for AI Assistant
 
 *   **Primary Source of Truth:** This `project.md` file. Refer to it for architecture, data flow, and key components.
 *   **Verify Assumptions:** The codebase evolves. If instructed changes conflict with this document, verify against the current code (`src/` and `news-backend/src/`) before proceeding. Ask for clarification if discrepancies arise.
 *   **Focus on Backend/Frontend Separation:** Maintain the client-server boundary.
-*   **LLM Usage:** Changes related to text analysis likely involve `news-backend/src/services/llmService.js` and potentially `news-backend/src/services/wordProcessingService.js`. The `wordProcessingService.js` is also responsible for building the global keyword cache, associating keywords with categories derived from `NewsItem.source.category`.
-*   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection, which defines `source.category` validated against the `NewsCategory` enum (in `news-backend/src/types/index.js`).** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
+*   **LLM Usage:** Changes related to text analysis (primarily keyword extraction) likely involve `news-backend/src/services/llmService.js` and potentially `news-backend/src/services/wordProcessingService.js`. Bias is NOT determined by the LLM.
+*   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection, which defines `source.category` and `source.bias` (the sole determinant of article bias), validated against respective enums (in `news-backend/src/types/index.js`).** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
 *   **State Management (Frontend):** Check `src/contexts/` or `src/hooks/` for primary state management patterns.
 *   **Visualization:** The core 3D cloud is likely rendered by a component in `src/components/` using data passed as props.
 
@@ -257,7 +255,7 @@ This typically runs:
 *   **Database:** MongoDB with Mongoose ODM (`NewsItem` and `Source` collections).
 *   **RSS Aggregation:** Miniflux (via `axios` API client).
 *   **LLM Integration:** Ollama (via `axios`). `llm-utils/llmService.js` abstracts interaction.
-*   **Keyword/Bias Extraction:** Local LLM prompted for JSON output. Fallback NLP via `compromise`, `natural`.
+*   **Keyword/Bias Extraction:** Local LLM prompted for JSON output for keywords. Bias is taken directly from the `Source.bias` defined in the admin panel. Fallback NLP via `compromise`, `natural` for keywords if LLM fails.
 *   **Background Tasks:** `node-cron` for scheduling, `better-queue` for LLM queue.
 *   **Configuration:** `dotenv`.
 *   **Source Management:** Sources (feeds) are stored in the MongoDB `Source` collection and synced with Miniflux using its API. Includes category and bias metadata.

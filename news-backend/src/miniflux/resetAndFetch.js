@@ -1,11 +1,12 @@
-const { connectDB, getDB } = require('../config/db');
+const { connectDB, getDB, closeDB } = require('../config/db');
 require('dotenv').config(); // Load environment variables
-const { fetchNews } = require('./fetchEntries');
 const { exec } = require('child_process');
 const path = require('path');
+const { PoliticalBias, NewsCategory } = require('../types');
 
 // Script to reset the database and fetch fresh content from Miniflux
 async function resetAndFetch() {
+  let db;
   try {
     console.log('========== RESET AND FETCH NEW CONTENT ==========');
     
@@ -14,7 +15,7 @@ async function resetAndFetch() {
     await connectDB();
     console.log('Database connected');
     
-    const db = getDB();
+    db = getDB();
     const newsCollection = db.collection('newsitems');
     
     // 2. Clear out existing news items
@@ -46,20 +47,26 @@ async function resetAndFetch() {
     
     // 5. Fetch news items from Miniflux
     console.log('\nFetching news items from Miniflux...');
-    const newsItems = await fetchNews();
-    console.log(`Fetched and processed ${newsItems.length} news items from Miniflux`);
+    // const newsItems = await fetchNews();
+    console.log('fetchNews call has been removed. The script now only clears the database.');
+    console.log('If fetching is still required, this script needs to be updated to use the new data pipeline (e.g., trigger rssService.forceRefreshAllFeeds or similar).');
     
     console.log('\n========== COMPLETED ==========');
     console.log('Your INFOCLOUD should now display fresh content from Miniflux!');
     console.log('If you still see old content, try refreshing your frontend application.');
     
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error during reset and fetch process:', error);
   } finally {
+    if (db) {
+      await closeDB();
+      console.log('Database connection closed.');
+    }
     // Ensure process exits even if there's an error in async code
     process.exit(0);
   }
 }
 
-// Execute the function
-resetAndFetch();
+if (require.main === module) {
+  resetAndFetch();
+}

@@ -100,40 +100,40 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
   let jsonStructureExample = "";
 
   if (requestingBias) {
-    promptInstruction += "the political bias and 2-3 distinct, central keywords/entities";
-    jsonFields = `"bias": political bias (must be exactly one of: "Left", "Liberal", "Centrist", "Conservative", "Right", "Unknown")\n"keywords": array of 2-3 UNIQUE keywords/phrases`;
-    jsonStructureExample = `{\n  "bias": "[political bias category]",\n  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")\n}`;
+    promptInstruction += "both the political bias (one of: Left, Center-Left, Center, Center-Right, Right, Unknown) and up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword.";
+    jsonFields = `{\n  "bias": "<Calculated Political Bias (Left, Center-Left, Center, Center-Right, Right, or Unknown)>",\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"],\n}`; // Corrected field names
+    jsonStructureExample = `Example: { "bias": "Center-Left", "keywords": ["Specific Event X", "Related Entity Y"] }`;
   } else {
-    promptInstruction += "2-3 distinct, central keywords/entities";
-    jsonFields = `"keywords": array of 2-3 UNIQUE keywords/phrases`;
-    jsonStructureExample = `{\n  "keywords": ["primary central keyword/entity", "secondary keyword 1" ] // (optional: "secondary keyword 2")\n}`;
-    console.log(`[LLM Service] Bias already exists for article "${title}" as "${existingBias}". Requesting keywords only.`);
+    promptInstruction += "up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword. Do not determine bias.";
+    jsonFields = `{\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"],\n}`; // Corrected field names
+    jsonStructureExample = `Example: { "keywords": ["Specific Event X", "Related Entity Y"] }`;
   }
-  
-  promptInstruction += " from the provided headline and optional first sentence.";
 
   try {
     const response = await axios.post(`${OLLAMA_API_URL}/api/generate`, {
       model: activeModel,
       format: "json", // Enforce JSON output format
-      prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\n${requestingBias ? "**BIAS CLASSIFICATION GUIDE:**\n* \"Left\" - Strong progressive perspective, emphasizing social justice, systemic inequality, corporate criticism\n* \"Liberal\" - Progressive-leaning but more moderate, supportive of government programs, social reform\n* \"Centrist\" - Balanced perspective, minimal partisan language, factual reporting with limited value judgments\n* \"Conservative\" - Traditional values, limited government, business-friendly, incremental change\n* \"Right\" - Strong emphasis on nationalism, traditional social values, anti-regulation, skepticism of government programs\n* \"Unknown\" - No clear political leaning detectable or not applicable to political spectrum\n\n" : "" }Respond with valid JSON only in this exact format:\n${jsonStructureExample}`,
-      stream: false
-    }, {
-      timeout: 90000 // 90 seconds timeout
+      prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\nRespond ONLY with valid JSON. For example: ${jsonStructureExample}`,
+      stream: false,
+      options: {
+        num_ctx: 4096, // Increased context window
+        temperature: 0.2, // Lower temperature for more deterministic output
+        top_k: 20, // Consider top_k for focused sampling
+        top_p: 0.7, // Consider top_p for focused sampling
+        seed: 42 // For reproducibility if needed during debugging
+      }
     });
-    
-    // Parse the JSON response
+
     let resultJson;
     try {
       resultJson = JSON.parse(response.data.response);
       
-      // Determine bias: use LLM's bias if requested and present, otherwise use existingBias
-      const finalBias = requestingBias 
-                        ? mapToPoliticalBias(resultJson.bias || '') 
-                        : existingBias;
+      // The bias returned from here is the one provided to this function (existingBias).
+      // The LLM is not the source of truth for bias.
+      const finalBiasToReturn = existingBias;
 
       const processedResult = {
-        bias: finalBias,
+        bias: finalBiasToReturn, // Always use the bias passed into the function
         keywords: Array.isArray(resultJson.keywords) ?
           resultJson.keywords
             .map(k => k.trim()) // Trim whitespace first
@@ -156,10 +156,9 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
       return processedResult;
     } catch (e) {
       console.error(`[LLM Service] Failed to parse LLM JSON response for article "${title}". Response: ${response.data.response}. Error:`, e);
-      // Fallback if JSON parsing fails but bias was requested
-      const fallbackBias = requestingBias ? mapToPoliticalBias(response.data.response) : existingBias;
+      // Fallback: return existingBias and no keywords if JSON parsing fails.
       const fallbackResult = {
-        bias: fallbackBias,
+        bias: existingBias,
         keywords: []
       };
       cache.set(cacheKey, fallbackResult); // Cache fallback to prevent re-processing bad response

@@ -231,29 +231,41 @@ const App: React.FC = () => {
       return;
     }
     
-    console.log(`Finding related articles locally for: "${word.text}"`);
+    console.log(`Fetching related articles from backend for: "${word.text}"`);
     setError(null); // Clear previous errors
+    // Optionally, set a specific loading state for this window if desired
+    // setLoadingTagNews(true); 
 
-    // Filter the existing unfiltered news items locally
-    const relatedNews = unfilteredNewsItems.filter(item => 
-      item.keywords && item.keywords.includes(word.text)
-    );
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/news/by-tag`, {
+        params: { tag: word.text }
+      });
+      
+      const relatedNews: NewsItem[] = response.data;
+      console.log(`Found ${relatedNews.length} related articles from backend for "${word.text}".`);
 
-    console.log(`Found ${relatedNews.length} related articles locally.`);
-
-    if (relatedNews.length > 0) {
-      setOpenNewsWindows(prev => [
-        ...prev,
-        // Ensure the structure matches the NewsWindow interface if it changed
-        { wordData: word, newsItems: relatedNews, position: clickPosition }
-      ]);
-    } else {
-      // This case should ideally not happen if words are derived correctly,
-      // but handle it defensively.
-      console.warn(`No related news found locally for tag "${word.text}", though tag was displayed.`);
-      setError(`Internal inconsistency: No related news found for "${word.text}".`);
+      if (relatedNews.length > 0) {
+        setOpenNewsWindows(prev => [
+          ...prev,
+          { wordData: word, newsItems: relatedNews, position: clickPosition }
+        ]);
+      } else {
+        console.warn(`No related news found from backend for tag "${word.text}", though tag was displayed.`);
+        // Optionally, still open an empty window or show a specific message
+        setOpenNewsWindows(prev => [
+          ...prev,
+          { wordData: word, newsItems: [], position: clickPosition } // Open with empty items
+        ]);
+        // setError(`No articles found with "${word.text}" in the headline.`);
+      }
+    } catch (err: any) {
+      console.error(`Error fetching articles for tag "${word.text}":`, err);
+      setError(`Failed to load articles for "${word.text}": ${err.message}`);
+      // Optionally, don't open the window or open an empty one with an error message inside
     }
-    // No separate loading state needed as filtering is synchronous
+    // finally {
+    //   setLoadingTagNews(false);
+    // }
   };
 
   const handleCloseNewsWindow = (wordText: string) => {
