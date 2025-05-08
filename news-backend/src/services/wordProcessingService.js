@@ -309,38 +309,47 @@ function filterAndValidateKeyword(originalKeyword) {
   let keyword = originalKeyword.toLowerCase().trim();
   keyword = stripHtml(keyword);
 
-  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) return null;
-  if (/\d/.test(keyword) && keyword.length < 5) return null; // Basic check for short numeric strings
-  if (STOP_WORDS.has(keyword) || NEWS_SPECIFIC_WORDS.has(keyword) || NEWS_SOURCE_NAMES.has(keyword)) return null;
+  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) {
+    return null;
+  }
+  if (/\d/.test(keyword) && keyword.length < 5) {
+    return null;
+  } 
+  if (STOP_WORDS.has(keyword) || NEWS_SPECIFIC_WORDS.has(keyword) || NEWS_SOURCE_NAMES.has(keyword)) {
+    return null;
+  }
   
-  // Lemmatize (if not a proper noun, to avoid changing names like "Biden" to "biden")
+  let beforeLemmatize = keyword;
   if (!isProperNoun(keyword)) {
     keyword = lemmatizeWord(keyword);
   }
   
-  // Re-check length and stop words after lemmatization
-  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) return null;
-  if (STOP_WORDS.has(keyword)) return null;
-
+  if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) {
+    return null;
+  }
+  if (STOP_WORDS.has(keyword)) {
+    return null;
+  }
   return keyword;
 }
 
 function updateGlobalCacheWithSingleItem(processedNewsItem) {
-  if (!processedNewsItem || !processedNewsItem.keywords || !processedNewsItem.minifluxEntryId) {
-    console.warn('[Cache] Attempted to update cache with invalid item:', processedNewsItem ? processedNewsItem.minifluxEntryId : 'undefined item');
+  if (!processedNewsItem || !processedNewsItem.keywords || !(processedNewsItem.minifluxEntryId || processedNewsItem._id)) {
+    console.warn('[Cache Update] Attempted to update cache with invalid item (missing id or keywords): ', processedNewsItem ? (processedNewsItem._id || processedNewsItem.minifluxEntryId) : 'undefined item');
     return;
   }
-  
+  const itemId = processedNewsItem._id ? processedNewsItem._id.toString() : processedNewsItem.minifluxEntryId.toString();
+  console.log(`[Cache Update] Processing item: ${itemId}, llmProcessed: ${processedNewsItem.llmProcessed}`); // <-- Log item status
+
   const itemBias = processedNewsItem.bias || PoliticalBias.Unknown;
-  // Use source.category and fallback to UNKNOWN if not present
   const itemCategory = (processedNewsItem.source && processedNewsItem.source.category)
     ? processedNewsItem.source.category
     : NewsCategory.UNKNOWN;
-  const itemId = processedNewsItem._id ? processedNewsItem._id.toString() : processedNewsItem.minifluxEntryId.toString();
 
   (processedNewsItem.keywords || []).forEach(keywordText => {
     const validatedKeyword = filterAndValidateKeyword(keywordText);
     if (validatedKeyword) {
+      console.log(`[Cache Update Item ${itemId}] Adding/Updating keyword: "${validatedKeyword}"`); // <-- Log keyword being processed
       if (keywordCache.data.has(validatedKeyword)) {
         const existingEntry = keywordCache.data.get(validatedKeyword);
         existingEntry.count += 1;
@@ -380,16 +389,19 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
     const title = stripHtml(item.title);
     const firstSentence = stripHtml(item.contentSnippet.split('.')[0] || '');
     let llmResult = null;
-    let itemBias = item.bias || (item.source && item.source.bias ? item.source.bias : PoliticalBias.Unknown);
+    // Initialize itemBias STRICTLY from item.source.bias or default to Unknown
+    // This will be passed to the LLM as a hint, but LLM's bias output will not override this.
+    const itemSourceBias = (item.source && item.source.bias) ? item.source.bias : PoliticalBias.Unknown;
     let keywordsToUse = item.keywords || [];
     let llmSuccess = false;
 
     try {
-      llmResult = await processArticleWithRetry(title, firstSentence, itemBias);
+      // Pass the itemSourceBias to LLM. Its keywords will be used, but its bias suggestion will be ignored.
+      llmResult = await processArticleWithRetry(title, firstSentence, itemSourceBias);
       
       if (llmResult && llmResult.keywords && llmResult.keywords.length > 0) {
         keywordsToUse = llmResult.keywords;
-        itemBias = llmResult.bias || itemBias;
+        // DO NOT update itemSourceBias with llmResult.bias. The source's bias is king.
         llmSuccess = true;
       } else if (llmResult && (!llmResult.keywords || llmResult.keywords.length === 0)) {
         llmFallbackCountForBatch++;
@@ -423,8 +435,10 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
       title: item.title, // ensure original title is preserved if needed by other parts
       contentSnippet: item.contentSnippet, // ensure original snippet is preserved
       keywords: finalKeywords,
-      bias: itemBias,
-      category: item.category, // Keep original category for the item itself
+      // Ensure the bias saved is ALWAYS the itemSourceBias (derived from item.source.bias).
+      bias: itemSourceBias,
+      // category: item.category, // item.category is already part of ...item spread if it exists. Redundant.
+      // source: item.source, // item.source is already part of ...item spread. Redundant unless structure needs modification.
       llmProcessed: llmSuccess,
       llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1,
       processedAt: new Date()
@@ -443,40 +457,46 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
 
 async function aggregateKeywordsForCloud() {
   if (keywordCache.isUpdating) {
-    console.log('[Cache] Full aggregation already in progress. Skipping.');
+    console.log('[Cache Aggregation] Full aggregation already in progress. Skipping.');
     return;
   }
   keywordCache.isUpdating = true;
-  console.log('[WordProcessingService] Starting full keyword aggregation for global cache...');
+  console.log('[Cache Aggregation] Starting full keyword aggregation for global cache...');
   
   try {
-    const allNewsItems = await NewsItem.find({}).lean().exec(); 
+    const allNewsItems = await NewsItem.find({ llmProcessed: true }).lean().exec(); 
+    console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true for cache aggregation.`); // <-- Log count
     if (!allNewsItems || allNewsItems.length === 0) {
-      console.log('[WordProcessingService] No news items found in DB for cache aggregation.');
+      console.log('[Cache Aggregation] No llmProcessed:true items found in DB for cache aggregation.');
       keywordCache.data = new Map();
       keywordCache.timestamp = new Date();
       keywordCache.isUpdating = false;
       return;
     }
-    console.log(`[aggregateKeywordsForCloud] Found ${allNewsItems.length} items for full cache aggregation.`);
+    
+    // Log first item check
+    if (allNewsItems.length > 0) {
+        const firstItem = allNewsItems[0];
+        console.log(`[Cache Aggregation] First item check - ID: ${firstItem._id}, llmProcessed: ${firstItem.llmProcessed}`);
+    }
 
     const tempKeywordMap = new Map(); // Map<string, { count: number, biases: Set<PoliticalBias>, categories: Set<NewsCategory>, items: Set<string> }>
 
     allNewsItems.forEach(item => {
       const itemBias = item.bias || PoliticalBias.Unknown;
-      // Use source.category and fallback to UNKNOWN if not present
       const itemCategory = (item.source && item.source.category)
         ? item.source.category
         : NewsCategory.UNKNOWN;
-      const itemId = item._id ? item._id.toString() : item.minifluxEntryId.toString();
 
       (item.keywords || []).forEach(keywordText => {
         const validatedKeyword = filterAndValidateKeyword(keywordText);
         if (validatedKeyword) {
+          // <-- Log keyword and source item details -->
+          console.log(`[Cache Aggregation Item ${item._id}] Processing keyword: "${validatedKeyword}" (Source llmProcessed: ${item.llmProcessed})`); 
           if (tempKeywordMap.has(validatedKeyword)) {
             const entry = tempKeywordMap.get(validatedKeyword);
             entry.count += 1;
-            entry.items.add(itemId);
+            entry.items.add(item._id ? item._id.toString() : item.minifluxEntryId.toString());
             if (itemBias) entry.biases.add(itemBias);
             if (itemCategory) entry.categories.add(itemCategory); // Add to set
           } else {
@@ -484,7 +504,7 @@ async function aggregateKeywordsForCloud() {
               count: 1,
               biases: itemBias ? new Set([itemBias]) : new Set(),
               categories: itemCategory ? new Set([itemCategory]) : new Set(), // Initialize as Set
-              items: new Set([itemId])
+              items: new Set([item._id ? item._id.toString() : item.minifluxEntryId.toString()])
             });
           }
         }

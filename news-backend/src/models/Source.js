@@ -61,6 +61,7 @@ sourceSchema.pre('findOneAndUpdate', function(next) {
 });
 
 // Define indexes
+sourceSchema.index({ name: 1 }); // Added index for name to improve query performance
 // sourceSchema.index({ url: 1 }); // Removed, as unique:true on field handles it
 sourceSchema.index({ category: 1 });
 sourceSchema.index({ bias: 1 });

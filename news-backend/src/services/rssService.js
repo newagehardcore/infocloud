@@ -108,6 +108,7 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
         name: sourceInfo.name,
         bias: mappedSourceBias, // Use the title-cased bias
         category: sourceInfo.category, 
+        minifluxFeedId: sourceInfo.minifluxFeedId // <<< Correctly populate from the Source document
       },
       publishedAt,
       keywords: [], // Keywords will be added by a later process
@@ -158,7 +159,7 @@ async function forceRefreshAllFeeds() {
   let errorCount = 0;
   let skippedCount = 0;
   const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 7);
+  cutoffDate.setDate(cutoffDate.getDate() - 2);
 
   const sourceMap = new Map();
   sources.forEach(s => {
@@ -214,7 +215,7 @@ async function forceRefreshAllFeeds() {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
 
-    console.log(`[RSS Service] Force Refresh: Fetched a total of ${allEntries.length} entries within the last 7 days from all feeds.`);
+    console.log(`[RSS Service] Force Refresh: Fetched a total of ${allEntries.length} entries within the last 2 days from all feeds.`);
 
     if (allEntries.length === 0) {
       console.log('[RSS Service] Force Refresh: No recent entries found to process.');

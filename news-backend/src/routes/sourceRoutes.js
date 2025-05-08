@@ -8,6 +8,8 @@ const {
     getUniqueSourceCategories
 } = require('../services/sourceManagementService'); 
 const { BIAS_CATEGORIES } = require('../utils/constants'); // Import defined bias categories
+const { aggregateKeywordsForCloud } = require('../services/wordProcessingService'); // Added for cache rebuild
+const mongoose = require('mongoose'); // Need mongoose for connection.db
 
 // GET /api/sources - List all sources
 router.get('/', async (req, res) => {
@@ -102,8 +104,6 @@ router.put('/:id', async (req, res) => {
     console.log(`[sourceRoutes] Request Body:`, req.body);
     try {
         const { id } = req.params;
-        // Expecting body like { name: '...', category: '...', bias: '...' }
-        // Or from inline edit: { category: '...' } or { bias: '...' }
         const updates = req.body;
 
         // --- Validation --- 
@@ -119,21 +119,69 @@ router.put('/:id', async (req, res) => {
             return res.status(400).json({ message: "No update fields provided (name, category, or bias)." });
         }
 
-        // Validate bias if provided
         if (updates.bias && !BIAS_CATEGORIES.includes(updates.bias)) {
             return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
         }
-        
-        // Validate category if provided (Check against config? Or just allow any string?)
-        // For now, allow any string, sourceManagementService can handle validation if needed.
-        // if (updates.category && !allowedCategories.includes(updates.category)) { ... }
         // --- End Validation ---
         
         const updatedSource = await updateSource(id, updates);
         if (!updatedSource) {
             return res.status(404).json({ message: "Source not found" });
         }
-        res.json(updatedSource); // Return the full updated source
+
+        let changesPropagated = false;
+
+        // If bias was updated, propagate this change to related NewsItems
+        if (updatedSource && updates.bias && updatedSource.minifluxFeedId) {
+            const newBias = updates.bias;
+            const feedId = updatedSource.minifluxFeedId;
+            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) bias updated to ${newBias}. Propagating to NewsItems.`);
+            try {
+                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
+                    { 'source.minifluxFeedId': feedId },
+                    { 
+                        $set: { 
+                            'source.bias': newBias,
+                            'bias': newBias
+                        } 
+                    }
+                );
+                console.log(`[sourceRoutes] NewsItem bias update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
+                changesPropagated = true;
+            } catch (newsItemUpdateError) {
+                console.error(`[sourceRoutes] Error updating NewsItem bias for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
+            }
+        }
+
+        // If category was updated, propagate this change to related NewsItems
+        if (updatedSource && updates.category && updatedSource.minifluxFeedId) {
+            const newCategory = updates.category;
+            const feedId = updatedSource.minifluxFeedId;
+            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) category updated to ${newCategory}. Propagating to NewsItems.`);
+            try {
+                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
+                    { 'source.minifluxFeedId': feedId },
+                    { 
+                        $set: { 'source.category': newCategory } 
+                    }
+                );
+                console.log(`[sourceRoutes] NewsItem category update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
+                changesPropagated = true;
+            } catch (newsItemUpdateError) {
+                console.error(`[sourceRoutes] Error updating NewsItem category for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
+            }
+        }
+
+        // If any relevant changes were propagated, rebuild keyword cache
+        if (changesPropagated) {
+            aggregateKeywordsForCloud().then(() => {
+                console.log(`[sourceRoutes] Keyword cache rebuild triggered successfully after source ${updatedSource.name} update.`);
+            }).catch(cacheError => {
+                console.error(`[sourceRoutes] Error triggering keyword cache rebuild for source ${updatedSource.name}:`, cacheError);
+            });
+        }
+        
+        res.json(updatedSource);
     } catch (error) {
         console.error(`Error updating source ${req.params.id}:`, error);
         res.status(500).json({ message: "Failed to update source", error: error.message });

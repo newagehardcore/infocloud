@@ -124,12 +124,9 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
   // Group news items by source bias
   const biasGroups = useMemo(() => {
     const groups: { [key: string]: NewsItem[] } = {};
-    // Filter items first to ensure they contain the word/phrase (case-insensitive)
-    const filteredItems = newsItems.filter(item =>
-      item.title.toLowerCase().includes(wordData.text.toLowerCase())
-    );
-
-    filteredItems.forEach(item => {
+    
+    // Use newsItems directly as they are already filtered by the backend
+    newsItems.forEach(item => { 
       const bias = item.bias; // Use LLM bias for grouping
       if (!groups[bias]) {
         groups[bias] = [];
@@ -141,7 +138,7 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
       group.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     });
     return groups;
-  }, [newsItems, wordData.text]); // Add wordData.text as dependency
+  }, [newsItems]); // Removed wordData.text from dependency array as it's no longer used here
 
   const toggleBiasExpand = (bias: PoliticalBias) => {
     setExpandedBiases(prev => ({
@@ -207,7 +204,7 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
               ) : (
                 <div className="bias-groups">
                   {orderedBiasGroups.map(([bias, items]) => (
-                    <div key={bias} className="bias-group">
+                    <div key={`${wordData.text}-${bias}`} className="bias-group">
                       <h4
                         className="bias-heading"
                         style={{ color: getBiasColor(bias), WebkitTextFillColor: getBiasColor(bias) }}

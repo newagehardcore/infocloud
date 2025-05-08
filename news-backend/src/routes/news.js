@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb'); // May still be needed if manipulating _id directly elsewhere, but likely not for queries now.
-const { fetchNews } = require('../miniflux/fetchEntries');
 const {
   getKeywordCache
 } = require('../services/wordProcessingService');
@@ -120,6 +119,40 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET api/news/by-tag
+// @desc    Get news items where the headline (title) contains a specific tag
+// @access  Public
+// @query   tag: string - The tag to search for in the news item titles
+router.get('/by-tag', async (req, res) => {
+  try {
+    const { tag } = req.query;
+
+    if (!tag) {
+      return res.status(400).json({ msg: 'Tag query parameter is required' });
+    }
+
+    const query = {
+      keywords: tag, 
+      llmProcessed: true
+    };
+
+    const newsItems = await NewsItem.find(query)
+    .sort({ publishedAt: -1 })
+    .limit(100)
+    .exec();
+
+    if (!newsItems || newsItems.length === 0) {
+      return res.json([]);
+    }
+
+    res.json(newsItems);
+
+  } catch (err) {
+    console.error('Error fetching news items by tag:', err.message, err.stack);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/news/:id
 // @desc    Get specific news item by its custom ID (url-timestamp)
 // @access  Public
@@ -139,24 +172,6 @@ router.get('/:id', async (req, res) => {
     // if (err.kind === 'ObjectId') {
     //    return res.status(404).json({ msg: 'News item not found (invalid ID format)' });
     // }
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   POST api/news/fetch
-// @desc    Manually trigger news fetch
-// @access  Public
-router.post('/fetch', async (req, res) => {
-  try {
-    console.log('[News Route] Manually triggering Miniflux news fetch...');
-    
-    // Use our new Miniflux integration
-    const newsItems = await fetchNews();
-    
-    console.log(`[News Route] Miniflux fetch complete. ${newsItems.length} items processed.`);
-    res.json({ success: true, count: newsItems.length });
-  } catch (err) {
-    console.error('[News Route] Error fetching news from Miniflux:', err.message);
     res.status(500).send('Server Error');
   }
 });

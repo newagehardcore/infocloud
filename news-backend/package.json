@@ -28,6 +28,7 @@
     "fs": "^0.0.1-security",
     "lru-cache": "^10.4.3",
     "mongodb": "^6.15.0",
+    "mongoose": "^8.14.1",
     "natural": "^6.10.0",
     "node-cron": "^3.0.3",
     "path": "^0.12.7",

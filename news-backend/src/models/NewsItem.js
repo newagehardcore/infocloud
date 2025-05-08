@@ -40,6 +40,10 @@ const SourceSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Source bias is required.'],
     enum: Object.values(PoliticalBias) // Use enum values for validation
+  },
+  minifluxFeedId: {
+    type: Number,
+    required: false
   }
 }, { _id: false }); // Prevent creation of an automatic _id for the subdocument
 
