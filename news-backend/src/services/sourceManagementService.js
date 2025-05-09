@@ -409,17 +409,22 @@ async function _processSingleImportedSource(sourceData) {
         console.info(`[Miniflux] Feed ${url} reported as already existing during creation attempt: "${initialErrorMessage}". Proceeding to find and link.`);
         finalMinifluxMessage += `Feed reported as existing by Miniflux. Attempting to find, link, and ensure correct category. Original error: '${initialErrorMessage}'. `;
         console.log(`[Miniflux] Feed ${url} reported as already existing. Attempting to find its ID and ensure correct category.`);
+        
         try {
-          const allFeedsResponse = await minifluxClient.get('/v1/feeds');
-          const existingFeed = allFeedsResponse.data.find(feed => feed.feed_url === url);
+          // Use the enhanced lookup function
+          const existingFeedId = await findMinifluxFeedIdByUrl(url);
           
-          if (existingFeed) {
-            minifluxFeedId = existingFeed.id; // Found it!
-            const foundMsg = `Found existing Miniflux feed ${url} with ID: ${minifluxFeedId}. Current Miniflux category ID: ${existingFeed.category.id}.`;
+          if (existingFeedId) {
+            minifluxFeedId = existingFeedId;
+            const foundMsg = `Found existing Miniflux feed for ${url} with ID: ${minifluxFeedId}.`;
             console.log(`[Miniflux] ${foundMsg}`);
             finalMinifluxMessage += `${foundMsg} `;
             
-            if (existingFeed.category.id !== minifluxCategoryId) {
+            // Get feed details to check category
+            const feedDetails = await minifluxClient.get(`/v1/feeds/${minifluxFeedId}`);
+            const currentCategoryId = feedDetails.data?.category?.id;
+            
+            if (currentCategoryId !== minifluxCategoryId) {
               const catUpdateAttemptMsg = `Attempting to update Miniflux category to ${minifluxCategoryId}.`;
               console.log(`[Miniflux] ${catUpdateAttemptMsg}`);
               finalMinifluxMessage += `${catUpdateAttemptMsg} `;
@@ -431,18 +436,41 @@ async function _processSingleImportedSource(sourceData) {
               } catch (updateError) {
                 const updateErrorMessage = updateError.response?.data?.error_message || updateError.message;
                 const catUpdateFailMsg = `Failed to update category for existing feed ${url} (ID: ${minifluxFeedId}): ${updateErrorMessage}`;
-                console.error(`[Miniflux] ${catUpdateFailMsg}`); // This is a legit error during update attempt
+                console.error(`[Miniflux] ${catUpdateFailMsg}`);
                 finalMinifluxMessage += `${catUpdateFailMsg} `;
               }
             }
           } else {
-            const notFoundWarn = `WARNING: Feed ${url} reported as existing by Miniflux, but NOT FOUND in GET /v1/feeds. This is unexpected. Miniflux ID will remain null.`;
-            console.warn(`[Miniflux] ${notFoundWarn}`);
-            finalMinifluxMessage += `${notFoundWarn} `;
+            // If still not found, try to create it with a slight URL modification to bypass duplicate detection
+            try {
+              console.log(`[Miniflux] Feed reported as existing but not found in feeds list. Trying to create with modified URL for ${url}`);
+              // Add a query parameter to make the URL unique
+              const modifiedUrl = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+              
+              const modifiedCreateResponse = await minifluxClient.post('/v1/feeds', {
+                feed_url: modifiedUrl,
+                category_id: minifluxCategoryId,
+              });
+              
+              minifluxFeedId = modifiedCreateResponse.data?.feed_id;
+              if (minifluxFeedId) {
+                const modifiedMsg = `Created feed with modified URL: ${modifiedUrl}. Miniflux Feed ID: ${minifluxFeedId}`;
+                console.log(`[Miniflux] ${modifiedMsg}`);
+                finalMinifluxMessage += `${modifiedMsg} `;
+              } else {
+                const notFoundWarn = `WARNING: Feed ${url} reported as existing by Miniflux, but NOT FOUND. Modified URL creation also failed to return feed_id. Miniflux ID will remain null.`;
+                console.warn(`[Miniflux] ${notFoundWarn}`);
+                finalMinifluxMessage += `${notFoundWarn} `;
+              }
+            } catch (modifiedCreateError) {
+              const notFoundWarn = `WARNING: Feed ${url} reported as existing by Miniflux, but NOT FOUND. Modified URL creation also failed: ${modifiedCreateError.message}. Miniflux ID will remain null.`;
+              console.warn(`[Miniflux] ${notFoundWarn}`);
+              finalMinifluxMessage += `${notFoundWarn} `;
+            }
           }
         } catch (findError) {
           const findErrorMsg = `Error occurred while trying to find/sync existing feed ${url} after 'already exists' error: ${findError.message}`;
-          console.error(`[Miniflux] ${findErrorMsg}`); // This is a legit error during find attempt
+          console.error(`[Miniflux] ${findErrorMsg}`);
           finalMinifluxMessage += `${findErrorMsg} `;
         }
       } else {
@@ -570,6 +598,74 @@ async function purgeAllSources() {
       minifluxSuccessfulDeletions,
       minifluxFailedDeletions
     };
+  }
+}
+
+// Add this function after the getMinifluxFeeds function
+// Helper function to find a feed in Miniflux by URL with fuzzy matching
+async function findMinifluxFeedIdByUrl(url) {
+  try {
+    console.log(`[Miniflux] Attempting to find feed for URL: ${url}`);
+    
+    // Get all feeds from Miniflux
+    const allFeeds = await getMinifluxFeeds();
+    
+    // Try exact match first
+    let matchingFeed = allFeeds.find(feed => feed.url === url);
+    if (matchingFeed) {
+      console.log(`[Miniflux] Found exact match for ${url} with ID: ${matchingFeed.id}`);
+      return matchingFeed.id;
+    }
+    
+    // Try with/without trailing slash
+    const urlWithSlash = url.endsWith('/') ? url : `${url}/`;
+    const urlWithoutSlash = url.endsWith('/') ? url.slice(0, -1) : url;
+    
+    matchingFeed = allFeeds.find(feed => 
+      feed.url === urlWithSlash || feed.url === urlWithoutSlash
+    );
+    if (matchingFeed) {
+      console.log(`[Miniflux] Found match with slash variation for ${url} with ID: ${matchingFeed.id}`);
+      return matchingFeed.id;
+    }
+    
+    // Try fuzzy matching (partial URL contains)
+    const urlDomain = new URL(url).hostname;
+    const urlPath = new URL(url).pathname;
+    
+    // Look for feeds with matching domain and similar path
+    const potentialMatches = allFeeds.filter(feed => {
+      try {
+        const feedDomain = new URL(feed.url).hostname;
+        // Check if domains match
+        return feedDomain === urlDomain;
+      } catch (err) {
+        return false;
+      }
+    });
+    
+    if (potentialMatches.length > 0) {
+      // Sort potential matches by similarity (shorter URL difference is better)
+      potentialMatches.sort((a, b) => {
+        try {
+          const aPathDiff = Math.abs(new URL(a.url).pathname.length - urlPath.length);
+          const bPathDiff = Math.abs(new URL(b.url).pathname.length - urlPath.length);
+          return aPathDiff - bPathDiff;
+        } catch (err) {
+          return 0;
+        }
+      });
+      
+      // Take the best match
+      console.log(`[Miniflux] Found fuzzy match for ${url} with ID: ${potentialMatches[0].id}`);
+      return potentialMatches[0].id;
+    }
+    
+    console.log(`[Miniflux] No matching feed found for ${url}`);
+    return null;
+  } catch (error) {
+    console.error(`[Miniflux] Error finding feed by URL ${url}: ${error.message}`);
+    return null;
   }
 }
 
