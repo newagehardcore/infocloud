@@ -26,5 +26,18 @@ services:
     ports:
       - "8080:8080"
 
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=superadmin
+      - MONGO_INITDB_ROOT_PASSWORD=supersecret
+      - MONGO_INITDB_DATABASE=infocloud # Ensure infocloud database is used/created
+    restart: unless-stopped
+
 volumes:
   miniflux-data:
+  mongodb_data: {}

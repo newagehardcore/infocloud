@@ -7,7 +7,7 @@
  */
 const { exec, execSync } = require('child_process');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
 // Root project directory
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
@@ -206,11 +206,13 @@ const startMongoDB = async () => {
 
 // Set default environment variables if needed
 const setDefaultEnvVars = () => {
+  // console.log('[DIAGNOSTIC] setDefaultEnvVars - MONGODB_URI before default:', process.env.MONGODB_URI); // Log before
   if (!process.env.MONGODB_URI) {
     process.env.MONGODB_URI = 'mongodb://localhost:27017';
     console.log('📝 Set default MONGODB_URI: mongodb://localhost:27017');
   }
   
+  // console.log('[DIAGNOSTIC] setDefaultEnvVars - DB_NAME before default:', process.env.DB_NAME); // Log before
   if (!process.env.DB_NAME) {
     process.env.DB_NAME = 'news_aggregator';
     console.log('📝 Set default DB_NAME: news_aggregator');

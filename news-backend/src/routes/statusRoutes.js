@@ -375,20 +375,29 @@ router.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// Endpoint to get available Ollama models
+// Route to get available Ollama models for the dropdown
 router.get('/ollama-models', async (req, res) => {
   try {
-    const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    const response = await axios.get(`${ollamaUrl}/api/tags`, { timeout: 5000 });
-    if (response.data && response.data.models && Array.isArray(response.data.models)) {
-      res.json(response.data.models.map(model => ({ name: model.name, details: model }))); // Send name and full details
+    const ollamaApiUrl = process.env.OLLAMA_API_URL || 'http://localhost:11434';
+    console.log(`[StatusRoutes] Fetching Ollama models from: ${ollamaApiUrl}/api/tags`);
+    const response = await axios.get(`${ollamaApiUrl}/api/tags`, { timeout: 5000 }); // 5 second timeout
+    
+    if (response.data && Array.isArray(response.data.models)) {
+      // We only need the name of the models for the dropdown
+      const modelNames = response.data.models.map(model => ({ name: model.name })); 
+      res.json(modelNames);
     } else {
-      console.warn('[Ollama Models] Unexpected response structure from Ollama /api/tags:', response.data);
-      res.json([]); // Send empty array if structure is not as expected
+      console.error('[StatusRoutes] Unexpected response format from Ollama /api/tags:', response.data);
+      res.status(500).json({ error: 'Unexpected response format from Ollama an d API /api/tags' });
     }
   } catch (error) {
-    console.error('[Ollama Models] Error fetching models from Ollama:', error.message);
-    res.status(500).json({ error: 'Failed to fetch models from Ollama', details: error.message });
+    console.error('[StatusRoutes] Error fetching Ollama models:', error.message);
+    // Check if it's a timeout or connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      res.status(503).json({ error: `Ollama API (${ollamaApiUrl}) unavailable.`, details: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch Ollama models', details: error.message });
+    }
   }
 });
 
