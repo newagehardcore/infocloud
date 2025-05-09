@@ -16,14 +16,20 @@ const NewsCategory = {
     NEWS: 'NEWS',
     SCIENCE: 'SCIENCE',
     TECH: 'TECH',
-    BUSINESS: 'BUSINESS', // Added based on potential needs
-    SPORTS: 'SPORTS',     // Added based on potential needs
-    WORLD: 'WORLD',       // Added based on potential needs
-    ENTERTAINMENT: 'ENTERTAINMENT', // Added from admin panel observation
-    ENVIRONMENT: 'ENVIRONMENT',   // Added from admin panel observation
-    HEALTH: 'HEALTH',           // Added from admin panel observation
-    US: 'US',                 // Added from admin panel observation
-    UNKNOWN: 'UNKNOWN'    // Added for fallback
+    ECONOMICS: 'ECONOMICS', // Renamed from BUSINESS, matches frontend/DB
+    SPORTS: 'SPORTS',
+    WORLD: 'WORLD',
+    ENTERTAINMENT: 'ENTERTAINMENT',
+    ENVIRONMENT: 'ENVIRONMENT',
+    HEALTH: 'HEALTH',
+    US: 'US',
+    MUSIC: 'MUSIC',         // Added
+    LAW: 'LAW',             // Added
+    AI: 'AI',               // Added
+    SPACE: 'SPACE',         // Added
+    FASHION: 'FASHION',     // Added
+    ARTS: 'ARTS',           // Added
+    UNKNOWN: 'UNKNOWN'
     // Add other categories as needed
 };
 

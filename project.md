@@ -36,7 +36,11 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
         *   `PUT /api/sources/:id`: Update a source's details (name, category, bias) in the MongoDB `Source` collection. Changes to bias or category trigger updates to associated `NewsItem` documents and a keyword cache refresh.
         *   `DELETE /api/sources/:id`: Remove a source from the MongoDB `Source` collection and delete the corresponding feed from Miniflux.
         *   `GET /api/sources/config`: Retrieves configuration like bias categories and dynamically gets existing categories from the `Source` collection.
+        *   `GET /api/sources/export`: Export all sources as a JSON file.
+        *   `POST /api/sources/import`: Import sources from a JSON file (expects `multipart/form-data` with a field named `sourcesFile`).
+        *   `POST /api/sources/purge-all`: Delete all sources from the database and attempt to delete corresponding feeds from Miniflux.
     *   Backend service (`sourceManagementService.js`) handles the database interactions (using the `Source` model) and syncs feed creation/deletion/updates with the configured Miniflux instance via its API.
+    *   **Source Data Format (for Import/Export):** The JSON format for importing/exporting sources is an array of objects, where each object represents a source and should include fields like `name`, `url`, `category`, `bias`, and optionally `alternateUrl`. The `_id`, `uuid`, `minifluxFeedId`, `createdAt`, and `updatedAt` fields are generally excluded from exports and handled by the backend during import.
 2.  **Backend Data Fetching & Processing (Automated - `news-backend/src/cron.js`):**
     *   Scheduled job (`rssService.fetchAndProcessMinifluxEntries`) fetches *unread* entries from the Miniflux API. The `minifluxEntryId` from these entries is treated as a string throughout the backend processing pipeline, including storage in the `NewsItem` model and when querying `NewsItem` documents.
     *   Entries are enriched with source metadata (name, category, bias) by looking up the `minifluxFeedId` in the MongoDB `Source` collection. The `NewsItem.source.bias` and `NewsItem.source.category` fields are populated directly from the `Source` document. The top-level `NewsItem.bias` is also set to mirror `NewsItem.source.bias`.
@@ -72,7 +76,6 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 ├── build/                   # Frontend production build output
 ├── news-backend/            # Backend application
 │   ├── data/                # Data files (e.g., initial seeds, potentially master_sources.json as backup/seed)
-│   │   └── master_sources.json # (No longer primary source store for running app)
 │   ├── models/              # MongoDB Models (e.g., NewsItem.js, Source.js)
 │   ├── public/              # Static assets served by backend (e.g., admin.html)
 │   ├── routes/              # API route handlers (e.g., news.js, sourceRoutes.js, statusRoutes.js)
@@ -129,31 +132,48 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 
 *   Node.js (v16+ recommended)
 *   npm (v7+ recommended)
-*   Docker & Docker Compose
+*   Docker & Docker Compose (Ensure Docker Desktop is running)
 *   Ollama installed and running (`ollama serve`)
     *   A model pulled (e.g., `ollama pull gemma:2b`)
-*   MongoDB running locally or accessible via Docker Compose.
 
 ### Environment Setup
 
-1.  **Miniflux & Database:**
-    *   Start Miniflux, its PostgreSQL database, and MongoDB using Docker:
+1.  **External Services (Docker):**
+    *   The primary local development workflow uses Docker Compose (`docker-compose.yml` in the project root) to manage external services: Miniflux, PostgreSQL (for Miniflux), and MongoDB.
+    *   These services are typically started automatically by the `npm run dev` script (via `news-backend/src/scripts/start-dev.js`). You can also manage them manually:
         ```bash
+        # Start services defined in docker-compose.yml (Miniflux, Postgres, MongoDB)
         docker-compose up -d
+        # Stop services
+        # docker-compose down
         ```
-    *   Access Miniflux UI: `http://localhost:8080` (Default user: `admin`, pass: `adminpass` - check `docker-compose.yml`)
-    *   Import feeds: You might need to import feeds into Miniflux initially. The backend relies on feeds existing in Miniflux.
+    *   Note: Docker Compose may generate container names by prepending the project directory (e.g., `infocloud-`) to the service name specified in `docker-compose.yml` and appending a number (e.g., `infocloud-mongodb-1`, `infocloud-db-1`). Use `docker ps` to see actual container names if needed for direct Docker commands like `docker exec`.
+    *   Access Miniflux UI: `http://localhost:8080` (Default user: `admin`, pass: `adminpass` - see `docker-compose.yml`).
+    *   **Miniflux API Key:** Generate an API key within the Miniflux UI (Settings > API Keys). You will need this for the backend `.env` file.
+    *   **MongoDB:** The MongoDB service runs in Docker and requires authentication. Credentials (`MONGO_INITDB_ROOT_USERNAME`, `MONGO_INITDB_ROOT_PASSWORD`) and the initial database (`MONGO_INITDB_DATABASE`) are set in `docker-compose.yml`.
+
 2.  **Backend (`news-backend/.env`):**
-    *   Create or update `.env` file in `news-backend`. Key variables:
+    *   **Crucial:** Create a `.env` file in the `news-backend` directory. This file is required for the *local* backend process started by `npm run dev`.
+    *   Add the following variables, replacing placeholders where necessary:
         ```dotenv
-        MONGODB_URI=mongodb://localhost:27017/infocloud # Or mongodb://mongodb:27017/infocloud if running backend outside docker but DB inside
+        # Connects to the MongoDB running in Docker, exposed on localhost:27017
+        MONGODB_URI=mongodb://superadmin:supersecret@localhost:27017/infocloud?authSource=admin
+        DB_NAME=infocloud # Should match the database name in MONGODB_URI
+        
+        # Connects to Miniflux running in Docker, exposed on localhost:8080
         MINIFLUX_URL=http://localhost:8080
-        MINIFLUX_API_KEY=YOUR_MINIFLUX_API_KEY # Generate this in Miniflux UI (Settings > API Keys)
-        OLLAMA_BASE_URL=http://localhost:11434 # Default Ollama URL
-        # Other potential variables (LLM model name, ports, etc.)
+        MINIFLUX_API_KEY=YOUR_GENERATED_MINIFLUX_API_KEY # Paste key generated in Miniflux UI
+        
+        # Connects to local Ollama instance
+        OLLAMA_API_URL=http://localhost:11434 # Adjust if Ollama runs elsewhere
+        
+        # Port for the local backend server
+        PORT=5001 
         ```
+    *   Note: The `dotenv` loading path has been corrected in `news-backend/src/scripts/startup.js` and `news-backend/src/config/db.js` to ensure this `.env` file is read correctly.
+
 3.  **Frontend (`.env` - Optional):**
-    *   If needed, create `.env` in the root directory.
+    *   If the frontend requires specific environment variables, create `.env` in the root project directory.
 
 ### Installation
 
@@ -163,32 +183,33 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 
 ### Initial Data Migration (First time setup)
 
-1.  Ensure Docker services are running (`docker-compose up -d`).
-2.  Run the one-time source migration script (if `master_sources.json` exists and you want to import from it):
+1.  Ensure Docker services are running (`docker-compose up -d` or ensure they are started by the `npm run dev` script).
+
+### Running the Application (Local Development)
+
+*   Run the main development script from the project root:
     ```bash
-    cd news-backend
-    npm run migrate:sources
-    cd ..
+    npm run dev
     ```
-
-### Running the Application
-
-Use the concurrent script (if available) or start backend and frontend separately.
-
-*   **Backend:** `cd news-backend && npm run dev`
-*   **Frontend:** `npm start` (from root)
-
-This typically runs:
-*   Frontend (React App): `http://localhost:3000`
-*   Backend (Node/Express API): `http://localhost:5001` (or configured port)
-*   Admin UI: `http://localhost:5001/admin`
+*   This script uses `concurrently` to:
+    1.  Start the frontend development server (React App via `react-app-rewired start`, usually on `http://localhost:3000`).
+    2.  Start the backend development process (`cd news-backend && npm run dev`).
+        *   The `news-backend` dev script executes `nodemon src/scripts/start-dev.js`.
+        *   `start-dev.js` ensures Docker services (MongoDB, Miniflux) are running (using `docker-compose up -d`) and then starts the backend application **locally** via `nodemon src/app.js`.
+*   Access points:
+    *   Frontend (React App): `http://localhost:3000` (check terminal output)
+    *   Backend API: `http://localhost:5001`
+    *   Admin UI: `http://localhost:5001/admin.html`
+    *   Miniflux UI: `http://localhost:8080`
 
 ## 7. Development Workflow
 
+*   **Primary Method:** Use `npm run dev` from the project root. This starts the frontend and the local backend, ensuring Dockerized dependencies (MongoDB, Miniflux) are running.
+*   **Backend Process:** The backend runs locally via `news-backend/src/scripts/start-dev.js` -> `nodemon src/app.js`. Changes to backend code should trigger automatic restarts via `nodemon`.
+*   **Frontend Process:** The frontend runs locally via `react-app-rewired start`. Changes trigger hot-reloading.
 *   **Linting/Formatting:** Follow ESLint rules (`.eslintrc.js`).
 *   **Branching:** Use feature branches.
-*   **Backend Changes:** Restart backend server (`npm run dev` in `news-backend` handles this).
-*   **Dependencies:** Add frontend deps via `npm install <package>` in root. Add backend deps via `npm install <package>` in `news-backend`.
+*   **Dependencies:** Add frontend deps via `npm install <package>` in root. Add backend deps via `npm install <package>` in `news-backend` directory, then restart `npm run dev`. Key backend dependencies include `express`, `mongoose`, `axios`, `multer` (for file uploads like source import), `dotenv`, `uuid`, `better-queue`.
 
 ## 8. LLM Integration Details
 

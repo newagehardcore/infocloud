@@ -1,15 +1,32 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer'); // Import multer
 const { 
     getAllSources, 
     addSource, 
     updateSource, 
     deleteSource,
-    getUniqueSourceCategories
+    getUniqueSourceCategories,
+    getMinifluxFeeds,
+    exportAllSources,
+    importSources,
+    purgeAllSources
 } = require('../services/sourceManagementService'); 
 const { BIAS_CATEGORIES } = require('../utils/constants'); // Import defined bias categories
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService'); // Added for cache rebuild
 const mongoose = require('mongoose'); // Need mongoose for connection.db
+
+// Configure multer for memory storage (to read file content as buffer/string)
+// And a filter to only accept JSON files.
+const storage = multer.memoryStorage();
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'application/json') {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JSON is allowed.'), false);
+  }
+};
+const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // Limit file size to 5MB
 
 // GET /api/sources - List all sources
 router.get('/', async (req, res) => {
@@ -61,6 +78,23 @@ router.get('/config', async (req, res) => {
     }
 });
 
+// GET /api/sources/export - Export all sources as JSON
+router.get('/export', async (req, res) => {
+    try {
+        const sources = await exportAllSources();
+        res.setHeader('Content-Disposition', 'attachment; filename="sources_export.json"');
+        res.setHeader('Content-Type', 'application/json');
+        // Add cache-control headers to prevent caching of this dynamic file
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+        res.status(200).json(sources);
+    } catch (error) {
+        console.error("Error exporting sources:", error);
+        res.status(500).json({ message: "Failed to export sources", error: error.message });
+    }
+});
 
 // POST /api/sources - Add a new source
 router.post('/', async (req, res) => {
@@ -95,6 +129,57 @@ router.post('/', async (req, res) => {
         } else {
              res.status(500).json({ message: "Failed to add source", error: error.message });
         }
+    }
+});
+
+// POST /api/sources/import - Import sources from JSON file
+router.post('/import', upload.single('sourcesFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    try {
+        const fileContent = req.file.buffer.toString('utf8');
+        const sourcesToImport = JSON.parse(fileContent);
+        
+        const importResults = await importSources(sourcesToImport);
+        
+        res.status(200).json({
+            message: "Import process completed.",
+            added: importResults.added,
+            skipped: importResults.skipped,
+            errors: importResults.errors,
+            details: importResults.details
+        });
+
+    } catch (error) {
+        console.error("Error importing sources:", error);
+        if (error instanceof SyntaxError) {
+            res.status(400).json({ message: "Invalid JSON file format.", error: error.message });
+        } else if (error.message.includes("Invalid file type")) {
+            res.status(400).json({ message: error.message });
+        } else {
+            res.status(500).json({ message: "Failed to import sources", error: error.message });
+        }
+    }
+});
+
+// POST /api/sources/purge-all - Purge all sources from DB and Miniflux
+router.post('/purge-all', async (req, res) => {
+    console.log("[API] Received request to purge all sources.");
+    try {
+        const result = await purgeAllSources();
+        if (result.success) {
+            res.status(200).json({ message: result.message, details: result });
+        } else {
+            // Even if not fully successful (e.g. some Miniflux deletes failed), 
+            // if the main operation didn't throw a critical error, it might still be a 200 with details.
+            // However, if success is false due to a critical error in the service, send 500.
+            res.status(500).json({ message: result.message || "Failed to purge all sources due to an internal error.", details: result });
+        }
+    } catch (error) {
+        console.error("[API] Critical error during /purge-all operation:", error);
+        res.status(500).json({ message: "Critical error during purge operation on the server.", error: error.message });
     }
 });
 

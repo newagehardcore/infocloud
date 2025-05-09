@@ -430,6 +430,36 @@
             text-decoration: none;
         }
 
+        .import-export-controls {
+            display: flex;
+            gap: var(--padding-normal);
+            align-items: center;
+            margin-bottom: var(--padding-normal);
+        }
+        .panel-subheader { /* Assuming this style exists and is appropriate */
+            font-size: var(--font-size-normal);
+            color: var(--primary-accent-color);
+            margin: var(--padding-normal) 0 var(--padding-tight) 0;
+            padding-bottom: var(--padding-tight);
+            border-bottom: 1px solid var(--secondary-accent-color);
+            font-weight: normal;
+        }
+        .panel-divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: var(--padding-normal) 0;
+        }
+        .status-message {
+            padding: 8px;
+            margin-top: 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .status-message.info { background-color: #e0e0ff; color: #333; border: 1px solid #c0c0dd; }
+        .status-message.success { background-color: #e0ffe0; color: #006400; border: 1px solid #c0dcc0; }
+        .status-message.warning { background-color: #ffffe0; color: #8B4513; border: 1px solid #ddddc0; }
+        .status-message.error { background-color: #ffe0e0; color: #A52A2A; border: 1px solid #ddc0c0; }
+
     </style>
 </head>
 <body>
@@ -492,15 +522,57 @@
                     </div>
                 </div>
 
-                <div class="accordion-section">
-                    <div class="accordion-header">Source Management <span id="totalSourcesHeader" style="font-weight: normal; color: var(--text-color); margin-left: 8px;">(Total: -)</span> <span class="arrow">▶</span></div>
-                    <div class="accordion-content">
-                        <button id="showAddSourceModalButton" class="mt-1 mb-1">Add New Source</button>
-                        <div style="margin-bottom: var(--padding-normal);">
+                <div class="accordion-section" id="source-management-accordion">
+                    <button class="accordion-header">Source Management <span class="arrow">▶</span></button>
+                    <div class="accordion-content" id="sourceManagementContent">
+                        <h3 class="panel-subheader">Add New Source</h3>
+                        <form id="addSourceForm" class="source-form">
+                            <input type="hidden" id="sourceId" name="id">
+                            <label for="sourceName">Name:</label>
+                            <input type="text" id="sourceName" name="name" required>
+
+                            <label for="sourceUrl">URL:</label>
+                            <input type="url" id="sourceUrl" name="url" required>
+                            
+                            <label for="sourceAlternateUrl">Alternate URL (Optional):</label>
+                            <input type="url" id="sourceAlternateUrl" name="alternateUrl">
+
+                            <label for="sourceCategory">Category:</label>
+                            <select id="sourceCategory" name="category" required>
+                                <!-- Options populated by JS -->
+                            </select>
+
+                            <label for="sourceBias">Bias:</label>
+                            <select id="sourceBias" name="bias" required>
+                                <!-- Options populated by JS -->
+                            </select>
+                            
+                            <label for="sourceMinifluxFeedId">Miniflux Feed ID (Optional, auto-set if feed created):</label>
+                            <input type="number" id="sourceMinifluxFeedId" name="minifluxFeedId">
+
+                            <button type="submit" id="saveSourceButton" class="mt-1">Save Source</button>
+                        </form>
+                        <p id="modalError" class="error-message"></p>
+
+                        <hr class="panel-divider">
+
+                        <h3 class="panel-subheader">Import/Export Sources</h3>
+                        <div class="import-export-controls">
+                            <button id="exportSourcesBtn" class="action-button">Export All Sources</button>
+                            <input type="file" id="importFile" accept=".json" style="display: none;">
+                            <button id="importSourcesBtn" class="action-button">Import Sources from JSON</button>
+                            <button id="purgeSourcesDbBtn" class="action-button error" style="margin-left: auto;">Purge All Sources DB</button> <!-- Added Purge Button -->
+                        </div>
+                        <div id="importExportStatus" class="status-message" style="margin-top: 8px;"></div>
+
+                        <hr class="panel-divider">
+
+                        <h3 class="panel-subheader" id="sourceListHeader">Source List (<span id="sourceCount">0</span>)</h3>
+                        <div class="filter-controls">
                             <input type="text" id="sourceSearchInput" placeholder="Search sources by name or URL..." style="width: calc(100% - 120px); margin-right: var(--padding-tight);">
                             <button id="sourceSearchButton">Search</button>
                         </div>
-                        <table id="sourcesTable">
+                        <table id="sourcesTable" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr>
                                     <th class="sortable-header" data-sort-key="name">Name <span class="sort-arrow"></span></th>
@@ -578,20 +650,19 @@
         const API_BASE_URL = ''; // Assuming API is served from the same origin
         const statusPanel = document.getElementById('status-panel');
         const lastUpdatedDiv = document.getElementById('lastUpdated');
-        const sourcesTableBody = document.getElementById('sourcesTableBody');
-        const addSourceForm = document.getElementById('sourceForm');
+        const sourcesList = document.getElementById('sourcesTableBody'); // Corrected back to table body ID
+        const addSourceForm = document.getElementById('sourceForm'); // This is for the modal
         const categorySelect = document.getElementById('sourceCategory');
         const biasSelect = document.getElementById('sourceBias');
         const addSourceStatus = document.getElementById('modalError');
         const actionStatus = document.getElementById('dbActionStatus');
         const tagStatsContent = document.getElementById('tagStatsContainer');
         const totalUniqueTagsHeaderSpan = document.getElementById('totalUniqueTagsHeader');
-        const totalSourcesHeaderSpan = document.getElementById('totalSourcesHeader');
+        const sourceListHeader = document.getElementById('sourceListHeader'); // This contains the sourceCount span
+        const sourceCountSpan = document.getElementById('sourceCount'); // The actual span for the number
         const sourceSearchInput = document.getElementById('sourceSearchInput');
         const llmModelSelect = document.getElementById('llmModelSelect');
         const modelUpdateStatus = document.getElementById('setLlmModelButton');
-        const sourcesList = document.getElementById('sourcesTableBody');
-        const sourceCountSpan = document.getElementById('totalArticlesStat');
         const addSourceButton = document.getElementById('saveSourceButton');
         const sourceActionStatus = document.getElementById('fixCategoriesStatus');
         const sourceCategorySelect = document.getElementById('sourceCategory');
@@ -931,7 +1002,7 @@
          }
          function populateSelect(selectElement, options) { 
               // ... (Keep implementation here) ...
-              selectElement.innerHTML = '<option value="" disabled selected>Select...</option>'; 
+              selectElement.innerHTML = '<option value=\"\" disabled selected>Select...</option>'; 
             options.forEach(option => {
                 const opt = document.createElement('option');
                 opt.value = option;
@@ -940,14 +1011,48 @@
             });
           }
 
+        // This is the function that needs to be moved earlier
+        function populateCategoryDropdown(selectElement) {
+            if (!selectElement) {
+                console.warn("populateCategoryDropdown: selectElement is null");
+                return;
+            }
+            // Assuming availableCategories is a globally available array
+            populateSelect(selectElement, availableCategories);
+        }
+
         // --- Functions for Source Management ---
-        async function loadSources() { 
-             // ... (Keep implementation here) ...
-             sourcesList.innerHTML = '<tr><td colspan="7">Loading sources...</td></tr>';
+
+        // Function to update the source count display
+        function updateSourceCount(count, isFiltered = false, totalCount = 0) {
+            // const sourceCountSpan = document.getElementById('sourceCount'); // Already global
+            if (sourceCountSpan) {
+                if (isFiltered) {
+                    sourceCountSpan.textContent = `${count} (Filtered / Total: ${totalCount})`;
+                } else {
+                    sourceCountSpan.textContent = count;
+                }
+            } else {
+                console.warn("updateSourceCount: sourceCountSpan element not found");
+            }
+        }
+
+        async function loadSources() {
+            const sourcesTableBody = document.getElementById('sourcesTableBody');
+            const sourceSearchInput = document.getElementById('sourceSearchInput');
+            // const searchTerm = sourceSearchInput ? sourceSearchInput.value.toLowerCase() : ""; // Will be handled by filterSources
+
+            if (!sourcesTableBody) {
+                console.error("CRITICAL: sourcesTableBody element not found!");
+                updateSourceCount(0);
+                return;
+            }
+            sourcesTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading sources...</td></tr>';
             console.log("🔄 Loading sources...");
+
             try {
-                const timestamp = Date.now();
-                const response = await fetch(`http://localhost:5001/api/sources?_t=${timestamp}`, {
+                const timestamp = Date.now(); // Prevent caching issues
+                const response = await fetch(`/api/sources?_t=${timestamp}`, {
                     method: 'GET',
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -955,101 +1060,113 @@
                         'Expires': '0'
                     }
                 });
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                const fetchedSources = await response.json();
-                allSources = fetchedSources;
-                console.log('✅ Sources loaded:', allSources.length, 'items');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                allSources = await response.json(); // Populate the global allSources
+                console.log(`✅ Sources loaded: ${allSources.length} items`);
+
                 if (currentSortKey) {
                     console.log(`🔄 Re-applying sort by ${currentSortKey} (${currentSortDirection}) after loading`);
+                    // Temporarily reverse direction so sortSources applies the correct one
                     const tempDirection = currentSortDirection;
                     currentSortDirection = (tempDirection === 'asc') ? 'desc' : 'asc'; 
-                    sortSources(currentSortKey);
+                    sortSources(currentSortKey); // This will call renderSourcesTable
                 } else {
-                    renderSourcesTable();
+                    renderSourcesTable(); // Render all sources if no sort key
                 }
+                
+                // After loading sources, also refresh the category dropdown in the add/edit modal
+                const categoryDropdown = document.getElementById('sourceCategory'); // For add form in modal
+                if (categoryDropdown) populateCategoryDropdown(categoryDropdown);
+                
+                // Also for the non-modal form if it uses a different ID (assuming it's the same for now)
+                // populateCategoryDropdown(document.getElementById('category'));
+
+
             } catch (error) {
                 console.error('❌ Error fetching sources:', error);
-                sourcesList.innerHTML = `<tr><td colspan="7">Error loading sources: ${error.message}</td></tr>`;
-                if (totalSourcesHeaderSpan) {
-                    totalSourcesHeaderSpan.textContent = `(Total: Error)`;
-                }
+                if (sourcesTableBody) sourcesTableBody.innerHTML = `<tr><td colspan="6" class="error-message" style="text-align:center;">Error loading sources: ${error.message}</td></tr>`;
+                updateSourceCount(0); // Set count to 0 on error
             }
-         }
+        }
+
         function renderSourcesTable(sourcesToRender = allSources) { 
-             // ... (Keep implementation here) ...
-             console.log("🔄 Rendering sources table with", sourcesToRender.length, "sources");
-            sourcesList.innerHTML = '';
-            // Update header count: if sourcesToRender is the same as allSources, show allSources.length.
-            // Otherwise, it's a filtered view, so show sourcesToRender.length.
-            if (totalSourcesHeaderSpan) {
-                if (sourcesToRender === allSources) {
-                    totalSourcesHeaderSpan.textContent = `(Total: ${allSources.length})`;
-                } else {
-                    totalSourcesHeaderSpan.textContent = `(Filtered: ${sourcesToRender.length} / Total: ${allSources.length})`;
-                }
-            }
-            if (sourcesToRender.length === 0) {
-                sourcesList.innerHTML = '<tr><td colspan="6">No sources match search or none exist.</td></tr>'; // Adjusted colspan
+            const sourcesTableBody = document.getElementById('sourcesTableBody');
+            if (!sourcesTableBody) {
+                console.error("CRITICAL: sourcesTableBody element not found for rendering!");
+                updateSourceCount(0);
                 return;
             }
-            sourcesToRender.forEach((source, index) => {
-                const row = sourcesList.insertRow();
-                row.insertCell().textContent = source.name || ''; // Name
+            console.log("🔄 Rendering sources table with", sourcesToRender.length, "sources");
+            sourcesTableBody.innerHTML = ''; // Clear previous rows
 
-                const urlCell = row.insertCell(); // URL
+            // Update header count
+            const isFiltered = sourcesToRender !== allSources;
+            updateSourceCount(sourcesToRender.length, isFiltered, allSources.length);
+
+            if (sourcesToRender.length === 0) {
+                sourcesTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No sources match search or none exist.</td></tr>';
+                // updateSourceCount(0, isFiltered, allSources.length); // Already called above
+                return;
+            }
+
+            sourcesToRender.forEach(source => { // Changed from (source, index)
+                const row = sourcesTableBody.insertRow();
+                
+                row.insertCell().textContent = source.name || ''; 
+
+                const urlCell = row.insertCell();
                 if (source.url) {
                     const link = document.createElement('a');
                     link.href = source.url;
                     link.textContent = source.url;
-                    link.target = '_blank'; // Open in new tab
+                    link.target = '_blank'; 
                     link.style.color = 'var(--primary-accent-color)';
                     urlCell.appendChild(link);
                 } else {
                     urlCell.textContent = '';
                 }
 
-                const categoryCell = row.insertCell(); // Category
-                const categorySelect = document.createElement('select');
-                categorySelect.dataset.field = 'category';
-                categorySelect.dataset.sourceId = source.id;
+                const categoryCell = row.insertCell();
+                const categorySelectElement = document.createElement('select');
+                categorySelectElement.dataset.field = 'category';
+                categorySelectElement.dataset.sourceId = source.id; // Ensure source.id is available
                 const sourceCategory = (source.category || '').trim();
-                categorySelect.dataset.originalValue = sourceCategory;
-                categorySelect.innerHTML = '';
-                availableCategories.forEach(category => {
+                categorySelectElement.dataset.originalValue = sourceCategory;
+                availableCategories.forEach(cat => {
                     const option = document.createElement('option');
-                    option.value = category;
-                    option.textContent = category;
-                    option.selected = (sourceCategory === category);
-                    categorySelect.appendChild(option);
+                    option.value = cat;
+                    option.textContent = cat;
+                    option.selected = (sourceCategory === cat);
+                    categorySelectElement.appendChild(option);
                 });
-                categorySelect.disabled = !source.id;
-                categoryCell.appendChild(categorySelect);
+                categorySelectElement.disabled = !source.id;
+                categoryCell.appendChild(categorySelectElement);
 
-                const biasCell = row.insertCell(); // Bias
-                const biasSelect = document.createElement('select');
-                biasSelect.dataset.field = 'bias';
-                biasSelect.dataset.sourceId = source.id;
+                const biasCell = row.insertCell();
+                const biasSelectElement = document.createElement('select');
+                biasSelectElement.dataset.field = 'bias';
+                biasSelectElement.dataset.sourceId = source.id; // Ensure source.id is available
                 const sourceBias = (source.bias || '').trim();
-                biasSelect.dataset.originalValue = sourceBias;
-                biasSelect.innerHTML = '';
-                availableBiases.forEach(bias => {
+                biasSelectElement.dataset.originalValue = sourceBias;
+                availableBiases.forEach(b => {
                     const option = document.createElement('option');
-                    option.value = bias;
-                    option.textContent = bias;
-                    option.selected = (sourceBias === bias);
-                    biasSelect.appendChild(option);
+                    option.value = b;
+                    option.textContent = b;
+                    option.selected = (sourceBias === b);
+                    biasSelectElement.appendChild(option);
                 });
-                biasSelect.disabled = !source.id;
-                biasCell.appendChild(biasSelect);
+                biasSelectElement.disabled = !source.id;
+                biasCell.appendChild(biasSelectElement);
 
-                const minifluxIdCell = row.insertCell(); // Miniflux ID
-                minifluxIdCell.textContent = source.minifluxFeedId || 'Not Synced'; // Use camelCase
+                row.insertCell().textContent = source.minifluxFeedId || 'Not Synced';
 
-                const actionsCell = row.insertCell(); // Actions
+                const actionsCell = row.insertCell();
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
-                deleteButton.classList.add('delete-button');
-                if (source.id) {
+                deleteButton.className = 'delete-button'; 
+                if (source.id) { // Ensure source.id is available
                     deleteButton.addEventListener('click', () => deleteSource(source.id, source.name));
                 } else {
                     deleteButton.disabled = true;
@@ -1057,29 +1174,31 @@
                 }
                 actionsCell.appendChild(deleteButton);
             });
-         }
-        function filterSources() { 
-            // ... (Keep implementation here) ...
-             console.log("🔍 Filtering sources with search term:", sourceSearchInput.value);
+            // updateSourceCount(sourcesToRender.length, isFiltered, allSources.length); // Called at the beginning now
+        }
+
+        function filterSources() {
+            const sourceSearchInput = document.getElementById('sourceSearchInput');
+            console.log("🔍 Filtering sources with search term:", sourceSearchInput.value);
             const searchTerm = sourceSearchInput.value.toLowerCase();
             const filteredSources = allSources.filter(source => (
                 (source.name || '').toLowerCase().includes(searchTerm) ||
                 (source.url || '').toLowerCase().includes(searchTerm) ||
-                (source.category || '').toLowerCase().includes(searchTerm) ||
-                (source.bias || '').toLowerCase().includes(searchTerm)
+                (source.category || '').toLowerCase().includes(searchTerm) || // Added category to filter
+                (source.bias || '').toLowerCase().includes(searchTerm)       // Added bias to filter
             ));
             console.log(`   Found ${filteredSources.length} sources matching search term`);
-            renderSourcesTable(filteredSources);
-         }
-        function sortSources(key) { 
-             // ... (Keep implementation here) ... 
-             console.log(`🔄 Sorting sources by ${key}`);
+            renderSourcesTable(filteredSources); // Pass filtered sources to render
+        }
+
+        function sortSources(key) {
+            console.log(`🔄 Sorting sources by ${key}`);
             const direction = (key === currentSortKey && currentSortDirection === 'asc') ? 'desc' : 'asc';
             allSources.sort((a, b) => {
                 let valA = a[key] || '';
                 let valB = b[key] || '';
-                if (key === 'minifluxFeedId') { // Corrected to camelCase
-                    valA = parseInt(valA, 10) || 0;
+                if (key === 'minifluxFeedId') {
+                    valA = parseInt(valA, 10) || 0; // Treat non-numeric/missing as 0 for sort
                     valB = parseInt(valB, 10) || 0;
                     return direction === 'asc' ? valA - valB : valB - valA;
                 }
@@ -1091,15 +1210,17 @@
             });
             currentSortKey = key;
             currentSortDirection = direction;
+            // Update sort arrows in table headers
             document.querySelectorAll('#sourcesTable th.sortable-header .sort-arrow').forEach(arrowSpan => {
                 arrowSpan.classList.remove('asc', 'desc');
                 if (arrowSpan.parentElement.dataset.sortKey === key) {
                     arrowSpan.classList.add(direction);
                 }
             });
-            renderSourcesTable();
-         }
-         async function updateSourceField(sourceId, field, value) { 
+            renderSourcesTable(); // Render with newly sorted allSources
+        }
+
+        async function updateSourceField(sourceId, field, value) { 
              // ... (Keep implementation here) ... 
               console.log(`⭐ updateSourceField: Received sourceId: ${sourceId}, field: ${field}, value: ${value}`);
             sourceActionStatus.textContent = `Updating ${field} for source ${sourceId}...`;
@@ -1466,7 +1587,7 @@
                     handleFieldChange(event.target);
                 }
             });
-             document.querySelectorAll('#sourcesTable th.sortable-header').forEach(headerCell => {
+             document.querySelectorAll('#sourcesTable th.sortable-header').forEach(headerCell => { // Corrected selector for sortable headers in the table
                  headerCell.addEventListener('click', () => sortSources(headerCell.dataset.sortKey));
              });
              purgeDbButton?.addEventListener('click', () => { if (confirm('Are you SURE? This will delete ALL news items!')) { handleDbAction('purge-db'); } });
@@ -1496,7 +1617,175 @@
                 }
             });
 
+            // Import/Export Buttons
+            const exportBtn = document.getElementById('exportSourcesBtn');
+            if(exportBtn) {
+                exportBtn.addEventListener('click', exportSources);
+            }
+
+            const importBtn = document.getElementById('importSourcesBtn');
+            const importFileInput = document.getElementById('importFile');
+            if(importBtn && importFileInput) {
+                // Trigger file input click when "Import Sources" button is clicked
+                importBtn.addEventListener('click', () => importFileInput.click()); 
+                // Handle file selection
+                importFileInput.addEventListener('change', importSourcesFromFile);
+            }
+
+            const purgeSourcesBtn = document.getElementById('purgeSourcesDbBtn');
+            if (purgeSourcesBtn) {
+                purgeSourcesBtn.addEventListener('click', handlePurgeAllSources);
+            }
+
         });
+
+        // --- Import/Export Sources ---
+        async function exportSources() {
+            const statusDiv = document.getElementById('importExportStatus');
+            statusDiv.textContent = 'Exporting sources...';
+            statusDiv.className = 'status-message info';
+            try {
+                const response = await fetch('/api/sources/export');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to export sources. Unknown error.' }));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'sources_export.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                statusDiv.textContent = 'Sources exported successfully.';
+                statusDiv.className = 'status-message success';
+            } catch (error) {
+                console.error('Error exporting sources:', error);
+                statusDiv.textContent = `Error exporting sources: ${error.message}`;
+                statusDiv.className = 'status-message error';
+            }
+        }
+
+        async function importSourcesFromFile() {
+            const statusDiv = document.getElementById('importExportStatus'); // Correct ID for status
+            const fileInput = document.getElementById('importFile');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                statusDiv.textContent = 'Please select a JSON file to import.';
+                statusDiv.className = 'status-message error';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            if (file.type !== 'application/json') {
+                statusDiv.textContent = 'Invalid file type. Please select a JSON file.';
+                statusDiv.className = 'status-message error';
+                return;
+            }
+
+            statusDiv.textContent = 'Importing sources...'; // Initial message
+            statusDiv.className = 'status-message info'; // Using 'info' for pending
+
+            const formData = new FormData();
+            // Backend expects 'sourcesFile' as per multer setup in sourceRoutes.js
+            // Make sure your multer field name matches this in sourceRoutes.js `upload.single('sourcesFile')`
+            formData.append('sourcesFile', file); // Corrected back to 'sourcesFile' to match backend multer config
+
+            let importSucceededFully = false;
+
+            try {
+                const response = await fetch('/api/sources/import', {
+                    method: 'POST',
+                    body: formData
+                    // Headers are not explicitly set for FormData; browser does it.
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                }
+                
+                let summaryHtml = `Import Complete: <br>Added: ${result.added}, Skipped: ${result.skipped}, Errors: ${result.errors}<br>`;
+                if (result.details && result.details.length > 0) {
+                    summaryHtml += 'Details:<ul>';
+                    result.details.forEach(detail => {
+                        summaryHtml += `<li>${detail.name || 'Unnamed Source'}: ${detail.status} - ${detail.message}</li>`;
+                    });
+                    summaryHtml += '</ul>';
+                }
+                statusDiv.innerHTML = summaryHtml;
+                
+                if (result.errors > 0 || (result.skipped > 0 && result.added === 0 && result.errors === 0) ) {
+                     statusDiv.className = 'status-message error';
+                } else if (result.skipped > 0) {
+                     statusDiv.className = 'status-message warning';
+                } else {
+                     statusDiv.className = 'status-message success';
+                     importSucceededFully = true;
+                }
+                
+                loadSources(); 
+                loadTagStats();
+
+            } catch (error) {
+                console.error('Error importing sources:', error);
+                statusDiv.textContent = `Error importing sources: ${error.message}`;
+                statusDiv.className = 'status-message error';
+            } finally {
+                // Clear the file input for next use
+                fileInput.value = ''; 
+                // Optional: Clear status message after a delay if it wasn't a full success or explicit error
+                // if (!importSucceededFully && !statusDiv.classList.contains('error') && !statusDiv.classList.contains('warning')) {
+                //    setTimeout(() => { 
+                //        if (statusDiv.textContent.startsWith("Importing sources...")) { // Only clear if it's still the pending message
+                //             statusDiv.textContent = 'Import operation finished.'; 
+                //             statusDiv.className = 'status-message info';
+                //        }
+                //    }, 5000);
+                // } else if (importSucceededFully) {
+                //     setTimeout(() => { statusDiv.textContent = ''; statusDiv.className = 'status-message'; }, 7000);
+                // }
+            }
+        }
+
+        // --- Function to Handle Purging All Sources ---
+        async function handlePurgeAllSources() {
+            const statusDiv = document.getElementById('importExportStatus'); // Reuse status div for messages
+            if (!confirm("DANGER ZONE! Are you absolutely sure you want to delete ALL sources from the database AND attempt to remove them from Miniflux? This action cannot be undone.")) {
+                return;
+            }
+            if (!confirm("REALLY DANGER ZONE! Second confirmation: This will wipe your sources. Proceed?")) {
+                return;
+            }
+
+            statusDiv.textContent = 'Purging all sources... This may take a moment.';
+            statusDiv.className = 'status-message warning'; // Use warning class for in-progress
+
+            try {
+                const response = await fetch('/api/sources/purge-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                }
+                statusDiv.textContent = result.message || 'All sources purged successfully.';
+                statusDiv.className = 'status-message success';
+                loadSources(); // Refresh the source list (should be empty)
+                loadTagStats(); // Refresh stats
+            } catch (error) {
+                console.error('Error purging all sources:', error);
+                statusDiv.textContent = `Error purging sources: ${error.message}`;
+                statusDiv.className = 'status-message error';
+            }
+        }
 
     </script>
 </body>

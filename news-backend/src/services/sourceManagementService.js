@@ -5,6 +5,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') }); //
 
 // Import the Source model
 const Source = require('../models/Source'); 
+const { PoliticalBias, NewsCategory } = require('../types'); // Import enums for validation
+const { BIAS_CATEGORIES } = require('../utils/constants'); // <<< Import BIAS_CATEGORIES
 
 // --- Miniflux Client Configuration ---
 const minifluxClient = axios.create({
@@ -329,6 +331,248 @@ async function getUniqueSourceCategories() {
   }
 }
 
+async function exportAllSources() {
+  try {
+    console.log("[SourceService - exportAllSources] Fetching sources for export...");
+    // Select only specific fields for export by INCLUSION
+    const sources = await Source.find({}, {
+      _id: 0,         // Exclude _id
+      name: 1,        // Include name
+      url: 1,         // Include url
+      alternateUrl: 1,// Include alternateUrl
+      category: 1,    // Include category
+      bias: 1         // Include bias
+      // Other fields (uuid, minifluxFeedId, createdAt, updatedAt) are excluded by default
+    }).lean();
+    console.log(`[SourceService - exportAllSources] Exporting ${sources.length} sources.`);
+    return sources;
+  } catch (error) {
+    console.error("[SourceService - exportAllSources] Error fetching sources for export:", error);
+    throw new Error('Failed to retrieve sources for export.');
+  }
+}
+
+// Helper function to process a single imported source
+async function _processSingleImportedSource(sourceData) {
+  const { url, name, category, bias, alternateUrl } = sourceData;
+
+  // 1. Validate required fields
+  if (!url || !name || !category || !bias) {
+    return { success: false, message: `Skipped: Missing required fields (url, name, category, bias) for source '${name || url}'.` };
+  }
+
+  // 2. Validate category and bias against enums/constants
+  if (!Object.values(NewsCategory).includes(category.toUpperCase())) {
+    return { success: false, message: `Skipped: Invalid category '${category}' for source '${name}'.` };
+  }
+  if (!BIAS_CATEGORIES.includes(bias.toUpperCase())) { 
+    return { success: false, message: `Skipped: Invalid bias '${bias}' (checking against [${BIAS_CATEGORIES.join(', ')}]) for source '${name}'.` };
+  }
+
+  try {
+    // 3. Check for duplicate URL in DB
+    const existingSourceInDb = await Source.findOne({ url: url });
+    if (existingSourceInDb) {
+      return { success: false, message: `Skipped: Source with URL ${url} already exists in local DB (Name: ${existingSourceInDb.name}).` };
+    }
+
+    const minifluxCategoryId = await ensureMinifluxCategory(category.toUpperCase()); 
+    if (!minifluxCategoryId) { // ensureMinifluxCategory now throws, but as a safeguard:
+        return { success: false, message: `Failed to ensure Miniflux category '${category.toUpperCase()}' for source '${name}'.` };
+    }
+
+    let minifluxFeedId = null;
+    let finalMinifluxMessage = ''; // To accumulate Miniflux status messages
+
+    try {
+      // Attempt to CREATE feed in Miniflux
+      console.log(`[Miniflux] Attempting to create feed for imported source: ${url} in category ID: ${minifluxCategoryId}`);
+      const createResponse = await minifluxClient.post('/v1/feeds', {
+        feed_url: url,
+        category_id: minifluxCategoryId,
+      });
+      console.log(`[Miniflux] Response from feed creation for ${url}: Status: ${createResponse.status}, Data: ${JSON.stringify(createResponse.data, null, 2)}`);
+      minifluxFeedId = createResponse.data?.feed_id;
+      
+      if (minifluxFeedId === undefined) {
+          const warnMsg = `WARNING: minifluxFeedId is undefined after creating feed for ${url}. Expected 'feed_id' in response.data.`;
+          console.warn(`[Miniflux] ${warnMsg}`);
+          finalMinifluxMessage += `${warnMsg} `;
+      } else {
+        console.log(`[Miniflux] Successfully created feed for ${url} with Miniflux Feed ID: ${minifluxFeedId}`);
+      }
+    } catch (createError) {
+      const initialErrorMessage = createError.response?.data?.error_message || createError.message;
+      
+      if (initialErrorMessage && (initialErrorMessage.includes("This feed already exists") || initialErrorMessage.includes("duplicated feed"))) {
+        // Log as info because this is an expected path we handle
+        console.info(`[Miniflux] Feed ${url} reported as already existing during creation attempt: "${initialErrorMessage}". Proceeding to find and link.`);
+        finalMinifluxMessage += `Feed reported as existing by Miniflux. Attempting to find, link, and ensure correct category. Original error: '${initialErrorMessage}'. `;
+        console.log(`[Miniflux] Feed ${url} reported as already existing. Attempting to find its ID and ensure correct category.`);
+        try {
+          const allFeedsResponse = await minifluxClient.get('/v1/feeds');
+          const existingFeed = allFeedsResponse.data.find(feed => feed.feed_url === url);
+          
+          if (existingFeed) {
+            minifluxFeedId = existingFeed.id; // Found it!
+            const foundMsg = `Found existing Miniflux feed ${url} with ID: ${minifluxFeedId}. Current Miniflux category ID: ${existingFeed.category.id}.`;
+            console.log(`[Miniflux] ${foundMsg}`);
+            finalMinifluxMessage += `${foundMsg} `;
+            
+            if (existingFeed.category.id !== minifluxCategoryId) {
+              const catUpdateAttemptMsg = `Attempting to update Miniflux category to ${minifluxCategoryId}.`;
+              console.log(`[Miniflux] ${catUpdateAttemptMsg}`);
+              finalMinifluxMessage += `${catUpdateAttemptMsg} `;
+              try {
+                await minifluxClient.put(`/v1/feeds/${minifluxFeedId}`, { category_id: minifluxCategoryId });
+                const catUpdateSuccessMsg = `Successfully updated category for existing feed ${url}.`;
+                console.log(`[Miniflux] ${catUpdateSuccessMsg}`);
+                finalMinifluxMessage += `${catUpdateSuccessMsg} `;
+              } catch (updateError) {
+                const updateErrorMessage = updateError.response?.data?.error_message || updateError.message;
+                const catUpdateFailMsg = `Failed to update category for existing feed ${url} (ID: ${minifluxFeedId}): ${updateErrorMessage}`;
+                console.error(`[Miniflux] ${catUpdateFailMsg}`); // This is a legit error during update attempt
+                finalMinifluxMessage += `${catUpdateFailMsg} `;
+              }
+            }
+          } else {
+            const notFoundWarn = `WARNING: Feed ${url} reported as existing by Miniflux, but NOT FOUND in GET /v1/feeds. This is unexpected. Miniflux ID will remain null.`;
+            console.warn(`[Miniflux] ${notFoundWarn}`);
+            finalMinifluxMessage += `${notFoundWarn} `;
+          }
+        } catch (findError) {
+          const findErrorMsg = `Error occurred while trying to find/sync existing feed ${url} after 'already exists' error: ${findError.message}`;
+          console.error(`[Miniflux] ${findErrorMsg}`); // This is a legit error during find attempt
+          finalMinifluxMessage += `${findErrorMsg} `;
+        }
+      } else {
+        // Original createError was not "already exists" - this is a hard failure for this source's Miniflux integration.
+        // Log the full error response if available
+        console.error(`[Miniflux] Error during initial attempt to create feed for ${url}: ${initialErrorMessage}`);
+        if (createError.response?.data) {
+          console.error(`[Miniflux] Full error response data for ${url} during creation: ${JSON.stringify(createError.response.data, null, 2)}`);
+        }
+        const criticalMsg = `CRITICAL: Failed to create feed for ${url} due to non-duplicate error: '${initialErrorMessage}'. This source will not be imported.`;
+        console.error(`[Miniflux] ${criticalMsg}`);
+        return { success: false, message: `Failed to create feed in Miniflux for URL: ${url}. Error: ${initialErrorMessage}` };
+      }
+    }
+
+    // 6. Create and save the source in MongoDB
+    const sourceDoc = new Source({
+      uuid: uuidv4(), // Generate new UUID
+      url,
+      alternateUrl: alternateUrl || null,
+      name,
+      category: category.toUpperCase(),
+      bias: bias.toUpperCase(),
+      minifluxFeedId: minifluxFeedId || null, // Ensure it's null if undefined
+    });
+
+    await sourceDoc.save();
+    const dbSaveMsg = `Imported source to DB: ${name} (${url}), MongoDB _id: ${sourceDoc._id}, MinifluxFeedID: ${sourceDoc.minifluxFeedId}.`;
+    console.log(`[SourceService] ${dbSaveMsg}`);
+    
+    let importMessage = `Successfully imported source: ${name} (${url}). DB ID: ${sourceDoc._id}. Miniflux ID: ${sourceDoc.minifluxFeedId}.`;
+    if (finalMinifluxMessage.trim()) {
+        importMessage += ` Miniflux notes: ${finalMinifluxMessage.trim()}`;
+    }
+    return { success: true, message: importMessage, source: sourceDoc.toObject() };
+
+  } catch (error) { // Outer catch for local DB errors or critical ensureMinifluxCategory errors
+    console.error(`[SourceService - _processSingleImportedSource] Critical error for source '${name || url}':`, error);
+    return { success: false, message: `Critical error processing source '${name || url}': ${error.message}` };
+  }
+}
+
+async function importSources(sourcesToImport) {
+  if (!Array.isArray(sourcesToImport)) {
+    throw new Error('Invalid input: Expected an array of sources.');
+  }
+
+  const results = {
+    added: 0,
+    skipped: 0,
+    errors: 0,
+    details: []
+  };
+
+  console.log(`[SourceService - importSources] Starting import of ${sourcesToImport.length} sources.`);
+
+  for (const sourceData of sourcesToImport) {
+    const result = await _processSingleImportedSource(sourceData);
+    results.details.push({ name: sourceData.name || sourceData.url, status: result.success ? 'Imported' : 'Skipped/Error', message: result.message });
+    if (result.success) {
+      results.added++;
+    } else {
+      // Check if message indicates a skip due to existing or validation, vs an actual error
+      if (result.message.startsWith("Skipped:")) {
+          results.skipped++;
+      } else {
+          results.errors++;
+      }
+    }
+  }
+
+  console.log(`[SourceService - importSources] Import complete. Added: ${results.added}, Skipped: ${results.skipped}, Errors: ${results.errors}`);
+  return results;
+}
+
+async function purgeAllSources() {
+  console.log("[SourceService - purgeAllSources] Starting purge of ALL sources from DB and Miniflux.");
+  let dbDeletedCount = 0;
+  let minifluxAttemptedDeletions = 0;
+  let minifluxSuccessfulDeletions = 0;
+  let minifluxFailedDeletions = 0;
+
+  try {
+    // Step 1: Get all sources from DB to collect Miniflux feed IDs
+    const allSourcesInDb = await Source.find({}, { minifluxFeedId: 1, name: 1 }).lean();
+    minifluxAttemptedDeletions = allSourcesInDb.length;
+
+    // Step 2: Attempt to delete each feed from Miniflux
+    for (const source of allSourcesInDb) {
+      if (source.minifluxFeedId) {
+        try {
+          console.log(`[Miniflux] Attempting to delete feed ID: ${source.minifluxFeedId} for source: ${source.name}`);
+          await minifluxClient.delete(`/v1/feeds/${source.minifluxFeedId}`);
+          console.log(`[Miniflux] Successfully deleted feed ID: ${source.minifluxFeedId}`);
+          minifluxSuccessfulDeletions++;
+        } catch (minifluxError) {
+          console.error(`[Miniflux] Failed to delete feed ID ${source.minifluxFeedId} for source ${source.name}: ${minifluxError.response?.data?.error_message || minifluxError.message}`);
+          minifluxFailedDeletions++;
+          // Continue even if a Miniflux deletion fails
+        }
+      }
+    }
+
+    // Step 3: Delete all sources from MongoDB
+    const deletionResult = await Source.deleteMany({});
+    dbDeletedCount = deletionResult.deletedCount;
+    console.log(`[SourceService - purgeAllSources] Deleted ${dbDeletedCount} sources from MongoDB.`);
+
+    return {
+      success: true,
+      message: `Purge complete. DB: ${dbDeletedCount} deleted. Miniflux: ${minifluxSuccessfulDeletions} deleted, ${minifluxFailedDeletions} failed out of ${minifluxAttemptedDeletions} attempted.`,
+      dbDeletedCount,
+      minifluxAttemptedDeletions,
+      minifluxSuccessfulDeletions,
+      minifluxFailedDeletions
+    };
+
+  } catch (error) {
+    console.error("[SourceService - purgeAllSources] Critical error during purge operation:", error);
+    return {
+      success: false,
+      message: `Critical error during purge: ${error.message}`,
+      dbDeletedCount,
+      minifluxAttemptedDeletions,
+      minifluxSuccessfulDeletions,
+      minifluxFailedDeletions
+    };
+  }
+}
+
 // --- Export Functions ---
 module.exports = {
     // Removed loadSources, saveSources
@@ -340,5 +584,8 @@ module.exports = {
     getMinifluxFeeds,
     syncWithMinifluxFeeds, // Keep export, but function is disabled
     removeSourcesByUrl,    // Keep export, but function is disabled
-    getUniqueSourceCategories // <<< Export new function
+    getUniqueSourceCategories,
+    exportAllSources,
+    importSources,         
+    purgeAllSources      // Export the new purge function
 }; 

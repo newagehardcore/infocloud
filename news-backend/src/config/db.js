@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') }); // Correctly load .env from project root
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/news_aggregator'; // Default URI including DB name
 
