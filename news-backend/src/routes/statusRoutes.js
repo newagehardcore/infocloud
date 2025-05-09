@@ -306,8 +306,20 @@ router.get('/api/admin/tag-stats', async (req, res) => {
             {
                 $group: {
                     _id: "$keywords",
-                    categories: { $addToSet: "$source.category" },
-                    biases: { $addToSet: "$bias" }
+                    // Use $ifNull to ensure we never add null or undefined values to the set
+                    categories: { 
+                        $addToSet: { 
+                            $ifNull: [
+                                { $ifNull: ["$source.category", "Unknown"] }, 
+                                "Unknown"
+                            ] 
+                        }
+                    },
+                    biases: { 
+                        $addToSet: { 
+                            $ifNull: ["$bias", "Unknown"] 
+                        }
+                    }
                 }
             },
             // 5. Use $facet to calculate multiple stats in parallel
@@ -338,7 +350,10 @@ router.get('/api/admin/tag-stats', async (req, res) => {
                             $map: {
                                 input: "$byCategory",
                                 as: "catStat",
-                                in: { k: "$$catStat._id", v: "$$catStat.count" }
+                                in: { 
+                                    k: { $toString: { $ifNull: ["$$catStat._id", "Unknown"] } }, 
+                                    v: "$$catStat.count" 
+                                }
                             }
                         }
                     },
@@ -347,7 +362,10 @@ router.get('/api/admin/tag-stats', async (req, res) => {
                             $map: {
                                 input: "$byBias",
                                 as: "biasStat",
-                                in: { k: "$$biasStat._id", v: "$$biasStat.count" }
+                                in: { 
+                                    k: { $toString: { $ifNull: ["$$biasStat._id", "Unknown"] } }, 
+                                    v: "$$biasStat.count" 
+                                }
                             }
                         }
                     }

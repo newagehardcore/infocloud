@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Determine Ollama API URL
-const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://host.docker.internal:11434';
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
 console.log(`[LLM Service] Using Ollama API URL: ${OLLAMA_API_URL}`);
 
 // <<< Read LLM config >>>
