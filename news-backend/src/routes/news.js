@@ -96,7 +96,7 @@ router.get('/', async (req, res) => {
       }
 
       wordsForCloud.sort((a, b) => b.value - a.value);
-      wordsForCloud = wordsForCloud.slice(0, 1000);
+      wordsForCloud = wordsForCloud.slice(0, 500);
 
       if (wordsForCloud.length > 0) {
         console.log(`[GET /api/news] Sample of wordsForCloud being sent (first 3):`, JSON.stringify(wordsForCloud.slice(0, 3), null, 2));
