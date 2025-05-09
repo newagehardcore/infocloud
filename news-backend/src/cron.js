@@ -211,14 +211,27 @@ const scheduleCronJobs = () => {
     console.log(`\n+++++++++++++++\nCron Job: Starting keyword cache update task (using aggregateKeywordsForCloud)...`);
     const startTime = Date.now();
     try {
-      await aggregateKeywordsForCloud();
+      // Add timeout protection to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Keyword cache aggregation timed out after 60 seconds'));
+        }, 60000); // 60 second timeout
+      });
+      
+      // Race the normal operation against the timeout
+      await Promise.race([
+        aggregateKeywordsForCloud(),
+        timeoutPromise
+      ]);
+      
       const duration = (Date.now() - startTime) / 1000;
       console.log(`Cron Job: Finished keyword cache update task in ${duration.toFixed(2)} seconds.`);
     } catch (error) {
       const duration = (Date.now() - startTime) / 1000;
-      console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error);
+      console.error(`Cron Job: Error during keyword cache update task after ${duration.toFixed(2)} seconds:`, error.message || 'Unknown error');
+      console.log('Application will continue running despite keyword cache update failure');
     }
-     console.log(`+++++++++++++++                 \n`);
+    console.log(`+++++++++++++++                 \n`);
   });
   console.log('Scheduled: Update aggregated keyword cache every 2 minutes.'); // Updated log message
 

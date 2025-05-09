@@ -229,6 +229,7 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 *   **Data Source:** News originates from RSS feeds managed via Miniflux API, processed, and stored in MongoDB (`NewsItem` collection). **Sources themselves are managed in the MongoDB `Source` collection, which defines `source.category` and `source.bias` (the sole determinant of article bias), validated against respective enums (in `news-backend/src/types/index.js`).** The frontend consumes data *from the backend API*, not directly from Miniflux or RSS.
 *   **State Management (Frontend):** Check `src/contexts/` or `src/hooks/` for primary state management patterns.
 *   **Visualization:** The core 3D cloud is likely rendered by a component in `src/components/` using data passed as props.
+*   **Error Handling in Cache Aggregation:** The `aggregateKeywordsForCloud` function in `news-backend/src/services/wordProcessingService.js` has robust error handling to prevent server crashes. This function is called every 2 minutes by a cron job to update the keyword cache used for the tag cloud. The cron job has timeout protection (60 seconds) to prevent hanging processes.
 
 ## Project Structure
 
