@@ -460,74 +460,117 @@ async function aggregateKeywordsForCloud() {
     console.log('[Cache Aggregation] Full aggregation already in progress. Skipping.');
     return;
   }
-  keywordCache.isUpdating = true;
-  console.log('[Cache Aggregation] Starting full keyword aggregation for global cache...');
   
   try {
-    const allNewsItems = await NewsItem.find({ llmProcessed: true }).lean().exec(); 
-    console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true for cache aggregation.`); // <-- Log count
-    if (!allNewsItems || allNewsItems.length === 0) {
-      console.log('[Cache Aggregation] No llmProcessed:true items found in DB for cache aggregation.');
-      keywordCache.data = new Map();
-      keywordCache.timestamp = new Date();
-      keywordCache.isUpdating = false;
-      return;
-    }
+    keywordCache.isUpdating = true;
+    console.log('[Cache Aggregation] Starting full keyword aggregation for global cache...');
     
-    // Log first item check
-    if (allNewsItems.length > 0) {
+    // Create a new Map instance for temp storage to avoid issues with the existing one
+    const tempKeywordMap = new Map();
+    
+    try {
+      const allNewsItems = await NewsItem.find({ llmProcessed: true }).lean().exec();
+      console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true for cache aggregation.`);
+      
+      if (!allNewsItems || allNewsItems.length === 0) {
+        console.log('[Cache Aggregation] No llmProcessed:true items found in DB for cache aggregation.');
+        keywordCache.data = new Map();
+        keywordCache.timestamp = new Date();
+        return;
+      }
+      
+      // Log first item check
+      if (allNewsItems.length > 0) {
         const firstItem = allNewsItems[0];
         console.log(`[Cache Aggregation] First item check - ID: ${firstItem._id}, llmProcessed: ${firstItem.llmProcessed}`);
-    }
+      }
 
-    const tempKeywordMap = new Map(); // Map<string, { count: number, biases: Set<PoliticalBias>, categories: Set<NewsCategory>, items: Set<string> }>
-
-    allNewsItems.forEach(item => {
-      const itemBias = item.bias || PoliticalBias.Unknown;
-      const itemCategory = (item.source && item.source.category)
-        ? item.source.category
-        : NewsCategory.UNKNOWN;
-
-      (item.keywords || []).forEach(keywordText => {
-        const validatedKeyword = filterAndValidateKeyword(keywordText);
-        if (validatedKeyword) {
-          // <-- Log keyword and source item details -->
-          console.log(`[Cache Aggregation Item ${item._id}] Processing keyword: "${validatedKeyword}" (Source llmProcessed: ${item.llmProcessed})`); 
-          if (tempKeywordMap.has(validatedKeyword)) {
-            const entry = tempKeywordMap.get(validatedKeyword);
-            entry.count += 1;
-            entry.items.add(item._id ? item._id.toString() : item.minifluxEntryId.toString());
-            if (itemBias) entry.biases.add(itemBias);
-            if (itemCategory) entry.categories.add(itemCategory); // Add to set
-          } else {
-            tempKeywordMap.set(validatedKeyword, {
-              count: 1,
-              biases: itemBias ? new Set([itemBias]) : new Set(),
-              categories: itemCategory ? new Set([itemCategory]) : new Set(), // Initialize as Set
-              items: new Set([item._id ? item._id.toString() : item.minifluxEntryId.toString()])
-            });
+      // Process each news item
+      for (const item of allNewsItems) {
+        try {
+          // Safety checks for item structure
+          if (!item || (!item._id && !item.minifluxEntryId)) {
+            console.warn('[Cache Aggregation] Skipping invalid item without ID');
+            continue;
           }
+          
+          const itemId = item._id ? item._id.toString() : 
+                        (item.minifluxEntryId ? item.minifluxEntryId.toString() : 'unknown');
+          
+          const itemBias = item.bias || PoliticalBias.Unknown;
+          const itemCategory = (item.source && item.source.category)
+            ? item.source.category
+            : NewsCategory.UNKNOWN;
+
+          // Process keywords for this item
+          if (!item.keywords || !Array.isArray(item.keywords)) {
+            console.warn(`[Cache Aggregation] Item ${itemId} has no keywords or invalid keywords array`);
+            continue;
+          }
+          
+          for (const keywordText of item.keywords) {
+            try {
+              const validatedKeyword = filterAndValidateKeyword(keywordText);
+              if (!validatedKeyword) continue;
+              
+              console.log(`[Cache Aggregation Item ${itemId}] Processing keyword: "${validatedKeyword}" (Source llmProcessed: ${item.llmProcessed})`);
+              
+              if (tempKeywordMap.has(validatedKeyword)) {
+                const entry = tempKeywordMap.get(validatedKeyword);
+                entry.count += 1;
+                entry.items.add(itemId);
+                if (itemBias) entry.biases.add(itemBias);
+                if (itemCategory) entry.categories.add(itemCategory);
+              } else {
+                tempKeywordMap.set(validatedKeyword, {
+                  count: 1,
+                  biases: itemBias ? new Set([itemBias]) : new Set(),
+                  categories: itemCategory ? new Set([itemCategory]) : new Set(),
+                  items: new Set([itemId])
+                });
+              }
+            } catch (keywordError) {
+              console.error(`[Cache Aggregation] Error processing keyword "${keywordText}" for item ${itemId}:`, keywordError.message);
+              // Continue to next keyword rather than failing the entire process
+            }
+          }
+        } catch (itemError) {
+          console.error('[Cache Aggregation] Error processing item:', itemError.message);
+          // Continue to next item rather than failing the entire process
+        }
+      }
+
+      // Convert sets to arrays for the final cache structure
+      const newCacheData = new Map();
+      tempKeywordMap.forEach((value, key) => {
+        try {
+          newCacheData.set(key, {
+            ...value,
+            biases: Array.from(value.biases),
+            categories: Array.from(value.categories)
+          });
+        } catch (conversionError) {
+          console.error(`[Cache Aggregation] Error converting sets to arrays for keyword "${key}":`, conversionError.message);
+          // Skip this keyword rather than failing the entire process
         }
       });
-    });
 
-    // Convert sets to arrays for the final cache structure
-    const newCacheData = new Map();
-    tempKeywordMap.forEach((value, key) => {
-      newCacheData.set(key, {
-        ...value,
-        biases: Array.from(value.biases),
-        categories: Array.from(value.categories) // Convert categories set to array
-      });
-    });
-
-    keywordCache.data = newCacheData;
-    keywordCache.timestamp = new Date();
-    console.log(`[WordProcessingService] Global keywordCache updated by aggregateKeywordsForCloud: ${keywordCache.data.size} unique keywords from ${allNewsItems.length} items at ${keywordCache.timestamp.toISOString()}.`);
-
+      // Only update the main cache if we have data
+      if (newCacheData.size > 0) {
+        keywordCache.data = newCacheData;
+        keywordCache.timestamp = new Date();
+        console.log(`[WordProcessingService] Global keywordCache updated by aggregateKeywordsForCloud: ${keywordCache.data.size} unique keywords from ${allNewsItems.length} items at ${keywordCache.timestamp.toISOString()}.`);
+      } else {
+        console.warn('[Cache Aggregation] No valid keywords were processed. Keeping existing cache.');
+      }
+    } catch (dbError) {
+      console.error('[WordProcessingService] Database error during keyword aggregation:', dbError.message);
+      // Don't update the cache in case of database errors
+    }
   } catch (error) {
-    console.error('[WordProcessingService] Error during full keyword aggregation:', error);
+    console.error('[WordProcessingService] Critical error during full keyword aggregation:', error.message);
   } finally {
+    // Always make sure isUpdating is reset, even if crashes occur
     keywordCache.isUpdating = false;
   }
 }
