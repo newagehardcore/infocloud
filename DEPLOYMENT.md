@@ -174,31 +174,31 @@ The project includes several scripts to manage Docker container and volume backu
 
 1. **Volume Backup**:
 ```
-./docker-volume-backup.sh
+./scripts/docker/docker-volume-backup.sh
 ```
 This script creates backups of MongoDB and PostgreSQL data in the `docker-backups/volumes` directory.
 
 2. **Volume Restore**:
 ```
-./docker-volume-restore.sh
+./scripts/docker/docker-volume-restore.sh
 ```
 This script restores MongoDB and PostgreSQL data from backups in the `docker-backups/volumes` directory.
 
 3. **Container Snapshot**:
 ```
-./docker-container-snapshot.sh
+./scripts/docker/docker-container-snapshot.sh
 ```
 This script creates snapshots of all running containers as Docker images and saves them in the `docker-backups/snapshots/TIMESTAMP` directory.
 
 4. **Container Restore**:
 ```
-./docker-container-restore.sh TIMESTAMP
+./scripts/docker/docker-container-restore.sh TIMESTAMP
 ```
 This script restores containers from snapshots in the specified timestamp directory.
 
 Make these scripts executable before use:
 ```
-chmod +x docker-volume-backup.sh docker-volume-restore.sh docker-container-snapshot.sh docker-container-restore.sh
+chmod +x scripts/docker/docker-volume-backup.sh scripts/docker/docker-volume-restore.sh scripts/docker/docker-container-snapshot.sh scripts/docker/docker-container-restore.sh
 ```
 
 ## Monitoring and Maintenance

@@ -291,12 +291,12 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
 
 The project includes several scripts to backup and restore Docker containers and volumes:
 
-*   **docker-volume-backup.sh:** Creates backups of MongoDB and PostgreSQL data
-*   **docker-volume-restore.sh:** Restores MongoDB and PostgreSQL data from backups
-*   **docker-container-snapshot.sh:** Creates snapshots of running containers as Docker images
-*   **docker-container-restore.sh:** Restores containers from snapshots
+*   **scripts/docker/docker-volume-backup.sh:** Creates backups of MongoDB and PostgreSQL data
+*   **scripts/docker/docker-volume-restore.sh:** Restores MongoDB and PostgreSQL data from backups
+*   **scripts/docker/docker-container-snapshot.sh:** Creates snapshots of running containers as Docker images
+*   **scripts/docker/docker-container-restore.sh:** Restores containers from snapshots
 
-These scripts are stored in the project root directory and should be used for:
+These scripts are stored in the `scripts/docker` directory and should be used for:
 * Creating regular backups of application data
 * Saving the state of containers before making major changes
 * Restoring the system to a previous state if needed
