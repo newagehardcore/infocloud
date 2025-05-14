@@ -40,3 +40,6 @@ docker/mongodb/
 docker/postgres/
 docker/ollama_data/
 docker/mongodb_config/
+
+# Docker backups
+docker-backups/
