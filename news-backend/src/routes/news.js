@@ -83,7 +83,8 @@ router.get('/', async (req, res) => {
         text,
         value: keywordData.count,
         biases: keywordData.biases || [],
-        categories: keywordData.categories || [] // Ensure categories array is present
+        categories: keywordData.categories || [], // Ensure categories array is present
+        types: keywordData.types || [] // Add types array for font differentiation
       }));
 
       // Filter by category if a specific category is requested

@@ -12,7 +12,7 @@ const {
     importSources,
     purgeAllSources
 } = require('../services/sourceManagementService'); 
-const { BIAS_CATEGORIES } = require('../utils/constants'); // Import defined bias categories
+const { BIAS_CATEGORIES, SOURCE_TYPES } = require('../utils/constants'); // Import defined categories
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService'); // Added for cache rebuild
 const mongoose = require('mongoose'); // Need mongoose for connection.db
 
@@ -68,13 +68,38 @@ router.get('/config', async (req, res) => {
         res.setHeader('Expires', '0');
         res.setHeader('Surrogate-Control', 'no-store');
         
+        // Debug output to check SOURCE_TYPES
+        console.log("SOURCE_TYPES being sent:", SOURCE_TYPES);
+        
         res.json({
             biasCategories: BIAS_CATEGORIES,
-            sourceCategories: categories // Add categories to response
+            sourceCategories: categories, 
+            sourceTypes: SOURCE_TYPES
         });
     } catch (error) {
         console.error("Error fetching config:", error);
         res.status(500).json({ message: "Failed to fetch configuration", error: error.message });
+    }
+});
+
+// GET /api/sources/types - Get source types only
+router.get('/types', async (req, res) => {
+    try {
+        console.log("Accessing /api/sources/types endpoint");
+        console.log("SOURCE_TYPES:", SOURCE_TYPES);
+        
+        // Add cache-control headers
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+        
+        res.json({
+            sourceTypes: SOURCE_TYPES
+        });
+    } catch (error) {
+        console.error("Error fetching source types:", error);
+        res.status(500).json({ message: "Failed to fetch source types", error: error.message });
     }
 });
 
@@ -99,7 +124,7 @@ router.get('/export', async (req, res) => {
 // POST /api/sources - Add a new source
 router.post('/', async (req, res) => {
     try {
-        const { url, name, category, bias } = req.body;
+        const { url, name, category, bias, type } = req.body;
 
         // --- Updated Validation ---
         // Ensure all required fields are present and non-empty
@@ -117,9 +142,13 @@ router.post('/', async (req, res) => {
         if (!BIAS_CATEGORIES.includes(bias)) {
              return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
         }
+        // Validate type if provided
+        if (type && !SOURCE_TYPES.includes(type)) {
+            return res.status(400).json({ message: `Invalid source type. Must be one of: ${SOURCE_TYPES.join(', ')}` });
+        }
         // --- End Updated Validation ---
 
-        const newSource = await addSource({ url, name, category: category.trim(), bias }); // Trim category before saving
+        const newSource = await addSource({ url, name, category: category.trim(), bias, type }); // Add type to addSource
         res.status(201).json(newSource);
     } catch (error) {
         console.error("Error adding source:", error);
@@ -192,20 +221,24 @@ router.put('/:id', async (req, res) => {
         const updates = req.body;
 
         // --- Validation --- 
-        const allowedFields = ['name', 'category', 'bias'];
+        const allowedFields = ['name', 'category', 'bias', 'type'];
         const receivedFields = Object.keys(updates);
         const invalidFields = receivedFields.filter(field => !allowedFields.includes(field));
         
         if (invalidFields.length > 0) {
-             return res.status(400).json({ message: `Invalid fields provided: ${invalidFields.join(', ')}. Only name, category, bias can be updated.` });
+             return res.status(400).json({ message: `Invalid fields provided: ${invalidFields.join(', ')}. Only name, category, bias, type can be updated.` });
         }
         
         if (Object.keys(updates).length === 0) {
-            return res.status(400).json({ message: "No update fields provided (name, category, or bias)." });
+            return res.status(400).json({ message: "No update fields provided (name, category, bias, or type)." });
         }
 
         if (updates.bias && !BIAS_CATEGORIES.includes(updates.bias)) {
             return res.status(400).json({ message: `Invalid bias category. Must be one of: ${BIAS_CATEGORIES.join(', ')}` });
+        }
+
+        if (updates.type && !SOURCE_TYPES.includes(updates.type)) {
+            return res.status(400).json({ message: `Invalid source type. Must be one of: ${SOURCE_TYPES.join(', ')}` });
         }
         // --- End Validation ---
         
@@ -235,6 +268,25 @@ router.put('/:id', async (req, res) => {
                 changesPropagated = true;
             } catch (newsItemUpdateError) {
                 console.error(`[sourceRoutes] Error updating NewsItem bias for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
+            }
+        }
+
+        // If type was updated, propagate this change to related NewsItems
+        if (updatedSource && updates.type && updatedSource.minifluxFeedId) {
+            const newType = updates.type;
+            const feedId = updatedSource.minifluxFeedId;
+            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) type updated to ${newType}. Propagating to NewsItems.`);
+            try {
+                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
+                    { 'source.minifluxFeedId': feedId },
+                    { 
+                        $set: { 'source.type': newType } 
+                    }
+                );
+                console.log(`[sourceRoutes] NewsItem type update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
+                changesPropagated = true;
+            } catch (newsItemUpdateError) {
+                console.error(`[sourceRoutes] Error updating NewsItem type for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
             }
         }
 

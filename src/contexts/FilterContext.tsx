@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PoliticalBias, NewsCategory } from '../types';
+import { PoliticalBias, NewsCategory, SourceType } from '../types';
 
 // Move the event name constant here and export it
 export const BIAS_UPDATE_EVENT = 'bias-update';
+export const TYPE_UPDATE_EVENT = 'type-update';
 
 interface ApiSource {
   name: string;
@@ -20,11 +21,21 @@ interface BiasUpdateDetail {
   enabled: boolean;
 }
 
+interface TypeUpdateDetail {
+  type: SourceType;
+  enabled: boolean;
+}
+
 interface FilterContextType {
   // Bias filters
   enabledBiases: Set<PoliticalBias>;
   toggleBias: (bias: PoliticalBias, event?: React.MouseEvent<HTMLButtonElement>) => void;
   isEnabled: (bias: PoliticalBias) => boolean;
+  
+  // Source type filters
+  enabledTypes: Set<SourceType>;
+  toggleType: (type: SourceType, event?: React.MouseEvent<HTMLButtonElement>) => void;
+  isTypeEnabled: (type: SourceType) => boolean;
   
   // Category filter (NEW)
   selectedCategory: NewsCategory | 'all'; // Can be a specific category or 'all'
@@ -81,8 +92,31 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     return initialBiases;
   });
 
+  // Source type state
+  const [enabledTypes, setEnabledTypes] = useState<Set<SourceType>>(() => {
+    const savedTypes = localStorage.getItem('enabled_types');
+    let initialTypes = new Set(Object.values(SourceType));
+    if (savedTypes) {
+      try {
+        const parsed = JSON.parse(savedTypes) as string[];
+        const validTypes = parsed.filter(t => Object.values(SourceType).includes(t as SourceType));
+        if (validTypes.length > 0) {
+          initialTypes = new Set(validTypes as SourceType[]);
+        }
+      } catch (e) {
+         console.error("Failed to parse types from localStorage", e);
+      }
+    } else {
+      // If no types are saved, enable all types by default
+      localStorage.setItem('enabled_types', JSON.stringify(Object.values(SourceType)));
+    }
+    return initialTypes;
+  });
+
   // State to store biases before a solo action
   const [previousBiasSet, setPreviousBiasSet] = useState<Set<PoliticalBias> | null>(null);
+  // State to store types before a solo action
+  const [previousTypeSet, setPreviousTypeSet] = useState<Set<SourceType> | null>(null);
 
   // Category filter state (NEW)
   const [selectedCategory, setSelectedCategoryState] = useState<NewsCategory | 'all'>(() => {
@@ -234,6 +268,81 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     }));
   };
 
+  // Toggle a source type with modifier key support
+  const toggleType = (type: SourceType, event?: React.MouseEvent<HTMLButtonElement>) => {
+    if (!Object.values(SourceType).includes(type)) {
+      console.error('Invalid type value:', type);
+      return;
+    }
+
+    let newEnabledTypes: Set<SourceType>;
+    let isNowEnabled: boolean | undefined;
+
+    // Command/Ctrl + Click logic
+    if (event && (event.metaKey || event.ctrlKey)) {
+      // Check if the clicked type is ALREADY the only one selected
+      if (enabledTypes.size === 1 && enabledTypes.has(type)) {
+        console.log(`Inverting solo for type: ${type} (selecting all others)`);
+        // Select all types EXCEPT the clicked one
+        newEnabledTypes = new Set(Object.values(SourceType));
+        newEnabledTypes.delete(type);
+        setPreviousTypeSet(null); // Clear previous state as this isn't a reversible solo
+        isNowEnabled = false; // The clicked type is now disabled
+      } else {
+        // Standard Solo: Select only the clicked type
+        console.log(`Soloing type: ${type}`);
+        // Store current state *only if* not already soloing this specific type
+        if (enabledTypes.size !== 1 || !enabledTypes.has(type)) {
+            setPreviousTypeSet(new Set(enabledTypes)); 
+        }
+        newEnabledTypes = new Set([type]);
+        isNowEnabled = true; // The clicked type is now enabled
+      }
+    } 
+    // Shift + Click: Reverse solo ONLY if this type is currently soloed and we have a previous state
+    else if (event && event.shiftKey && enabledTypes.size === 1 && enabledTypes.has(type) && previousTypeSet) {
+      console.log(`Reversing solo for type: ${type}`);
+      newEnabledTypes = new Set(previousTypeSet); // Restore previous set
+      setPreviousTypeSet(null); // Clear the stored set
+      isNowEnabled = newEnabledTypes.has(type); // Status depends on previous set
+    } 
+    // Normal toggle
+    else {
+      console.log(`Toggling type: ${type}, current status: ${enabledTypes.has(type) ? 'enabled' : 'disabled'}`);
+      newEnabledTypes = new Set(enabledTypes);
+      if (newEnabledTypes.has(type)) {
+        newEnabledTypes.delete(type);
+        isNowEnabled = false;
+      } else {
+        newEnabledTypes.add(type);
+        isNowEnabled = true;
+      }
+       // If a normal toggle happens, clear any previous solo state
+       setPreviousTypeSet(null);
+    }
+    
+    // Avoid unnecessary state updates/events if the set didn't actually change
+    if (setsAreEqual(enabledTypes, newEnabledTypes)) {
+        console.log('Type set unchanged, skipping update.');
+        return;
+    }
+
+    setEnabledTypes(newEnabledTypes);
+    
+    // Save to localStorage
+    localStorage.setItem('enabled_types', JSON.stringify(Array.from(newEnabledTypes)));
+    console.log('Saved to localStorage:', JSON.stringify(Array.from(newEnabledTypes)));
+    
+    // Dispatch event (only if state actually changed)
+    const finalEnabledStatus = newEnabledTypes.has(type);
+    window.dispatchEvent(new CustomEvent<TypeUpdateDetail>(TYPE_UPDATE_EVENT, {
+      detail: {
+        type,
+        enabled: finalEnabledStatus
+      }
+    }));
+  };
+
   // Helper function to compare sets (order doesn't matter)
   const setsAreEqual = (setA: Set<any>, setB: Set<any>) => {
       if (setA.size !== setB.size) return false;
@@ -245,13 +354,13 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
   };
 
   const isEnabled = (bias: PoliticalBias) => enabledBiases.has(bias);
+  const isTypeEnabled = (type: SourceType) => enabledTypes.has(type);
 
   // Set the selected category (NEW wrapper function to save to localStorage)
   const setSelectedCategory = (category: NewsCategory | 'all') => {
     setSelectedCategoryState(category);
+    // Save to localStorage
     localStorage.setItem('selected_category', category);
-    // Optional: Dispatch an event if other components need to react instantly
-    // window.dispatchEvent(new CustomEvent('category_change', { detail: { category } }));
   };
 
   // Toggle an API source
@@ -360,6 +469,9 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     enabledBiases,
     toggleBias,
     isEnabled,
+    enabledTypes,
+    toggleType,
+    isTypeEnabled,
     selectedCategory,
     setSelectedCategory,
     apiSources,

@@ -1,39 +1,71 @@
 // Font utility module to manage font loading for the 3D text
+import { SourceType } from '../types';
 
 /**
- * Get the preferred font for tags
- * For drei's Text component, we need to use an empty string
- * to make it use the default font without trying to load any font files
+ * Get the font family based on source type
  */
-export const getTagFont = (): string | undefined => {
-  // Return path to a standard font file (e.g., TTF, OTF, WOFF)
-  // Make sure this file exists in /public/fonts/
-  return '/fonts/helvetica.ttf'; // Use a standard format
+export const getSourceTypeFont = (type?: SourceType): string => {
+  switch (type) {
+    case SourceType.Independent:
+      return "Georgia, serif"; // Serif font for independent sources
+    case SourceType.Corporate:
+      return "Helvetica, Arial, sans-serif"; // Sans-serif for corporate sources
+    case SourceType.State:
+      return "Courier New, monospace"; // Monospace for state-controlled media
+    case SourceType.Unknown:
+    default:
+      return "Helvetica, Arial, sans-serif"; // Default
+  }
 };
 
 /**
- * Preload the font to make sure it's available when Text components need it
+ * Get the preferred font path for tags
+ * For drei's Text component, we need to return a path to the font file
+ */
+export const getTagFont = (type?: SourceType): string => {
+  switch (type) {
+    case SourceType.Independent:
+      return '/fonts/georgia.ttf'; // Path to Georgia font
+    case SourceType.Corporate:
+      return '/fonts/helvetica.ttf'; // Path to Helvetica font
+    case SourceType.State:
+      return '/fonts/courier.ttf'; // Path to Courier font
+    case SourceType.Unknown:
+    default:
+      return '/fonts/helvetica.ttf'; // Default
+  }
+};
+
+/**
+ * Preload the fonts to make sure they're available when Text components need them
  * This helps avoid font loading errors by injecting CSS styles
  */
 export const preloadFonts = (): void => {
   try {
-    // Add CSS styles for Helvetica with more specific targeting
+    // Add CSS styles for all font families we'll use
     const style = document.createElement('style');
     style.textContent = `      
-      /* Force Helvetica throughout the app */
-      body, canvas, .tag-cloud-word, .tag-cloud-3d text {
+      /* Default font for the app */
+      body, canvas {
         font-family: Helvetica, Arial, sans-serif !important;
         letter-spacing: -0.05em;
         font-weight: 600;
       }
       
-      /* Ensure Helvetica is forced in Three.js context */
-      canvas text, .tag-cloud-3d text, .tag-cloud-3d .word-text {
+      /* Source type specific fonts */
+      .source-type-independent {
+        font-family: Georgia, serif !important;
+      }
+      
+      .source-type-corporate {
         font-family: Helvetica, Arial, sans-serif !important;
       }
       
-      /* Additional specificity for Three.js text */
-      .tag-cloud-3d .drei-text {
+      .source-type-state {
+        font-family: "Courier New", monospace !important;
+      }
+      
+      .source-type-unknown {
         font-family: Helvetica, Arial, sans-serif !important;
       }
     `;
@@ -48,4 +80,4 @@ export const preloadFonts = (): void => {
 /**
  * Font family stack for use in regular CSS/styles
  */
-export const tagFontFamily = "Helvetica, Arial, sans-serif"; 
+export const tagFontFamily = "Helvetica, Arial, sans-serif"; // Default font family 

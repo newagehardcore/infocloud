@@ -1,13 +1,16 @@
-# Use an appropriate Node.js version
-FROM node:18
+# Use Node.js LTS version
+FROM node:20-alpine
+
+# Install Docker CLI and curl
+RUN apk add --no-cache docker-cli curl
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
 # This layer is cached if package files don't change
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY package*.json ./
+RUN npm install
 
 # Copy the rest of the application code
 # This will be overwritten by the volume mount in compose, but good practice

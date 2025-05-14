@@ -547,6 +547,11 @@
                                 <!-- Options populated by JS -->
                             </select>
                             
+                            <label for="sourceType">Type:</label>
+                            <select id="sourceType" name="type" required>
+                                <!-- Options populated by JS -->
+                            </select>
+
                             <label for="sourceMinifluxFeedId">Miniflux Feed ID (Optional, auto-set if feed created):</label>
                             <input type="number" id="sourceMinifluxFeedId" name="minifluxFeedId">
 
@@ -575,11 +580,11 @@
                         <table id="sourcesTable" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr>
-                                    <th class="sortable-header" data-sort-key="name">Name <span class="sort-arrow"></span></th>
-                                    <th class="sortable-header" data-sort-key="url">URL <span class="sort-arrow"></span></th>
-                                    <th class="sortable-header" data-sort-key="category">Category <span class="sort-arrow"></span></th>
-                                    <th class="sortable-header" data-sort-key="bias">Bias <span class="sort-arrow"></span></th>
-                                    <th class="sortable-header" data-sort-key="minifluxFeedId">Miniflux ID <span class="sort-arrow"></span></th>
+                                    <th class="sortable-header" data-sort-key="name">Name</th>
+                                    <th>URL</th>
+                                    <th class="sortable-header" data-sort-key="category">Category</th>
+                                    <th class="sortable-header" data-sort-key="bias">Bias</th>
+                                    <th class="sortable-header" data-sort-key="type">Type</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -634,6 +639,11 @@
                     <!-- Options populated by JS -->
                 </select>
                 
+                <label for="sourceType">Type:</label>
+                <select id="sourceType" name="type" required>
+                    <!-- Options populated by JS -->
+                </select>
+
                 <label for="sourceMinifluxFeedId">Miniflux Feed ID (Optional, auto-set if feed created):</label>
                 <input type="number" id="sourceMinifluxFeedId" name="minifluxFeedId">
 
@@ -647,7 +657,7 @@
 
     <script>
         // <<< Define variables and functions in the outer scope >>>
-        const API_BASE_URL = ''; // Assuming API is served from the same origin
+        const API_BASE_URL = window.location.origin; // This will get the correct origin in Docker
         const statusPanel = document.getElementById('status-panel');
         const lastUpdatedDiv = document.getElementById('lastUpdated');
         const sourcesList = document.getElementById('sourcesTableBody'); // Corrected back to table body ID
@@ -689,6 +699,9 @@
         let currentSortDirection = 'asc';
         let logWebSocket; // Added for log stream WebSocket object
         const MAX_LOG_LINES = 200; // Max number of log lines to keep
+
+        // Add this to the script section where global variables are defined (around line 579)
+        let availableTypes = ['INDEPENDENT', 'CORPORATE', 'STATE', 'UNKNOWN'];
 
         // --- Function Definitions --- 
 
@@ -904,9 +917,8 @@
         // --- Function to fetch status ---
         async function fetchStatus() { 
              console.log("📊 fetchStatus: Attempting to fetch status...");
-             // ... (Keep implementation here) ...
              try {
-                const response = await fetch('/status/api');
+                const response = await fetch(`${API_BASE_URL}/api/status`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -923,7 +935,7 @@
         async function populateLlmModels() { 
              console.log("Fetching LLM models...");
              try {
-                const response = await fetch('http://localhost:5001/status/ollama-models'); 
+                const response = await fetch(`${API_BASE_URL}/api/status/ollama-models`); 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -951,35 +963,35 @@
 
         // --- Function to Handle LLM Model Selection ---
         async function handleModelChange() { 
-             // ... (Keep implementation here) ... 
              const selectedModel = llmModelSelect.value;
             if (!selectedModel || selectedModel === currentLlmModel) return;
 
             console.log(`Attempting to set LLM model to: ${selectedModel}`);
-            modelUpdateStatus.textContent = 'Updating...';
-            llmModelSelect.disabled = true;
-
             try {
-                const response = await fetch('http://localhost:5001/status/api/set-llm-model', {
+                const response = await fetch(`${API_BASE_URL}/api/status/set-llm-model`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ model: selectedModel }),
+                    body: JSON.stringify({ model: selectedModel })
                 });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message || `HTTP error! status: ${response.status}`);
 
-                modelUpdateStatus.textContent = 'Model set!';
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Model change result:', result);
+
+                // Update UI to reflect the change
                 currentLlmModel = selectedModel;
-                fetchStatus(); // Refresh status
+                document.getElementById('currentModel').textContent = selectedModel;
+
+                // Refresh status to show updated model info
+                fetchStatus();
             } catch (error) {
-                console.error('Error setting LLM model:', error);
-                modelUpdateStatus.textContent = `Error: ${error.message}`;
-                llmModelSelect.value = currentLlmModel;
-            } finally {
-                llmModelSelect.disabled = false;
-                setTimeout(() => { modelUpdateStatus.textContent = ''; }, 3000);
+                console.error('Error changing LLM model:', error);
+                alert(`Failed to change model: ${error.message}`);
             }
         }
 
@@ -987,7 +999,7 @@
         async function fetchConfig() { 
              // ... (Keep implementation here) ... 
              try {
-                const response = await fetch('http://localhost:5001/api/sources/config');
+                const response = await fetch(`${API_BASE_URL}/api/sources/config`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const config = await response.json();
                 availableCategories = config.sourceCategories || availableCategories;
@@ -1001,15 +1013,25 @@
             }
          }
          function populateSelect(selectElement, options) { 
-              // ... (Keep implementation here) ...
-              selectElement.innerHTML = '<option value=\"\" disabled selected>Select...</option>'; 
+            // Clear any existing options
+            selectElement.innerHTML = ''; 
+            
+            // Add the default "Select..." option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Select...";
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            selectElement.appendChild(defaultOption);
+            
+            // Add each option from the provided array
             options.forEach(option => {
                 const opt = document.createElement('option');
                 opt.value = option;
                 opt.textContent = option;
                 selectElement.appendChild(opt);
             });
-          }
+        }
 
         // This is the function that needs to be moved earlier
         function populateCategoryDropdown(selectElement) {
@@ -1111,7 +1133,7 @@
                 return;
             }
 
-            sourcesToRender.forEach(source => { // Changed from (source, index)
+            sourcesToRender.forEach(source => { 
                 const row = sourcesTableBody.insertRow();
                 
                 row.insertCell().textContent = source.name || ''; 
@@ -1160,6 +1182,24 @@
                 biasSelectElement.disabled = !source.id;
                 biasCell.appendChild(biasSelectElement);
 
+                // Add the type cell
+                const typeCell = row.insertCell();
+                const typeSelectElement = document.createElement('select');
+                typeSelectElement.dataset.field = 'type';
+                typeSelectElement.dataset.sourceId = source.id;
+                const sourceType = (source.type || '').trim();
+                typeSelectElement.dataset.originalValue = sourceType;
+                availableTypes.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t;
+                    option.textContent = t;
+                    option.selected = (sourceType === t);
+                    typeSelectElement.appendChild(option);
+                });
+                typeSelectElement.disabled = !source.id;
+                typeCell.appendChild(typeSelectElement);
+
+                // Modify the existing minifluxFeedId cell
                 row.insertCell().textContent = source.minifluxFeedId || 'Not Synced';
 
                 const actionsCell = row.insertCell();
@@ -1184,8 +1224,9 @@
             const filteredSources = allSources.filter(source => (
                 (source.name || '').toLowerCase().includes(searchTerm) ||
                 (source.url || '').toLowerCase().includes(searchTerm) ||
-                (source.category || '').toLowerCase().includes(searchTerm) || // Added category to filter
-                (source.bias || '').toLowerCase().includes(searchTerm)       // Added bias to filter
+                (source.category || '').toLowerCase().includes(searchTerm) ||
+                (source.bias || '').toLowerCase().includes(searchTerm) ||
+                (source.type || '').toLowerCase().includes(searchTerm)
             ));
             console.log(`   Found ${filteredSources.length} sources matching search term`);
             renderSourcesTable(filteredSources); // Pass filtered sources to render
@@ -1359,11 +1400,13 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/status/api/admin/tag-stats`);
-                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const response = await fetch(`${API_BASE_URL}/api/status/admin/tag-stats`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const stats = await response.json();
                 displayTagStats(stats);
-                 } catch (error) {
+            } catch (error) {
                 console.error('Error loading tag statistics:', error);
                 if (biasStatsEl) biasStatsEl.innerHTML = `<p class="error">Error loading statistics: ${error.message}</p>`;
                 if (categoryStatsEl) categoryStatsEl.innerHTML = `<p class="error">Error loading statistics: ${error.message}</p>`;
@@ -1425,7 +1468,7 @@
         async function handleDbAction(action) { 
              // ... (Keep implementation here) ...
              const buttonIdMap = { 'purge-db': 'purgeDbButton', 'force-refresh': 'forceRefreshButton', 'fix-categories': 'fixCategoriesButton' };
-            const endpointMap = { 'purge-db': '/status/api/admin/purge-db', 'force-refresh': '/status/api/admin/force-refresh', 'fix-categories': '/api/sources/fix-unknown-categories' };
+            const endpointMap = { 'purge-db': '/api/status/admin/purge-db', 'force-refresh': '/api/status/admin/force-refresh', 'fix-categories': '/api/sources/fix-unknown-categories' };
             const buttonId = buttonIdMap[action];
             const endpoint = endpointMap[action];
             const button = document.getElementById(buttonId);
@@ -1564,7 +1607,7 @@
             // setupDebugTools(); // Assuming this might be optional or added later
 
             // Initial Data Fetches
-            fetchConfig()
+            loadSourceConfig()
                 .then(() => loadSources()) 
                 .catch(error => console.error("Error in initial config/source fetch:", error));
 
@@ -1784,6 +1827,71 @@
                 console.error('Error purging all sources:', error);
                 statusDiv.textContent = `Error purging sources: ${error.message}`;
                 statusDiv.className = 'status-message error';
+            }
+        }
+
+        async function loadSourceConfig() {
+            try {
+                console.log("🔄 Loading source config (categories, biases, etc)...");
+                const response = await fetch(`${API_BASE_URL}/api/sources/config`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const config = await response.json();
+                console.log("✅ Source config loaded:", config);
+                
+                // Populate global availableCategories from config
+                availableCategories = config.sourceCategories || [];
+                console.log(`   Found ${availableCategories.length} source categories`);
+                
+                // Populate global availableBiases from config
+                availableBiases = config.biasCategories || [];
+                console.log(`   Found ${availableBiases.length} bias categories`);
+                
+                // Populate global availableTypes - use the config if available, otherwise use hardcoded values
+                if (config.sourceTypes && config.sourceTypes.length > 0) {
+                    availableTypes = config.sourceTypes;
+                    console.log(`   Found ${availableTypes.length} source types from API`);
+                } else {
+                    console.log(`   Using hardcoded source types: ${availableTypes.join(', ')}`);
+                }
+                
+                // Populate dropdowns in add source form
+                const sourceCategorySelect = document.getElementById('sourceCategory');
+                const sourceBiasSelect = document.getElementById('sourceBias');
+                const sourceTypeSelect = document.getElementById('sourceType');
+                
+                if (sourceCategorySelect) {
+                    populateSelect(sourceCategorySelect, availableCategories);
+                }
+                
+                if (sourceBiasSelect) {
+                    populateSelect(sourceBiasSelect, availableBiases);
+                }
+                
+                if (sourceTypeSelect) {
+                    populateSelect(sourceTypeSelect, availableTypes);
+                }
+            } catch (error) {
+                console.error("❌ Error loading source config:", error);
+                
+                // In case of error, use hardcoded values and populate dropdowns
+                const sourceCategorySelect = document.getElementById('sourceCategory');
+                const sourceBiasSelect = document.getElementById('sourceBias');
+                const sourceTypeSelect = document.getElementById('sourceType');
+                
+                if (sourceCategorySelect) {
+                    populateSelect(sourceCategorySelect, availableCategories);
+                }
+                
+                if (sourceBiasSelect) {
+                    populateSelect(sourceBiasSelect, availableBiases);
+                }
+                
+                if (sourceTypeSelect) {
+                    populateSelect(sourceTypeSelect, availableTypes);
+                    console.log("   Populated source type dropdown with hardcoded values as fallback");
+                }
             }
         }
 

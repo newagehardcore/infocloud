@@ -83,7 +83,7 @@ async function getSourceById(uuid) {
 }
 
 async function addSource(newSourceData) {
-  const { url, name, category, bias, alternateUrl } = newSourceData;
+  const { url, name, category, bias, alternateUrl, type } = newSourceData;
 
   if (!url || !name || !category || !bias) {
     throw new Error('Missing required fields for new source (url, name, category, bias).');
@@ -122,6 +122,7 @@ async function addSource(newSourceData) {
       name,
       category: category.toUpperCase(), // Ensure uppercase
       bias: bias.toUpperCase(), // Ensure uppercase
+      type: type ? type.toUpperCase() : 'UNKNOWN', // Ensure uppercase, default to UNKNOWN if not provided
       minifluxFeedId, 
     });
 
@@ -166,6 +167,7 @@ async function updateSource(uuid, updatedData) {
     if (updatedData.name !== undefined) validatedUpdates.name = updatedData.name;
     if (updatedData.bias !== undefined) validatedUpdates.bias = updatedData.bias.toUpperCase();
     if (updatedData.category !== undefined) validatedUpdates.category = updatedData.category.toUpperCase();
+    if (updatedData.type !== undefined) validatedUpdates.type = updatedData.type.toUpperCase();
     
     // Check if category changed and ensure the new category exists in Miniflux
     if (validatedUpdates.category && validatedUpdates.category !== originalSource.category) {
@@ -341,7 +343,8 @@ async function exportAllSources() {
       url: 1,         // Include url
       alternateUrl: 1,// Include alternateUrl
       category: 1,    // Include category
-      bias: 1         // Include bias
+      bias: 1,        // Include bias
+      type: 1         // Include type
       // Other fields (uuid, minifluxFeedId, createdAt, updatedAt) are excluded by default
     }).lean();
     console.log(`[SourceService - exportAllSources] Exporting ${sources.length} sources.`);
@@ -354,7 +357,7 @@ async function exportAllSources() {
 
 // Helper function to process a single imported source
 async function _processSingleImportedSource(sourceData) {
-  const { url, name, category, bias, alternateUrl } = sourceData;
+  const { url, name, category, bias, alternateUrl, type } = sourceData;
 
   // 1. Validate required fields
   if (!url || !name || !category || !bias) {
@@ -368,9 +371,14 @@ async function _processSingleImportedSource(sourceData) {
   if (!BIAS_CATEGORIES.includes(bias.toUpperCase())) { 
     return { success: false, message: `Skipped: Invalid bias '${bias}' (checking against [${BIAS_CATEGORIES.join(', ')}]) for source '${name}'.` };
   }
+  
+  // 3. Validate type if provided
+  if (type && !SOURCE_TYPES.includes(type.toUpperCase())) {
+    return { success: false, message: `Skipped: Invalid type '${type}' (must be one of [${SOURCE_TYPES.join(', ')}]) for source '${name}'.` };
+  }
 
   try {
-    // 3. Check for duplicate URL in DB
+    // 4. Check for duplicate URL in DB
     const existingSourceInDb = await Source.findOne({ url: url });
     if (existingSourceInDb) {
       return { success: false, message: `Skipped: Source with URL ${url} already exists in local DB (Name: ${existingSourceInDb.name}).` };
@@ -494,6 +502,7 @@ async function _processSingleImportedSource(sourceData) {
       name,
       category: category.toUpperCase(),
       bias: bias.toUpperCase(),
+      type: type ? type.toUpperCase() : 'UNKNOWN', // Use provided type or default to UNKNOWN
       minifluxFeedId: minifluxFeedId || null, // Ensure it's null if undefined
     });
 

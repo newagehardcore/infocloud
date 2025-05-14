@@ -12,7 +12,9 @@
     "sync:sources": "node src/scripts/run-sync.js",
     "find:missing": "node src/scripts/find-missing-sources.js",
     "add:missing": "node src/scripts/add-missing-sources.js",
-    "import:missing": "node src/scripts/import-missing-sources-directly.js"
+    "import:missing": "node src/scripts/import-missing-sources-directly.js",
+    "ensure-persistence": "node src/scripts/ensure-persistence.js",
+    "check-persistence": "node src/scripts/check-persistence.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
+    "he": "^1.2.0",
     "lru-cache": "^10.4.3",
     "mongodb": "^6.15.0",
     "mongoose": "^8.14.1",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PoliticalBias, NewsCategory } from '../types';
+import { PoliticalBias, NewsCategory, SourceType } from '../types';
 import { useFilters } from '../contexts/FilterContext';
 import './EditMenu.css';
 
@@ -14,7 +14,9 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     selectedCategory,
     setSelectedCategory,
     rssFeeds, 
-    toggleRssFeed 
+    toggleRssFeed,
+    enabledTypes,
+    toggleType
   } = useFilters();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,10 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
 
   const handleBiasChange = (bias: PoliticalBias) => {
     toggleBias(bias);
+  };
+
+  const handleTypeChange = (type: SourceType) => {
+    toggleType(type);
   };
 
   const handleCategoryChange = (category: NewsCategory | 'all') => {
@@ -91,6 +97,13 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     PoliticalBias.Right,
   ];
 
+  const typeOrder: SourceType[] = [
+    SourceType.Independent,
+    SourceType.Corporate,
+    SourceType.State,
+    SourceType.Unknown,
+  ];
+
   const biasLabels: { [key in PoliticalBias]: string } = {
     [PoliticalBias.Left]: 'Alternative Left',
     [PoliticalBias.Liberal]: 'Mainstream Democrat',
@@ -98,6 +111,13 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
     [PoliticalBias.Unknown]: 'Unclear',
     [PoliticalBias.Conservative]: 'Mainstream Republican',
     [PoliticalBias.Right]: 'Alternative Right',
+  };
+
+  const typeLabels: { [key in SourceType]: string } = {
+    [SourceType.Independent]: 'Independent Media',
+    [SourceType.Corporate]: 'Corporate Media',
+    [SourceType.State]: 'State Media',
+    [SourceType.Unknown]: 'Unknown',
   };
 
   const categories: (NewsCategory | 'all')[] = ['all', ...Object.values(NewsCategory)];
@@ -153,6 +173,28 @@ const EditMenu: React.FC<EditMenuProps> = ({ onClose }) => {
                   style={{ color: getBiasColor(bias) }}
                 >
                   {biasLabels[bias]}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Source Type Filters */}
+        <div className="menu-section type-filters">
+          <h4>Filter by Source Type</h4>
+          <div className="checkbox-group">
+            {typeOrder.map((type) => (
+              <div key={type} className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id={`type-${type}`}
+                  checked={enabledTypes.has(type)}
+                  onChange={() => handleTypeChange(type)}
+                />
+                <label 
+                  htmlFor={`type-${type}`}
+                >
+                  {typeLabels[type]}
                 </label>
               </div>
             ))}

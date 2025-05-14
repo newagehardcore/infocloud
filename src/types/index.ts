@@ -6,6 +6,7 @@ export interface NewsItem {
   source: {
     name: string;
     bias: PoliticalBias;
+    type: SourceType;
   };
   publishedAt: string;
   category: NewsCategory;
@@ -21,6 +22,13 @@ export enum PoliticalBias {
   Unknown = 'Unknown',
   Conservative = 'Conservative',
   Right = 'Right'
+}
+
+export enum SourceType {
+  Independent = 'INDEPENDENT',
+  Corporate = 'CORPORATE',
+  State = 'STATE',
+  Unknown = 'UNKNOWN'
 }
 
 export enum NewsCategory {
@@ -47,6 +55,7 @@ export interface TagCloudWord {
   text: string;
   value: number; // frequency/importance
   biases: PoliticalBias[];
+  types: SourceType[];
   newsIds: string[]; // IDs of news items containing this word
   categories: NewsCategory[];
   variants?: Set<string>; // Optional set of variant forms of this word

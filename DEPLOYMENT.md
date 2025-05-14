@@ -1,14 +1,19 @@
 # INFOCLOUD - Deployment Guide
 
-This document provides instructions for deploying the "INFOCLOUD" real-time news tag cloud application.
+This document provides instructions for deploying the "INFOCLOUD" real-time news tag cloud application using Docker.
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
-- npm (v7 or higher)
-- A web server for hosting static files (for production deployment)
+- Docker and Docker Compose
+- Git for cloning the repository
+- A server with sufficient resources to run all containers:
+  - At least 4GB RAM recommended
+  - At least 20GB free disk space
+  - Linux-based OS recommended (Ubuntu 20.04+ or similar)
 
-## Development Setup
+## Deployment Options
+
+### Option 1: Local Deployment
 
 1. Clone the repository:
 ```
@@ -16,92 +21,248 @@ git clone <repository-url>
 cd infocloud
 ```
 
-2. Install dependencies:
+2. Start all containers:
 ```
-npm install
-```
-
-3. Start the development server:
-```
-npm start
+docker-compose up -d
 ```
 
-This will start the application in development mode at [http://localhost:3000](http://localhost:3000).
+3. Access the application:
+   - Frontend: http://localhost:3000
+   - Admin interface: http://localhost:5001/admin.html
+   - Miniflux interface: http://localhost:8080 (Default credentials: admin/adminpass)
 
-## Production Deployment
+4. Generate a Miniflux API key:
+   - Log in to Miniflux at http://localhost:8080
+   - Go to Settings > API Keys
+   - Create a new API key
+   - Update the API key in docker-compose.yml under the backend service environment variables
 
-### Building the Application
-
-1. Create a production build:
+5. Restart the backend container to apply the API key:
 ```
-npm run build
-```
-
-This will create a `build` directory with optimized production files.
-
-2. The build folder contains static files that can be served by any web server.
-
-### Deployment Options
-
-#### Option 1: Static Hosting Services
-
-You can deploy the application to static hosting services like:
-
-- Netlify
-- Vercel
-- GitHub Pages
-- AWS S3 + CloudFront
-- Firebase Hosting
-
-Most of these services offer simple deployment through their CLI tools or GitHub integration.
-
-#### Option 2: Traditional Web Server
-
-1. Copy the contents of the `build` directory to your web server's public directory.
-2. Configure your web server to serve the `index.html` file for all routes (for client-side routing).
-
-Example Nginx configuration:
-```
-server {
-    listen 80;
-    server_name yourdomain.com;
-    root /path/to/build;
-    
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
+docker-compose restart backend
 ```
 
-### Environment Variables
+### Option 2: Production Server Deployment
 
-For a production deployment with a real News API, you'll need to set up environment variables:
-
-1. Create a `.env` file in the project root (for development) or set environment variables on your hosting platform:
+1. Clone the repository on your server:
 ```
-REACT_APP_NEWS_API_KEY=your_api_key_here
-```
-
-2. Update the `newsService.ts` file to use this environment variable:
-```typescript
-const NEWS_API_KEY = process.env.REACT_APP_NEWS_API_KEY;
+git clone <repository-url>
+cd infocloud
 ```
 
-## API Integration
+2. Configure environment variables for production:
+   - Create a `.env` file in the project root with the following variables:
+   ```
+   POSTGRES_USER=miniflux
+   POSTGRES_PASSWORD=<secure-password>
+   MONGO_INITDB_ROOT_USERNAME=superadmin
+   MONGO_INITDB_ROOT_PASSWORD=<secure-password>
+   MINIFLUX_ADMIN_PASSWORD=<secure-password>
+   ```
 
-To use a real News API instead of mock data:
+3. Update the docker-compose.yml file for production:
+   - Add or update the following in the frontend service:
+   ```yaml
+   environment:
+     - NODE_ENV=production
+   ```
+   - Add or update the following in the backend service:
+   ```yaml
+   environment:
+     - NODE_ENV=production
+     - MONGODB_URI=mongodb://superadmin:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/infocloud?authSource=admin
+   ```
 
-1. Sign up for an API key from a news service provider (e.g., NewsAPI.org, GNews)
-2. Set the API key as described in the Environment Variables section
-3. Uncomment the API call code in `src/services/newsService.ts` and comment out the mock data code
+4. Set up a reverse proxy (Nginx recommended):
+   - Install Nginx: `apt-get install nginx`
+   - Create a configuration file in `/etc/nginx/sites-available/infocloud`:
+   ```nginx
+   server {
+       listen 80;
+       server_name yourdomain.com;
+       
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+       
+       location /api {
+           proxy_pass http://localhost:5001;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+       
+       location /admin.html {
+           proxy_pass http://localhost:5001;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+   - Enable the site: `ln -s /etc/nginx/sites-available/infocloud /etc/nginx/sites-enabled/`
+   - Test and restart Nginx: `nginx -t && systemctl restart nginx`
 
-## Performance Considerations
+5. Set up SSL with Let's Encrypt:
+   - Install Certbot: `apt-get install certbot python3-certbot-nginx`
+   - Obtain certificate: `certbot --nginx -d yourdomain.com`
 
-- The application uses adaptive rendering based on device capabilities
-- For high-traffic sites, consider implementing a caching layer for API responses
-- Consider implementing server-side rendering for improved initial load performance
+6. Start the application:
+```
+docker-compose up -d
+```
+
+7. Follow steps 4-5 from the Local Deployment section to set up the Miniflux API key.
+
+### Option 3: Kubernetes Deployment
+
+For larger scale deployments, Kubernetes is recommended. Here's a basic outline:
+
+1. Create Kubernetes manifests for each service:
+   - Convert docker-compose.yml to Kubernetes manifests using tools like Kompose:
+   ```
+   kompose convert -f docker-compose.yml
+   ```
+
+2. Apply the manifests:
+```
+kubectl apply -f k8s/
+```
+
+3. Set up an Ingress controller for external access.
+
+## Data Management
+
+### Volumes and Persistence
+
+The application uses Docker volumes for data persistence:
+
+- MongoDB data: `./docker/mongodb:/data/db`
+- PostgreSQL data: `./docker/postgres:/var/lib/postgresql/data`
+- Ollama models: `./docker/ollama_data:/root/.ollama`
+
+### Backup Strategy
+
+1. MongoDB backup:
+```
+docker exec infocloud-mongodb mongodump --username superadmin --password <password> --authenticationDatabase admin --db infocloud --out /data/backup
+docker cp infocloud-mongodb:/data/backup ./backup/mongodb_$(date +%Y%m%d)
+```
+
+2. PostgreSQL backup:
+```
+docker exec infocloud-db pg_dump -U miniflux miniflux > ./backup/miniflux_$(date +%Y%m%d).sql
+```
+
+3. Automate backups with a cron job:
+```
+0 2 * * * /path/to/backup-script.sh
+```
+
+## Monitoring and Maintenance
+
+### Logs
+
+View container logs:
+```
+# All containers
+docker-compose logs -f
+
+# Specific container
+docker logs infocloud-backend -f
+```
+
+### Container Health
+
+Check container status:
+```
+docker-compose ps
+```
+
+### Resource Usage
+
+Monitor resource usage:
+```
+docker stats
+```
+
+### Updates
+
+1. Pull the latest code:
+```
+git pull
+```
+
+2. Rebuild and restart containers:
+```
+docker-compose up -d --build
+```
 
 ## Troubleshooting
 
-- If you encounter CORS issues with the News API, you may need to set up a proxy server
-- For WebGL rendering issues on older devices, the application will automatically fall back to a simplified 2D view
+### Common Issues
+
+1. **Container fails to start**:
+   - Check logs: `docker logs <container-name>`
+   - Verify environment variables are set correctly
+   - Ensure required volumes exist and have proper permissions
+
+2. **Backend can't connect to MongoDB or Miniflux**:
+   - Ensure all containers are running: `docker-compose ps`
+   - Check network connectivity: `docker network inspect infocloud_default`
+   - Verify credentials in environment variables
+
+3. **Frontend shows blank page or can't connect to backend**:
+   - Check browser console for errors
+   - Verify the API URL is set correctly in the frontend environment
+   - Check CORS configuration
+
+4. **Ollama container crashes or has high resource usage**:
+   - Ensure your server has sufficient RAM (at least 4GB)
+   - Check if GPU acceleration is available and configured
+   - Consider using a smaller LLM model
+
+### Restarting Services
+
+Restart a specific service:
+```
+docker-compose restart <service-name>
+```
+
+Restart all services:
+```
+docker-compose restart
+```
+
+## Performance Optimization
+
+1. **Frontend Optimization**:
+   - Enable production mode in the frontend build
+   - Consider using a CDN for static assets
+
+2. **Backend Optimization**:
+   - Adjust MongoDB connection pool size based on load
+   - Implement caching for frequently accessed data
+
+3. **LLM Optimization**:
+   - Use a smaller model if performance is an issue
+   - Consider GPU acceleration for Ollama if available
+
+4. **Container Resource Limits**:
+   - Add resource constraints to containers in docker-compose.yml:
+   ```yaml
+   services:
+     backend:
+       # ...
+       deploy:
+         resources:
+           limits:
+             cpus: '0.5'
+             memory: 512M
+   ```

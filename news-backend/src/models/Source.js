@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); const { BIAS_CATEGORIES, NEWS_CATEGORIES } = require('../utils/constants'); // Assuming categories might also be defined
+const mongoose = require('mongoose'); const { BIAS_CATEGORIES, NEWS_CATEGORIES, SOURCE_TYPES } = require('../utils/constants'); // Assuming categories might also be defined
 const sourceSchema = new mongoose.Schema({
     // We can use MongoDB's default _id, but keep our own uuid if it's used elsewhere
     // If not crucial, we could remove this uuid field later.
@@ -37,6 +37,13 @@ const sourceSchema = new mongoose.Schema({
         uppercase: true,
         enum: BIAS_CATEGORIES // Use enum for controlled vocabulary
     },
+    type: {
+        type: String,
+        required: true,
+        uppercase: true,
+        enum: SOURCE_TYPES,
+        default: 'UNKNOWN'
+    },
     minifluxFeedId: { 
         type: Number, // Miniflux IDs are numbers
         // No unique constraint here
@@ -64,6 +71,7 @@ sourceSchema.index({ name: 1 }); // Added index for name to improve query perfor
 // sourceSchema.index({ url: 1 }); // Removed, as unique:true on field handles it
 sourceSchema.index({ category: 1 });
 sourceSchema.index({ bias: 1 });
+sourceSchema.index({ type: 1 }); // Add index for type
 // Remove unique constraint on minifluxFeedId to allow multiple null values
 sourceSchema.index({ minifluxFeedId: 1 }, { sparse: true }); // Only index documents where minifluxFeedId exists
 

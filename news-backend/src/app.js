@@ -88,9 +88,12 @@ console.error = function(...args) {
 };
 // --- End WebSocket Server Setup ---
 
+// Init Middleware
+app.use(express.json({ extended: false })); // Allows us to accept JSON data in the body
+
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'], // Allow these origins
+  origin: '*', // Allow all origins in development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
   allowedHeaders: ['Content-Type', 'Authorization'] // Allow these headers
 }));
@@ -114,16 +117,12 @@ connectDB().then(() => {
   process.exit(1);
 });
 
-// Init Middleware
-app.use(express.json({ extended: false })); // Allows us to accept JSON data in the body
-
-// Serve static files from the public directory
-app.use(express.static('public'));
-
 // Define Routes
 app.get('/', (req, res) => res.send('News Backend Running'));
+
+// Mount API routes
 app.use('/api/news', newsRoutes);
-app.use('/status', statusRoutes);
+app.use('/api/status', statusRoutes); // Mount status routes under /api/status
 // --- DEBUGGING --- //
 if (statusRoutes.stack) {
   console.log("--- STATUS ROUTES STACK ---");
@@ -139,12 +138,15 @@ if (statusRoutes.stack) {
 // --- END DEBUGGING --- //
 app.use('/api/sources', sourceRoutes); // Mount the source routes
 
-// Serve the new admin.html at the /admin route
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve the admin.html at the /admin route
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+    res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// Basic Error Handling Middleware (can be expanded later)
+// Basic Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');

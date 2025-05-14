@@ -8,6 +8,7 @@
 const { exec, execSync } = require('child_process');
 const path = require('path');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+const { ensurePersistence } = require('./ensure-persistence');
 
 // Root project directory
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
@@ -224,6 +225,9 @@ const startup = async () => {
   try {
     console.log('🚀 Starting InfoCloud development environment...');
     
+    // 0. Ensure persistence configuration
+    await ensurePersistence();
+    
     // 1. Start Docker and ensure it's running
     if (!await startDocker()) {
       throw new Error('Failed to start Docker');
@@ -248,9 +252,10 @@ const startup = async () => {
     setDefaultEnvVars();
     
     console.log('✅ All services started successfully');
+    
     return true;
   } catch (error) {
-    console.error('❌ Failed to start services:', error.message);
+    console.error('❌ Startup error:', error.message);
     return false;
   }
 };
