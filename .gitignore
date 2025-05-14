@@ -34,3 +34,9 @@ yarn-error.log*
 # Log files
 debug.log
 *.log
+
+# Docker data volumes
+docker/mongodb/
+docker/postgres/
+docker/ollama_data/
+docker/mongodb_config/
