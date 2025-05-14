@@ -287,7 +287,23 @@ INFOCLOUD is a full-stack application designed to visualize real-time news topic
     *   Provides LLM capabilities for text analysis
     *   Models stored in `./docker/ollama_data` volume
 
-## 10. Important Notes for AI Assistant
+## 10. Docker Backup and Restore
+
+The project includes several scripts to backup and restore Docker containers and volumes:
+
+*   **docker-volume-backup.sh:** Creates backups of MongoDB and PostgreSQL data
+*   **docker-volume-restore.sh:** Restores MongoDB and PostgreSQL data from backups
+*   **docker-container-snapshot.sh:** Creates snapshots of running containers as Docker images
+*   **docker-container-restore.sh:** Restores containers from snapshots
+
+These scripts are stored in the project root directory and should be used for:
+* Creating regular backups of application data
+* Saving the state of containers before making major changes
+* Restoring the system to a previous state if needed
+
+All backup files are stored in the `docker-backups` directory, which is excluded from Git.
+
+## 11. Important Notes for AI Assistant
 
 *   **Primary Source of Truth:** This `project.md` file. Refer to it for architecture, data flow, and key components.
 *   **Verify Assumptions:** The codebase evolves. If instructed changes conflict with this document, verify against the current code (`src/` and `news-backend/src/`) before proceeding. Ask for clarification if discrepancies arise.

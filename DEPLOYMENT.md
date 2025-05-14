@@ -144,8 +144,11 @@ kubectl apply -f k8s/
 The application uses Docker volumes for data persistence:
 
 - MongoDB data: `./docker/mongodb:/data/db`
+- MongoDB config: `./docker/mongodb_config:/data/configdb`
 - PostgreSQL data: `./docker/postgres:/var/lib/postgresql/data`
 - Ollama models: `./docker/ollama_data:/root/.ollama`
+
+These volumes are excluded from Git tracking to prevent large files from being committed.
 
 ### Backup Strategy
 
@@ -163,6 +166,39 @@ docker exec infocloud-db pg_dump -U miniflux miniflux > ./backup/miniflux_$(date
 3. Automate backups with a cron job:
 ```
 0 2 * * * /path/to/backup-script.sh
+```
+
+### Using Backup and Restore Scripts
+
+The project includes several scripts to manage Docker container and volume backups:
+
+1. **Volume Backup**:
+```
+./docker-volume-backup.sh
+```
+This script creates backups of MongoDB and PostgreSQL data in the `docker-backups/volumes` directory.
+
+2. **Volume Restore**:
+```
+./docker-volume-restore.sh
+```
+This script restores MongoDB and PostgreSQL data from backups in the `docker-backups/volumes` directory.
+
+3. **Container Snapshot**:
+```
+./docker-container-snapshot.sh
+```
+This script creates snapshots of all running containers as Docker images and saves them in the `docker-backups/snapshots/TIMESTAMP` directory.
+
+4. **Container Restore**:
+```
+./docker-container-restore.sh TIMESTAMP
+```
+This script restores containers from snapshots in the specified timestamp directory.
+
+Make these scripts executable before use:
+```
+chmod +x docker-volume-backup.sh docker-volume-restore.sh docker-container-snapshot.sh docker-container-restore.sh
 ```
 
 ## Monitoring and Maintenance
