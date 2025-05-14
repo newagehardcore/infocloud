@@ -24,6 +24,7 @@ Validation should be handled in the service layer before database operations.
 const mongoose = require('mongoose');
 // Corrected import path for shared types
 const { PoliticalBias, NewsCategory } = require('../types/index.js'); // Use shared enums
+const { SOURCE_TYPES } = require('../utils/constants'); // Add this import
 
 const SourceSchema = new mongoose.Schema({
   name: {
@@ -40,6 +41,12 @@ const SourceSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Source bias is required.'],
     enum: Object.values(PoliticalBias) // Use enum values for validation
+  },
+  type: {
+    type: String,
+    required: [true, 'Source type is required.'],
+    enum: SOURCE_TYPES,
+    default: 'UNKNOWN'
   },
   minifluxFeedId: {
     type: Number,

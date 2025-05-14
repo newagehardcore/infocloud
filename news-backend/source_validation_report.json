@@ -1,0 +1,1681 @@
+{
+  "timestamp": "2025-05-14T15:47:19.815Z",
+  "statistics": {
+    "total": 279,
+    "byType": {
+      "INDEPENDENT": 171,
+      "CORPORATE": 83,
+      "STATE": 25
+    },
+    "byCategory": {
+      "LAW": 15,
+      "HEALTH": 18,
+      "POLITICS": 22,
+      "WORLD": 22,
+      "TECH": 23,
+      "ECONOMICS": 23,
+      "SCIENCE": 28,
+      "ENTERTAINMENT": 21,
+      "SPORTS": 15,
+      "NEWS": 11,
+      "US": 6,
+      "ENVIRONMENT": 13,
+      "MUSIC": 13,
+      "AI": 14,
+      "SPACE": 12,
+      "FASHION": 9,
+      "ARTS": 14
+    },
+    "byBias": {
+      "LIBERAL": 83,
+      "CENTRIST": 105,
+      "CONSERVATIVE": 27,
+      "RIGHT": 27,
+      "LEFT": 37
+    }
+  },
+  "potentialIssues": {
+    "stateMediaIssues": [
+      {
+        "id": "682407d18971c1d0cc4b1887",
+        "name": "Breitbart News",
+        "url": "http://feeds.feedburner.com/breitbart",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "POLITICS",
+        "bias": "RIGHT"
+      },
+      {
+        "id": "682407dc8971c1d0cc4b18f9",
+        "name": "TechCrunch",
+        "url": "https://techcrunch.com/feed/",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "TECH",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682407e28971c1d0cc4b1923",
+        "name": "Fortune",
+        "url": "https://fortune.com/feed/",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "ECONOMICS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682407ee8971c1d0cc4b1976",
+        "name": "Undark Magazine",
+        "url": "https://undark.org/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "SCIENCE",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682407ef8971c1d0cc4b1982",
+        "name": "ABC News - Entertainment",
+        "url": "https://abcnews.go.com/abcnews/entertainmentheadlines",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "ENTERTAINMENT",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407ef8971c1d0cc4b1988",
+        "name": "CBS News - Entertainment",
+        "url": "https://www.cbsnews.com/latest/rss/entertainment",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "ENTERTAINMENT",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f08971c1d0cc4b198b",
+        "name": "CNN - Entertainment",
+        "url": "http://rss.cnn.com/rss/cnn_showbiz.rss",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "ENTERTAINMENT",
+        "bias": "LEFT"
+      },
+      {
+        "id": "682407f18971c1d0cc4b199a",
+        "name": "The Hollywood Reporter",
+        "url": "https://www.hollywoodreporter.com/feed/",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "ENTERTAINMENT",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f28971c1d0cc4b19a3",
+        "name": "ABC News - Sports",
+        "url": "https://abcnews.go.com/abcnews/sportsheadlines",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f38971c1d0cc4b19a9",
+        "name": "CBS News - Sports",
+        "url": "https://www.cbsnews.com/latest/rss/sports",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f38971c1d0cc4b19ac",
+        "name": "CNN - Sport",
+        "url": "http://rss.cnn.com/rss/edition_sport.rss",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "LEFT"
+      },
+      {
+        "id": "682407f48971c1d0cc4b19b2",
+        "name": "Fox News - Sports",
+        "url": "http://feeds.foxnews.com/foxnews/sports",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "RIGHT"
+      },
+      {
+        "id": "682407f48971c1d0cc4b19b5",
+        "name": "NYT - Sports",
+        "url": "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f48971c1d0cc4b19b8",
+        "name": "Yahoo Sports",
+        "url": "https://sports.yahoo.com/rss/",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407f58971c1d0cc4b19be",
+        "name": "CBS Sports",
+        "url": "https://www.cbssports.com/rss/headlines/",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "6824082f8971c1d0cc4b1a83",
+        "name": "Sporting News",
+        "url": "https://www.sportingnews.com/us/rss",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "6824083d8971c1d0cc4b1a98",
+        "name": "Barrett Sports Media",
+        "url": "https://barrettsportsmedia.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "CONSERVATIVE"
+      },
+      {
+        "id": "682408508971c1d0cc4b1ada",
+        "name": "Green Car Reports",
+        "url": "https://www.greencarreports.com/rss",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ENVIRONMENT",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682408558971c1d0cc4b1af2",
+        "name": "Consequence of Sound",
+        "url": "https://consequenceofsound.net/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "MUSIC",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682408568971c1d0cc4b1afe",
+        "name": "Saving Country Music",
+        "url": "https://www.savingcountrymusic.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "MUSIC",
+        "bias": "CONSERVATIVE"
+      },
+      {
+        "id": "682408668971c1d0cc4b1b3d",
+        "name": "Techdirt",
+        "url": "https://www.techdirt.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "LAW",
+        "bias": "LEFT"
+      },
+      {
+        "id": "6824086a8971c1d0cc4b1b4a",
+        "name": "Washington Legal Foundation",
+        "url": "https://www.wlf.org/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "LAW",
+        "bias": "CONSERVATIVE"
+      },
+      {
+        "id": "6824086b8971c1d0cc4b1b4e",
+        "name": "Pacific Legal Foundation",
+        "url": "https://pacificlegal.org/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "LAW",
+        "bias": "RIGHT"
+      },
+      {
+        "id": "6824087c8971c1d0cc4b1b8c",
+        "name": "Universe Today",
+        "url": "https://www.universetoday.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "SPACE",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408898971c1d0cc4b1ba9",
+        "name": "Space Intel Report",
+        "url": "https://www.spaceintelreport.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "SPACE",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408978971c1d0cc4b1bd9",
+        "name": "WhoWhatWear",
+        "url": "https://www.whowhatwear.com/rss",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "FASHION",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "6824089c8971c1d0cc4b1cb4",
+        "name": "Artnet",
+        "url": "https://news.artnet.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "6824089d8971c1d0cc4b1cba",
+        "name": "ARTnews",
+        "url": "https://www.artnews.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "6824089d8971c1d0cc4b1cbd",
+        "name": "ArtForum",
+        "url": "https://www.artforum.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LEFT"
+      },
+      {
+        "id": "6824089e8971c1d0cc4b1cc1",
+        "name": "Art in America",
+        "url": "https://www.artnews.com/art-in-america/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "6824089f8971c1d0cc4b1cc4",
+        "name": "Observer Arts",
+        "url": "https://observer.com/arts/rss/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408a98971c1d0cc4b1ccc",
+        "name": "Contemporary Art Review",
+        "url": "https://contemporaryartreview.la/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LEFT"
+      },
+      {
+        "id": "682408aa8971c1d0cc4b1ccf",
+        "name": "Artsy",
+        "url": "https://www.artsy.net/rss/news",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408ab8971c1d0cc4b1cd5",
+        "name": "Art & Object",
+        "url": "https://www.artandobject.com/rss.xml",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408ba8971c1d0cc4b1ce3",
+        "name": "Beautiful Art",
+        "url": "https://www.beautifullife.info/art-works/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408bb8971c1d0cc4b1ce7",
+        "name": "Public Art Review",
+        "url": "https://forecastpublicart.org/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ARTS",
+        "bias": "LEFT"
+      },
+      {
+        "id": "682408bf8971c1d0cc4b1cf6",
+        "name": "Courthouse News",
+        "url": "https://www.courthousenews.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "LAW",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682408c28971c1d0cc4b1d02",
+        "name": "FiveThirtyEight Politics",
+        "url": "https://fivethirtyeight.com/politics/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "POLITICS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682408c88971c1d0cc4b1d1c",
+        "name": "Knowledge@Wharton",
+        "url": "https://knowledge.wharton.upenn.edu/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "STATE",
+        "category": "ECONOMICS",
+        "bias": "CENTRIST"
+      },
+      {
+        "id": "682408d68971c1d0cc4b1e0d",
+        "name": "Fox Sports",
+        "url": "https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU",
+        "currentType": "CORPORATE",
+        "suggestedType": "STATE",
+        "category": "SPORTS",
+        "bias": "CONSERVATIVE"
+      }
+    ],
+    "corporateMediaIssues": [
+      {
+        "id": "682407cd8971c1d0cc4b1866",
+        "name": "BBC News - Health",
+        "url": "http://feeds.bbci.co.uk/news/health/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "HEALTH",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407d08971c1d0cc4b1884",
+        "name": "BBC News - Politics",
+        "url": "http://feeds.bbci.co.uk/news/politics/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "POLITICS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407d78971c1d0cc4b18c0",
+        "name": "BBC News",
+        "url": "http://feeds.bbci.co.uk/news/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "WORLD",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407da8971c1d0cc4b18e7",
+        "name": "BBC News - Technology",
+        "url": "http://feeds.bbci.co.uk/news/technology/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "TECH",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407df8971c1d0cc4b190e",
+        "name": "BBC News - Business",
+        "url": "http://feeds.bbci.co.uk/news/business/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "ECONOMICS",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407e98971c1d0cc4b194c",
+        "name": "BBC News - Science & Environment",
+        "url": "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "SCIENCE",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682407ef8971c1d0cc4b1985",
+        "name": "BBC News - Entertainment & Arts",
+        "url": "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+        "currentType": "STATE",
+        "suggestedType": "CORPORATE",
+        "category": "ENTERTAINMENT",
+        "bias": "LIBERAL"
+      },
+      {
+        "id": "682408048971c1d0cc4b19f8",
+        "name": "Washington Times",
+        "url": "https://www.washingtontimes.com/rss/headlines/news/politics/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "CORPORATE",
+        "category": "POLITICS",
+        "bias": "CONSERVATIVE"
+      },
+      {
+        "id": "6824080b8971c1d0cc4b1a0e",
+        "name": "Asia Times",
+        "url": "https://asiatimes.com/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "CORPORATE",
+        "category": "WORLD",
+        "bias": "LEFT"
+      },
+      {
+        "id": "682408c68971c1d0cc4b1d0d",
+        "name": "Japan Times",
+        "url": "https://www.japantimes.co.jp/feed/",
+        "currentType": "INDEPENDENT",
+        "suggestedType": "CORPORATE",
+        "category": "WORLD",
+        "bias": "CENTRIST"
+      }
+    ],
+    "biasIssues": [],
+    "duplicateNameIssues": [
+      {
+        "name": "The Hill",
+        "count": 2,
+        "sources": [
+          {
+            "id": "682407d58971c1d0cc4b18ae",
+            "url": "https://thehill.com/rss/syndicator/19109",
+            "category": "POLITICS",
+            "bias": "CENTRIST",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f78971c1d0cc4b19ce",
+            "url": "https://thehill.com/news/feed/",
+            "category": "NEWS",
+            "bias": "CENTRIST",
+            "type": "CORPORATE"
+          }
+        ]
+      },
+      {
+        "name": "The Nation",
+        "count": 2,
+        "sources": [
+          {
+            "id": "682407d68971c1d0cc4b18b1",
+            "url": "https://www.thenation.com/feed/?post_type=article",
+            "category": "POLITICS",
+            "bias": "LEFT",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824080c8971c1d0cc4b1a1c",
+            "url": "https://www.thenation.com/feed/",
+            "category": "US",
+            "bias": "LEFT",
+            "type": "INDEPENDENT"
+          }
+        ]
+      }
+    ],
+    "sameCategoryBiasIssues": [
+      {
+        "category": "LAW",
+        "bias": "LIBERAL",
+        "count": 6,
+        "sources": [
+          {
+            "id": "682407ca8971c1d0cc4b1856",
+            "name": "Above the Law",
+            "url": "https://abovethelaw.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407cb8971c1d0cc4b1859",
+            "name": "Jurist",
+            "url": "https://www.jurist.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408668971c1d0cc4b1b39",
+            "name": "ABA Journal",
+            "url": "https://www.abajournal.com/rss/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408678971c1d0cc4b1b41",
+            "name": "American Constitution Society",
+            "url": "https://www.acslaw.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408be8971c1d0cc4b1cef",
+            "name": "Law & Crime",
+            "url": "https://lawandcrime.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408bf8971c1d0cc4b1cf6",
+            "name": "Courthouse News",
+            "url": "https://www.courthousenews.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "HEALTH",
+        "bias": "LIBERAL",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407cd8971c1d0cc4b1863",
+            "name": "ABC News - Health",
+            "url": "https://abcnews.go.com/abcnews/healthheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407cd8971c1d0cc4b1866",
+            "name": "BBC News - Health",
+            "url": "http://feeds.bbci.co.uk/news/health/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407ce8971c1d0cc4b186c",
+            "name": "Kaiser Health News",
+            "url": "https://kffhealthnews.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ce8971c1d0cc4b186f",
+            "name": "NBC News - Health",
+            "url": "https://feeds.nbcnews.com/nbcnews/public/health",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407cf8971c1d0cc4b1872",
+            "name": "NPR - Health",
+            "url": "https://feeds.npr.org/1013/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407cf8971c1d0cc4b1878",
+            "name": "NYT - Health",
+            "url": "http://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408228971c1d0cc4b1a6b",
+            "name": "Healthline",
+            "url": "https://www.healthline.com/rss/health-news",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408238971c1d0cc4b1a71",
+            "name": "Health Affairs",
+            "url": "https://www.healthaffairs.org/action/showFeed?type=etoc&feed=rss&jc=hlthaff",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "HEALTH",
+        "bias": "CENTRIST",
+        "count": 6,
+        "sources": [
+          {
+            "id": "682407cf8971c1d0cc4b187b",
+            "name": "STAT News",
+            "url": "https://www.statnews.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407d08971c1d0cc4b187e",
+            "name": "WHO News",
+            "url": "https://www.who.int/rss-feeds/news-english.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682408218971c1d0cc4b1a65",
+            "name": "MedPage Today",
+            "url": "https://www.medpagetoday.com/rss/headlines.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408218971c1d0cc4b1a68",
+            "name": "Medscape",
+            "url": "https://www.medscape.com/cx/rssfeeds/2700.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824082e8971c1d0cc4b1a80",
+            "name": "Medical Xpress",
+            "url": "https://medicalxpress.com/rss-feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408c08971c1d0cc4b1cfb",
+            "name": "New England Journal of Medicine",
+            "url": "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "POLITICS",
+        "bias": "LIBERAL",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407d08971c1d0cc4b1881",
+            "name": "ABC News - Politics",
+            "url": "http://abcnews.go.com/abcnews/politicsheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d08971c1d0cc4b1884",
+            "name": "BBC News - Politics",
+            "url": "http://feeds.bbci.co.uk/news/politics/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407d18971c1d0cc4b188a",
+            "name": "CBS News - Politics",
+            "url": "https://www.cbsnews.com/latest/rss/politics",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d38971c1d0cc4b1899",
+            "name": "NBC News - Politics",
+            "url": "http://feeds.nbcnews.com/nbcnews/public/politics",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d38971c1d0cc4b189c",
+            "name": "NPR - Politics",
+            "url": "https://feeds.npr.org/1014/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407d38971c1d0cc4b189f",
+            "name": "NYT - Politics",
+            "url": "http://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d58971c1d0cc4b18ab",
+            "name": "The Atlantic - Politics",
+            "url": "https://www.theatlantic.com/feed/channel/politics/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408c28971c1d0cc4b1d02",
+            "name": "FiveThirtyEight Politics",
+            "url": "https://fivethirtyeight.com/politics/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "POLITICS",
+        "bias": "LEFT",
+        "count": 6,
+        "sources": [
+          {
+            "id": "682407d18971c1d0cc4b188d",
+            "name": "CNN - Politics",
+            "url": "http://rss.cnn.com/rss/cnn_allpolitics.rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d28971c1d0cc4b1890",
+            "name": "HuffPost - Politics",
+            "url": "https://www.huffpost.com/section/politics/feed",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d28971c1d0cc4b1893",
+            "name": "Mother Jones",
+            "url": "https://www.motherjones.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407d48971c1d0cc4b18a5",
+            "name": "The Intercept",
+            "url": "https://theintercept.com/feed/?rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407d68971c1d0cc4b18b1",
+            "name": "The Nation",
+            "url": "https://www.thenation.com/feed/?post_type=article",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407d68971c1d0cc4b18b4",
+            "name": "Vox - Politics",
+            "url": "https://www.vox.com/rss/policy-and-politics/index.xml",
+            "type": "CORPORATE"
+          }
+        ]
+      },
+      {
+        "category": "WORLD",
+        "bias": "LIBERAL",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407d78971c1d0cc4b18ba",
+            "name": "ABC News - World",
+            "url": "https://abcnews.go.com/abcnews/internationalheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d78971c1d0cc4b18bd",
+            "name": "Al Jazeera",
+            "url": "https://www.aljazeera.com/xml/rss/all.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407d78971c1d0cc4b18c0",
+            "name": "BBC News",
+            "url": "http://feeds.bbci.co.uk/news/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407d78971c1d0cc4b18c3",
+            "name": "NBC News - World",
+            "url": "http://feeds.nbcnews.com/nbcnews/public/world",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d78971c1d0cc4b18c6",
+            "name": "NYT - World",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d88971c1d0cc4b18cf",
+            "name": "The Guardian - World",
+            "url": "https://www.theguardian.com/world/rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408088971c1d0cc4b1a04",
+            "name": "Deutsche Welle",
+            "url": "https://rss.dw.com/rdf/rss-en-all",
+            "type": "STATE"
+          },
+          {
+            "id": "682408c38971c1d0cc4b1d07",
+            "name": "BBC Asia",
+            "url": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+            "type": "STATE"
+          }
+        ]
+      },
+      {
+        "category": "WORLD",
+        "bias": "CENTRIST",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407d88971c1d0cc4b18c9",
+            "name": "Sky News - UK",
+            "url": "https://feeds.skynews.com/feeds/rss/uk.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d88971c1d0cc4b18cc",
+            "name": "Sky News - World",
+            "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d88971c1d0cc4b18d2",
+            "name": "UN News",
+            "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407d98971c1d0cc4b18d5",
+            "name": "Times of India",
+            "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407d98971c1d0cc4b18de",
+            "name": "Foreign Policy",
+            "url": "https://foreignpolicy.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408068971c1d0cc4b19fe",
+            "name": "The Diplomat",
+            "url": "https://thediplomat.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408078971c1d0cc4b1a01",
+            "name": "France 24",
+            "url": "https://www.france24.com/en/rss",
+            "type": "STATE"
+          },
+          {
+            "id": "682408c68971c1d0cc4b1d0d",
+            "name": "Japan Times",
+            "url": "https://www.japantimes.co.jp/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "TECH",
+        "bias": "LIBERAL",
+        "count": 5,
+        "sources": [
+          {
+            "id": "682407d98971c1d0cc4b18e1",
+            "name": "ABC News - Technology",
+            "url": "https://abcnews.go.com/abcnews/technologyheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407da8971c1d0cc4b18e7",
+            "name": "BBC News - Technology",
+            "url": "http://feeds.bbci.co.uk/news/technology/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407dc8971c1d0cc4b18f3",
+            "name": "NYT - Technology",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407de8971c1d0cc4b18ff",
+            "name": "The Guardian - Technology",
+            "url": "https://www.theguardian.com/technology/rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407de8971c1d0cc4b1905",
+            "name": "WIRED",
+            "url": "https://www.wired.com/feed/rss",
+            "type": "CORPORATE"
+          }
+        ]
+      },
+      {
+        "category": "TECH",
+        "bias": "CENTRIST",
+        "count": 12,
+        "sources": [
+          {
+            "id": "682407da8971c1d0cc4b18e4",
+            "name": "Ars Technica",
+            "url": "http://feeds.arstechnica.com/arstechnica/index/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407da8971c1d0cc4b18ea",
+            "name": "CNET News",
+            "url": "https://www.cnet.com/rss/news/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407db8971c1d0cc4b18ed",
+            "name": "Hacker News",
+            "url": "https://news.ycombinator.com/rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407db8971c1d0cc4b18f0",
+            "name": "MIT Technology Review",
+            "url": "https://www.technologyreview.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407dc8971c1d0cc4b18f9",
+            "name": "TechCrunch",
+            "url": "https://techcrunch.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407de8971c1d0cc4b18fc",
+            "name": "Techmeme",
+            "url": "https://www.techmeme.com/feed.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824081b8971c1d0cc4b1a3a",
+            "name": "ZDNet",
+            "url": "https://www.zdnet.com/news/rss.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824081b8971c1d0cc4b1a3d",
+            "name": "Slashdot",
+            "url": "https://rss.slashdot.org/Slashdot/slashdotMain",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824081c8971c1d0cc4b1a43",
+            "name": "VentureBeat",
+            "url": "https://venturebeat.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408c78971c1d0cc4b1d11",
+            "name": "Android Central",
+            "url": "https://www.androidcentral.com/rss.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408c78971c1d0cc4b1d14",
+            "name": "9to5Mac",
+            "url": "https://9to5mac.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408c88971c1d0cc4b1d18",
+            "name": "Android Police",
+            "url": "https://www.androidpolice.com/feed/",
+            "type": "CORPORATE"
+          }
+        ]
+      },
+      {
+        "category": "ECONOMICS",
+        "bias": "LIBERAL",
+        "count": 10,
+        "sources": [
+          {
+            "id": "682407de8971c1d0cc4b1908",
+            "name": "ABC News - Money",
+            "url": "https://abcnews.go.com/abcnews/moneyheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407df8971c1d0cc4b190b",
+            "name": "Axios - Business",
+            "url": "https://api.axios.com/feed/business",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407df8971c1d0cc4b190e",
+            "name": "BBC News - Business",
+            "url": "http://feeds.bbci.co.uk/news/business/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407df8971c1d0cc4b1911",
+            "name": "CBS News - MoneyWatch",
+            "url": "https://www.cbsnews.com/latest/rss/moneywatch",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e08971c1d0cc4b1917",
+            "name": "CNBC",
+            "url": "https://www.cnbc.com/id/10000664/device/rss/rss.html",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e68971c1d0cc4b1931",
+            "name": "NBC News - Business",
+            "url": "http://feeds.nbcnews.com/nbcnews/public/business",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e68971c1d0cc4b1934",
+            "name": "NPR - Business",
+            "url": "https://feeds.npr.org/1006/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407e68971c1d0cc4b1937",
+            "name": "NYT - Business",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e78971c1d0cc4b193d",
+            "name": "Yahoo Finance",
+            "url": "https://finance.yahoo.com/news/rssindex",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408ca8971c1d0cc4b1d22",
+            "name": "Project Syndicate",
+            "url": "https://www.project-syndicate.org/rss",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "ECONOMICS",
+        "bias": "CENTRIST",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407e18971c1d0cc4b191a",
+            "name": "The Economist - Finance and Economics",
+            "url": "https://www.economist.com/finance-and-economics/rss.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e28971c1d0cc4b191d",
+            "name": "Financial Times",
+            "url": "https://www.ft.com/?format=rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e28971c1d0cc4b1920",
+            "name": "Forbes - Business",
+            "url": "https://www.forbes.com/business/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e28971c1d0cc4b1923",
+            "name": "Fortune",
+            "url": "https://fortune.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e48971c1d0cc4b192a",
+            "name": "Investopedia",
+            "url": "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedname=rss_articles",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e58971c1d0cc4b192e",
+            "name": "MarketWatch",
+            "url": "https://www.marketwatch.com/rss/topstories",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e78971c1d0cc4b193a",
+            "name": "WSJ - Business",
+            "url": "https://feeds.a.dj.com/rss/RSSWSJD.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408c88971c1d0cc4b1d1c",
+            "name": "Knowledge@Wharton",
+            "url": "https://knowledge.wharton.upenn.edu/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "SCIENCE",
+        "bias": "LIBERAL",
+        "count": 8,
+        "sources": [
+          {
+            "id": "682407e88971c1d0cc4b1943",
+            "name": "NPR - Science",
+            "url": "https://feeds.npr.org/1007/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407e98971c1d0cc4b1949",
+            "name": "Axios - Science",
+            "url": "https://api.axios.com/feed/science",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407e98971c1d0cc4b194c",
+            "name": "BBC News - Science & Environment",
+            "url": "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407e98971c1d0cc4b194f",
+            "name": "CBS News - Science",
+            "url": "https://www.cbsnews.com/latest/rss/science",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ec8971c1d0cc4b195b",
+            "name": "NYT - Science",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ed8971c1d0cc4b196d",
+            "name": "The Guardian - Science",
+            "url": "https://www.theguardian.com/science/rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ed8971c1d0cc4b1970",
+            "name": "Wired - Science",
+            "url": "https://www.wired.com/feed/category/science/latest/rss",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408cd8971c1d0cc4b1d2f",
+            "name": "Science Magazine",
+            "url": "https://www.science.org/rss/news_current.xml",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "SCIENCE",
+        "bias": "CENTRIST",
+        "count": 15,
+        "sources": [
+          {
+            "id": "682407e88971c1d0cc4b1946",
+            "name": "Ars Technica - Science",
+            "url": "https://feeds.arstechnica.com/arstechnica/science",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ea8971c1d0cc4b1952",
+            "name": "Live Science",
+            "url": "https://www.livescience.com/feeds/all",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407eb8971c1d0cc4b1955",
+            "name": "Nature",
+            "url": "https://www.nature.com/nature.rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407eb8971c1d0cc4b1958",
+            "name": "New Scientist",
+            "url": "https://www.newscientist.com/feed/home/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ec8971c1d0cc4b195e",
+            "name": "Popular Mechanics",
+            "url": "https://www.popularmechanics.com/rss/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ec8971c1d0cc4b1961",
+            "name": "Popular Science",
+            "url": "https://www.popsci.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ed8971c1d0cc4b1964",
+            "name": "ScienceDaily",
+            "url": "https://www.sciencedaily.com/rss/all.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ed8971c1d0cc4b196a",
+            "name": "Scientific American",
+            "url": "http://rss.sciam.com/ScientificAmerican-Global",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ee8971c1d0cc4b1976",
+            "name": "Undark Magazine",
+            "url": "https://undark.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ee8971c1d0cc4b1979",
+            "name": "Science News",
+            "url": "https://www.sciencenews.org/feed",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ef8971c1d0cc4b197c",
+            "name": "Smithsonian Magazine",
+            "url": "https://www.smithsonianmag.com/rss/latest_articles/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682407ef8971c1d0cc4b197f",
+            "name": "Astronomy Magazine",
+            "url": "https://www.astronomy.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408cc8971c1d0cc4b1d25",
+            "name": "Quanta Magazine",
+            "url": "https://www.quantamagazine.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408cc8971c1d0cc4b1d28",
+            "name": "Phys.org",
+            "url": "https://phys.org/rss-feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408cd8971c1d0cc4b1d2c",
+            "name": "IEEE Spectrum",
+            "url": "https://spectrum.ieee.org/rss",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "ENTERTAINMENT",
+        "bias": "LIBERAL",
+        "count": 9,
+        "sources": [
+          {
+            "id": "682407ef8971c1d0cc4b1982",
+            "name": "ABC News - Entertainment",
+            "url": "https://abcnews.go.com/abcnews/entertainmentheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407ef8971c1d0cc4b1985",
+            "name": "BBC News - Entertainment & Arts",
+            "url": "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407ef8971c1d0cc4b1988",
+            "name": "CBS News - Entertainment",
+            "url": "https://www.cbsnews.com/latest/rss/entertainment",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f08971c1d0cc4b198e",
+            "name": "NPR - Entertainment",
+            "url": "https://feeds.npr.org/1008/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407f08971c1d0cc4b1991",
+            "name": "NYT - Movies",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f18971c1d0cc4b1997",
+            "name": "Variety",
+            "url": "https://variety.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f18971c1d0cc4b199a",
+            "name": "The Hollywood Reporter",
+            "url": "https://www.hollywoodreporter.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f18971c1d0cc4b199d",
+            "name": "Deadline",
+            "url": "https://deadline.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408cd8971c1d0cc4b1d33",
+            "name": "Consequence",
+            "url": "https://consequence.net/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "ENTERTAINMENT",
+        "bias": "CENTRIST",
+        "count": 5,
+        "sources": [
+          {
+            "id": "682407f18971c1d0cc4b1994",
+            "name": "TMZ",
+            "url": "https://www.tmz.com/rss.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "6824083f8971c1d0cc4b1a9e",
+            "name": "Screen Rant",
+            "url": "https://screenrant.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408448971c1d0cc4b1aab",
+            "name": "PopCulture.com",
+            "url": "https://popculture.com/rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408448971c1d0cc4b1aaf",
+            "name": "Collider",
+            "url": "https://collider.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408cf8971c1d0cc4b1d3a",
+            "name": "MovieWeb",
+            "url": "https://movieweb.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "SPORTS",
+        "bias": "LIBERAL",
+        "count": 5,
+        "sources": [
+          {
+            "id": "682407f28971c1d0cc4b19a3",
+            "name": "ABC News - Sports",
+            "url": "https://abcnews.go.com/abcnews/sportsheadlines",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f38971c1d0cc4b19a6",
+            "name": "BBC Sport",
+            "url": "http://feeds.bbci.co.uk/sport/rss.xml",
+            "type": "STATE"
+          },
+          {
+            "id": "682407f38971c1d0cc4b19a9",
+            "name": "CBS News - Sports",
+            "url": "https://www.cbsnews.com/latest/rss/sports",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f48971c1d0cc4b19b5",
+            "name": "NYT - Sports",
+            "url": "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682407f48971c1d0cc4b19b8",
+            "name": "Yahoo Sports",
+            "url": "https://sports.yahoo.com/rss/",
+            "type": "CORPORATE"
+          }
+        ]
+      },
+      {
+        "category": "MUSIC",
+        "bias": "CENTRIST",
+        "count": 6,
+        "sources": [
+          {
+            "id": "682408548971c1d0cc4b1aef",
+            "name": "Billboard",
+            "url": "https://www.billboard.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408568971c1d0cc4b1af8",
+            "name": "Ultimate Classic Rock",
+            "url": "https://ultimateclassicrock.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408578971c1d0cc4b1b01",
+            "name": "Metal Injection",
+            "url": "https://metalinjection.net/feed",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824085f8971c1d0cc4b1b22",
+            "name": "DJ Booth",
+            "url": "https://djbooth.net/rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824085f8971c1d0cc4b1b26",
+            "name": "AllMusic",
+            "url": "https://www.allmusic.com/rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408618971c1d0cc4b1b2e",
+            "name": "XXL Magazine",
+            "url": "https://www.xxlmag.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "AI",
+        "bias": "CENTRIST",
+        "count": 11,
+        "sources": [
+          {
+            "id": "6824086f8971c1d0cc4b1b59",
+            "name": "AI Trends",
+            "url": "https://aitrends.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408718971c1d0cc4b1b5f",
+            "name": "Machine Learning Mastery",
+            "url": "https://machinelearningmastery.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408728971c1d0cc4b1b62",
+            "name": "AI News",
+            "url": "https://artificialintelligence-news.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408738971c1d0cc4b1b65",
+            "name": "Towards Data Science",
+            "url": "https://towardsdatascience.com/feed",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408758971c1d0cc4b1b69",
+            "name": "DeepMind Blog",
+            "url": "https://deepmind.com/blog/rss.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408768971c1d0cc4b1b70",
+            "name": "Future of Life Institute",
+            "url": "https://futureoflife.org/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408788971c1d0cc4b1b74",
+            "name": "The Gradient",
+            "url": "https://thegradient.pub/rss/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408798971c1d0cc4b1b77",
+            "name": "AI Alignment Forum",
+            "url": "https://www.alignmentforum.org/feed.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408798971c1d0cc4b1b7e",
+            "name": "Less Wrong",
+            "url": "https://www.lesswrong.com/feed.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408d78971c1d0cc4b1e11",
+            "name": "Hugging Face Blog",
+            "url": "https://www.huggingface.co/blog/feed.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408d78971c1d0cc4b1e16",
+            "name": "Distill",
+            "url": "https://distill.pub/rss.xml",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "SPACE",
+        "bias": "CENTRIST",
+        "count": 11,
+        "sources": [
+          {
+            "id": "6824087b8971c1d0cc4b1b89",
+            "name": "Space.com",
+            "url": "https://www.space.com/feeds/all",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824087c8971c1d0cc4b1b8c",
+            "name": "Universe Today",
+            "url": "https://www.universetoday.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824087c8971c1d0cc4b1b8f",
+            "name": "NASA",
+            "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+            "type": "STATE"
+          },
+          {
+            "id": "6824087e8971c1d0cc4b1b93",
+            "name": "ESA",
+            "url": "https://www.esa.int/rssfeed/Our_Activities/Space_News",
+            "type": "STATE"
+          },
+          {
+            "id": "6824087e8971c1d0cc4b1b96",
+            "name": "Ars Technica Space",
+            "url": "https://arstechnica.com/space/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "6824087e8971c1d0cc4b1b99",
+            "name": "SpaceNews",
+            "url": "https://spacenews.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408838971c1d0cc4b1b9f",
+            "name": "SpaceRef",
+            "url": "https://spaceref.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408888971c1d0cc4b1ba6",
+            "name": "SpacePolicyOnline",
+            "url": "https://spacepolicyonline.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408898971c1d0cc4b1ba9",
+            "name": "Space Intel Report",
+            "url": "https://www.spaceintelreport.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408898971c1d0cc4b1bad",
+            "name": "NASASpaceFlight",
+            "url": "https://www.nasaspaceflight.com/feed/",
+            "type": "STATE"
+          },
+          {
+            "id": "6824088a8971c1d0cc4b1bb0",
+            "name": "Astronomy Now",
+            "url": "https://astronomynow.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "FASHION",
+        "bias": "CENTRIST",
+        "count": 6,
+        "sources": [
+          {
+            "id": "682408958971c1d0cc4b1bc7",
+            "name": "WWD",
+            "url": "https://wwd.com/feed/",
+            "type": "CORPORATE"
+          },
+          {
+            "id": "682408958971c1d0cc4b1bca",
+            "name": "The Business of Fashion",
+            "url": "https://www.businessoffashion.com/feed.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408968971c1d0cc4b1bce",
+            "name": "Highsnobiety",
+            "url": "https://www.highsnobiety.com/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408978971c1d0cc4b1bd1",
+            "name": "Hypebeast",
+            "url": "https://hypebeast.com/feed",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408978971c1d0cc4b1bd9",
+            "name": "WhoWhatWear",
+            "url": "https://www.whowhatwear.com/rss",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408988971c1d0cc4b1bdd",
+            "name": "Fashion Gone Rogue",
+            "url": "https://www.fashiongonerogue.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      },
+      {
+        "category": "ARTS",
+        "bias": "CENTRIST",
+        "count": 5,
+        "sources": [
+          {
+            "id": "6824089f8971c1d0cc4b1cc4",
+            "name": "Observer Arts",
+            "url": "https://observer.com/arts/rss/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408aa8971c1d0cc4b1ccf",
+            "name": "Artsy",
+            "url": "https://www.artsy.net/rss/news",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408ab8971c1d0cc4b1cd5",
+            "name": "Art & Object",
+            "url": "https://www.artandobject.com/rss.xml",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408ba8971c1d0cc4b1ce3",
+            "name": "Beautiful Art",
+            "url": "https://www.beautifullife.info/art-works/feed/",
+            "type": "INDEPENDENT"
+          },
+          {
+            "id": "682408bd8971c1d0cc4b1ceb",
+            "name": "Aesthetica Magazine",
+            "url": "https://aestheticamagazine.com/feed/",
+            "type": "INDEPENDENT"
+          }
+        ]
+      }
+    ]
+  }
+}

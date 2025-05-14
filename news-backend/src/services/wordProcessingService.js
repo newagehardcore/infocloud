@@ -345,6 +345,9 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
   const itemCategory = (processedNewsItem.source && processedNewsItem.source.category)
     ? processedNewsItem.source.category
     : NewsCategory.UNKNOWN;
+  const itemType = (processedNewsItem.source && processedNewsItem.source.type)
+    ? processedNewsItem.source.type
+    : 'UNKNOWN';
 
   (processedNewsItem.keywords || []).forEach(keywordText => {
     const validatedKeyword = filterAndValidateKeyword(keywordText);
@@ -359,15 +362,19 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
         const categorySet = new Set(existingEntry.categories || []);
         categorySet.add(itemCategory);
         existingEntry.categories = Array.from(categorySet);
-
+        // Add type to the set, then convert set to array for storage
+        const typeSet = new Set(existingEntry.types || []);
+        typeSet.add(itemType);
+        existingEntry.types = Array.from(typeSet);
       } else {
         keywordCache.data.set(validatedKeyword, {
           count: 1,
           biases: itemBias ? [itemBias] : [],
           categories: itemCategory ? [itemCategory] : [], // Initialize categories as an array
+          types: itemType ? [itemType] : [], // Initialize types as an array
           items: new Set([itemId])
         });
-        }
+      }
     }
   });
   keywordCache.timestamp = new Date();
@@ -501,6 +508,10 @@ async function aggregateKeywordsForCloud() {
           const itemCategory = (item.source && item.source.category)
             ? item.source.category
             : NewsCategory.UNKNOWN;
+          // Extract source type, defaulting to UNKNOWN if not present
+          const itemType = (item.source && item.source.type) 
+            ? item.source.type 
+            : 'UNKNOWN';
 
           // Process keywords for this item
           if (!item.keywords || !Array.isArray(item.keywords)) {
@@ -521,11 +532,13 @@ async function aggregateKeywordsForCloud() {
                 entry.items.add(itemId);
                 if (itemBias) entry.biases.add(itemBias);
                 if (itemCategory) entry.categories.add(itemCategory);
+                if (itemType) entry.types.add(itemType);
               } else {
                 tempKeywordMap.set(validatedKeyword, {
                   count: 1,
                   biases: itemBias ? new Set([itemBias]) : new Set(),
                   categories: itemCategory ? new Set([itemCategory]) : new Set(),
+                  types: itemType ? new Set([itemType]) : new Set(),
                   items: new Set([itemId])
                 });
               }
@@ -547,7 +560,8 @@ async function aggregateKeywordsForCloud() {
           newCacheData.set(key, {
             ...value,
             biases: Array.from(value.biases),
-            categories: Array.from(value.categories)
+            categories: Array.from(value.categories),
+            types: Array.from(value.types)
           });
         } catch (conversionError) {
           console.error(`[Cache Aggregation] Error converting sets to arrays for keyword "${key}":`, conversionError.message);

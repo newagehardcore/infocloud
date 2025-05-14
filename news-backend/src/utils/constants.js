@@ -7,6 +7,18 @@ const BIAS_CATEGORIES = [
     'UNKNOWN'
 ];
 
+const SOURCE_TYPES = [
+    'INDEPENDENT',
+    'CORPORATE',
+    'STATE',
+    'UNKNOWN'
+];
+
+// Add debug
+console.log('[Constants] Loading constants.js module');
+console.log('[Constants] SOURCE_TYPES defined:', SOURCE_TYPES);
+
 module.exports = {
-    BIAS_CATEGORIES
+    BIAS_CATEGORIES,
+    SOURCE_TYPES
 }; 

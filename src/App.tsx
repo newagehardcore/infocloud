@@ -6,9 +6,9 @@ import Header from './components/Header';
 import TagCloud3DOptimized from './components/TagCloud3DOptimized';
 import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new component
 import ResponsiveContainer from './components/ResponsiveContainer';
-import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias } from './types';
+import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias, SourceType } from './types';
 import { preloadFonts } from './utils/fonts';
-import { FilterProvider, useFilters, BIAS_UPDATE_EVENT } from './contexts/FilterContext';
+import { FilterProvider, useFilters, BIAS_UPDATE_EVENT, TYPE_UPDATE_EVENT } from './contexts/FilterContext';
 import LoadingBar from './components/LoadingBar';
 import './App.css';
 import './components/TagFonts.css';
@@ -18,8 +18,8 @@ import EditMenu from './components/EditMenu';
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
 
-// Define Backend API Base URL (consider moving to .env)
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001';
+// Define Backend API Base URL - use relative URL to avoid hostname resolution issues
+const API_BASE_URL = '/api';
 
 // Helper function to filter news items by bias
 const filterNewsByBias = (items: NewsItem[], enabledBiases: Set<PoliticalBias>) => {
@@ -73,7 +73,9 @@ const App: React.FC = () => {
     enabledBiases, 
     toggleBias,
     selectedCategory,
-    setSelectedCategory
+    setSelectedCategory,
+    enabledTypes,
+    toggleType
   } = useFilters();
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
@@ -144,6 +146,20 @@ const App: React.FC = () => {
     };
   }, [unfilteredNewsItems, use24HourFilter]);
 
+  // Add effect to handle source type updates
+  useEffect(() => {
+    const handleTypeUpdate = () => {
+      // Re-filter the displayed words with current filters
+      // This will trigger a re-render of the tag cloud
+      // The actual filtering happens in the displayedWords useMemo
+    };
+
+    window.addEventListener(TYPE_UPDATE_EVENT, handleTypeUpdate);
+    return () => {
+      window.removeEventListener(TYPE_UPDATE_EVENT, handleTypeUpdate);
+    };
+  }, []);
+
   // Update the main news loading effect
   useEffect(() => {
     const loadNews = async () => {
@@ -171,8 +187,8 @@ const App: React.FC = () => {
       }
 
       try {
-        console.log('Fetching news from:', `${API_BASE_URL}/api/news`, 'with params:', params);
-        const response = await axios.get(`${API_BASE_URL}/api/news`, { params });
+        console.log('Fetching news from:', `${API_BASE_URL}/news`, 'with params:', params);
+        const response = await axios.get(`${API_BASE_URL}/news`, { params });
         console.log('Received response:', response.data); // Keep this for debugging
 
         // Assuming the backend response structure is { data: NewsItem[], words: Word[] }
@@ -198,9 +214,9 @@ const App: React.FC = () => {
     loadNews();
   }, [selectedCategory, enabledBiases]);
 
-  // Compute displayed words based on enabled biases AND selected category
+  // Compute displayed words based on enabled biases, types, AND selected category
   const displayedWords = useMemo(() => {
-    console.log(`Filtering ${allTagCloudWords.length} total words by biases: [${Array.from(enabledBiases).join(', ')}] and category: ${selectedCategory}`);
+    console.log(`Filtering ${allTagCloudWords.length} total words by biases: [${Array.from(enabledBiases).join(', ')}], types: [${Array.from(enabledTypes).join(', ')}] and category: ${selectedCategory}`);
     
     let filtered = allTagCloudWords;
 
@@ -209,7 +225,12 @@ const App: React.FC = () => {
         filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
     }
     
-    // 2. Filter by selected category (if not 'all')
+    // 2. Filter by enabled source types
+    if (enabledTypes.size < Object.values(SourceType).length) { // Only filter if not all types are enabled
+        filtered = filtered.filter(word => word.types && word.types.some(t => enabledTypes.has(t)));
+    }
+    
+    // 3. Filter by selected category (if not 'all')
     if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
         const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
         // Check if the word's categories array includes the selected category
@@ -218,8 +239,8 @@ const App: React.FC = () => {
 
     console.log(`Displaying ${filtered.length} words after filtering.`);
     return filtered;
-    // Ensure selectedCategory is in dependency array
-  }, [allTagCloudWords, enabledBiases, selectedCategory]);
+    // Ensure all filter dependencies are in the dependency array
+  }, [allTagCloudWords, enabledBiases, enabledTypes, selectedCategory]);
 
   const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
     if (!word || !word.text) {
@@ -237,7 +258,7 @@ const App: React.FC = () => {
     // setLoadingTagNews(true); 
 
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/news/by-tag`, {
+      const response = await axios.get(`${API_BASE_URL}/news/by-tag`, {
         params: { tag: word.text }
       });
       

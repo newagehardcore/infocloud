@@ -5,15 +5,18 @@ services:
       - POSTGRES_USER=miniflux
       - POSTGRES_PASSWORD=secret
     volumes:
-      - miniflux-data:/var/lib/postgresql/data
+      - ./docker/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "miniflux"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: always
+    container_name: infocloud-db
 
   miniflux:
     image: miniflux/miniflux:latest
+    container_name: infocloud-miniflux
     depends_on:
       db:
         condition: service_healthy
@@ -25,19 +28,70 @@ services:
       - ADMIN_PASSWORD=adminpass
     ports:
       - "8080:8080"
+    restart: always
 
   mongodb:
     image: mongo:6.0
+    container_name: infocloud-mongodb
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
+      - ./docker/mongodb:/data/db
+      - ./docker/mongodb_config:/data/configdb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=superadmin
       - MONGO_INITDB_ROOT_PASSWORD=supersecret
-      - MONGO_INITDB_DATABASE=infocloud # Ensure infocloud database is used/created
-    restart: unless-stopped
+      - MONGO_INITDB_DATABASE=infocloud
+    restart: always
+
+  ollama:
+    build:
+      context: ./docker/ollama
+      dockerfile: Dockerfile
+    container_name: infocloud-ollama
+    volumes:
+      - ./docker/ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: infocloud-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./news-backend
+      dockerfile: Dockerfile
+    container_name: infocloud-backend
+    depends_on:
+      - mongodb
+      - miniflux
+      - ollama
+    environment:
+      - MONGODB_URI=mongodb://superadmin:supersecret@mongodb:27017/infocloud?authSource=admin
+      - DB_NAME=infocloud
+      - OLLAMA_API_URL=http://ollama:11434
+      - PORT=5001
+      - MINIFLUX_URL=http://miniflux:8080
+      - MINIFLUX_API_KEY=WXkibKnphkhdmxudLtWSJ-sG4R47X-QlKK8V5CeLEJM=
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "5001:5001"
+    restart: always
 
 volumes:
   miniflux-data:
-  mongodb_data: {}
+    driver: local
+  mongodb_data:
+    driver: local
+  ollama_data:
+    driver: local

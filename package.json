@@ -42,8 +42,12 @@
     "eject": "react-scripts eject",
     "server": "node server.js",
     "backend": "cd news-backend && npm start",
-    "dev": "concurrently \"npm start\" \"cd news-backend && npm run dev\"",
-    "start:prod": "NODE_ENV=production node server.js"
+    "dev": "docker-compose up",
+    "dev:down": "docker-compose down",
+    "dev:build": "docker-compose build",
+    "start:prod": "NODE_ENV=production node server.js",
+    "ensure-persistence": "node news-backend/src/scripts/ensure-persistence.js",
+    "check-persistence": "node news-backend/src/scripts/check-persistence.js"
   },
   "eslintConfig": {
     "extends": [

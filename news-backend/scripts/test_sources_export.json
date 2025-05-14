@@ -1,0 +1,2234 @@
+[
+  {
+    "url": "https://abovethelaw.com/feed/",
+    "alternateUrl": null,
+    "name": "Above the Law",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.jurist.org/feed/",
+    "alternateUrl": null,
+    "name": "Jurist",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://news.justia.com/feed",
+    "alternateUrl": null,
+    "name": "Justia News",
+    "category": "LAW",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://reason.com/volokh/feed/",
+    "alternateUrl": null,
+    "name": "The Volokh Conspiracy",
+    "category": "LAW",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/healthheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Health",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/health/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Health",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://moxie.foxnews.com/google-publisher/health.xml",
+    "alternateUrl": null,
+    "name": "Fox News - Health",
+    "category": "HEALTH",
+    "bias": "RIGHT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://kffhealthnews.org/feed/",
+    "alternateUrl": null,
+    "name": "Kaiser Health News",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://feeds.nbcnews.com/nbcnews/public/health",
+    "alternateUrl": null,
+    "name": "NBC News - Health",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.npr.org/1013/rss.xml",
+    "alternateUrl": null,
+    "name": "NPR - Health",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "http://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+    "alternateUrl": null,
+    "name": "NYT - Health",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.statnews.com/feed/",
+    "alternateUrl": null,
+    "name": "STAT News",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.who.int/rss-feeds/news-english.xml",
+    "alternateUrl": null,
+    "name": "WHO News",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "http://abcnews.go.com/abcnews/politicsheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/politics/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "http://feeds.feedburner.com/breitbart",
+    "alternateUrl": null,
+    "name": "Breitbart News",
+    "category": "POLITICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.cbsnews.com/latest/rss/politics",
+    "alternateUrl": null,
+    "name": "CBS News - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://rss.cnn.com/rss/cnn_allpolitics.rss",
+    "alternateUrl": null,
+    "name": "CNN - Politics",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.huffpost.com/section/politics/feed",
+    "alternateUrl": null,
+    "name": "HuffPost - Politics",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.motherjones.com/feed/",
+    "alternateUrl": null,
+    "name": "Mother Jones",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nationalreview.com/feed/",
+    "alternateUrl": null,
+    "name": "National Review",
+    "category": "POLITICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "http://feeds.nbcnews.com/nbcnews/public/politics",
+    "alternateUrl": null,
+    "name": "NBC News - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.npr.org/1014/rss.xml",
+    "alternateUrl": null,
+    "name": "NPR - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "http://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    "alternateUrl": null,
+    "name": "NYT - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://reason.com/feed/",
+    "alternateUrl": null,
+    "name": "Reason",
+    "category": "POLITICS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://theintercept.com/feed/?rss",
+    "alternateUrl": null,
+    "name": "The Intercept",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.theamericanconservative.com/feed/",
+    "alternateUrl": null,
+    "name": "The American Conservative",
+    "category": "POLITICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.theatlantic.com/feed/channel/politics/",
+    "alternateUrl": null,
+    "name": "The Atlantic - Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://thehill.com/rss/syndicator/19109",
+    "alternateUrl": null,
+    "name": "The Hill",
+    "category": "POLITICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.thenation.com/feed/?post_type=article",
+    "alternateUrl": null,
+    "name": "The Nation",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.vox.com/rss/policy-and-politics/index.xml",
+    "alternateUrl": null,
+    "name": "Vox - Politics",
+    "category": "POLITICS",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.washingtonexaminer.com/tag/politics.rss",
+    "alternateUrl": null,
+    "name": "Washington Examiner - Politics",
+    "category": "POLITICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/internationalheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - World",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "alternateUrl": null,
+    "name": "Al Jazeera",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "http://feeds.nbcnews.com/nbcnews/public/world",
+    "alternateUrl": null,
+    "name": "NBC News - World",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "alternateUrl": null,
+    "name": "NYT - World",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.skynews.com/feeds/rss/uk.xml",
+    "alternateUrl": null,
+    "name": "Sky News - UK",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+    "alternateUrl": null,
+    "name": "Sky News - World",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.theguardian.com/world/rss",
+    "alternateUrl": null,
+    "name": "The Guardian - World",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+    "alternateUrl": null,
+    "name": "UN News",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "alternateUrl": null,
+    "name": "Times of India",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.jpost.com/rss/rssfeedsheadlines.aspx",
+    "alternateUrl": null,
+    "name": "Jerusalem Post",
+    "category": "WORLD",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://foreignpolicy.com/feed/",
+    "alternateUrl": null,
+    "name": "Foreign Policy",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/technologyheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Technology",
+    "category": "TECH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.arstechnica.com/arstechnica/index/",
+    "alternateUrl": null,
+    "name": "Ars Technica",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/technology/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Technology",
+    "category": "TECH",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.cnet.com/rss/news/",
+    "alternateUrl": null,
+    "name": "CNET News",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://news.ycombinator.com/rss",
+    "alternateUrl": null,
+    "name": "Hacker News",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.technologyreview.com/feed/",
+    "alternateUrl": null,
+    "name": "MIT Technology Review",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    "alternateUrl": null,
+    "name": "NYT - Technology",
+    "category": "TECH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.vox.com/rss/recode/index.xml",
+    "alternateUrl": null,
+    "name": "Recode",
+    "category": "TECH",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://techcrunch.com/feed/",
+    "alternateUrl": null,
+    "name": "TechCrunch",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.techmeme.com/feed.xml",
+    "alternateUrl": null,
+    "name": "Techmeme",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.theguardian.com/technology/rss",
+    "alternateUrl": null,
+    "name": "The Guardian - Technology",
+    "category": "TECH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.theverge.com/rss/index.xml",
+    "alternateUrl": null,
+    "name": "The Verge",
+    "category": "TECH",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.wired.com/feed/rss",
+    "alternateUrl": null,
+    "name": "WIRED",
+    "category": "TECH",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/moneyheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Money",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://api.axios.com/feed/business",
+    "alternateUrl": null,
+    "name": "Axios - Business",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/business/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Business",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.cbsnews.com/latest/rss/moneywatch",
+    "alternateUrl": null,
+    "name": "CBS News - MoneyWatch",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://rss.cnn.com/rss/money_latest.rss",
+    "alternateUrl": null,
+    "name": "CNN Business",
+    "category": "ECONOMICS",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.cnbc.com/id/10000664/device/rss/rss.html",
+    "alternateUrl": null,
+    "name": "CNBC",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.economist.com/finance-and-economics/rss.xml",
+    "alternateUrl": null,
+    "name": "The Economist - Finance and Economics",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.ft.com/?format=rss",
+    "alternateUrl": null,
+    "name": "Financial Times",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.forbes.com/business/feed/",
+    "alternateUrl": null,
+    "name": "Forbes - Business",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://fortune.com/feed/",
+    "alternateUrl": null,
+    "name": "Fortune",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedname=rss_articles",
+    "alternateUrl": null,
+    "name": "Investopedia",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.marketwatch.com/rss/topstories",
+    "alternateUrl": null,
+    "name": "MarketWatch",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.nbcnews.com/nbcnews/public/business",
+    "alternateUrl": null,
+    "name": "NBC News - Business",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.npr.org/1006/rss.xml",
+    "alternateUrl": null,
+    "name": "NPR - Business",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+    "alternateUrl": null,
+    "name": "NYT - Business",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.a.dj.com/rss/RSSWSJD.xml",
+    "alternateUrl": null,
+    "name": "WSJ - Business",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://finance.yahoo.com/news/rssindex",
+    "alternateUrl": null,
+    "name": "Yahoo Finance",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://seekingalpha.com/feed.xml",
+    "alternateUrl": null,
+    "name": "Seeking Alpha",
+    "category": "ECONOMICS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://feeds.npr.org/1007/rss.xml",
+    "alternateUrl": null,
+    "name": "NPR - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://feeds.arstechnica.com/arstechnica/science",
+    "alternateUrl": null,
+    "name": "Ars Technica - Science",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://api.axios.com/feed/science",
+    "alternateUrl": null,
+    "name": "Axios - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Science & Environment",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.cbsnews.com/latest/rss/science",
+    "alternateUrl": null,
+    "name": "CBS News - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.livescience.com/feeds/all",
+    "alternateUrl": null,
+    "name": "Live Science",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nature.com/nature.rss",
+    "alternateUrl": null,
+    "name": "Nature",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.newscientist.com/feed/home/",
+    "alternateUrl": null,
+    "name": "New Scientist",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
+    "alternateUrl": null,
+    "name": "NYT - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.popularmechanics.com/rss/",
+    "alternateUrl": null,
+    "name": "Popular Mechanics",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.popsci.com/feed/",
+    "alternateUrl": null,
+    "name": "Popular Science",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.sciencedaily.com/rss/all.xml",
+    "alternateUrl": null,
+    "name": "ScienceDaily",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "http://rss.sciam.com/ScientificAmerican-Global",
+    "alternateUrl": null,
+    "name": "Scientific American",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.theguardian.com/science/rss",
+    "alternateUrl": null,
+    "name": "The Guardian - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.wired.com/feed/category/science/latest/rss",
+    "alternateUrl": null,
+    "name": "Wired - Science",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.discovery.org/feed/",
+    "alternateUrl": null,
+    "name": "Discovery Institute",
+    "category": "SCIENCE",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://undark.org/feed/",
+    "alternateUrl": null,
+    "name": "Undark Magazine",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.sciencenews.org/feed",
+    "alternateUrl": null,
+    "name": "Science News",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.smithsonianmag.com/rss/latest_articles/",
+    "alternateUrl": null,
+    "name": "Smithsonian Magazine",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.astronomy.com/feed/",
+    "alternateUrl": null,
+    "name": "Astronomy Magazine",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/entertainmentheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Entertainment",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC News - Entertainment & Arts",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.cbsnews.com/latest/rss/entertainment",
+    "alternateUrl": null,
+    "name": "CBS News - Entertainment",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://rss.cnn.com/rss/cnn_showbiz.rss",
+    "alternateUrl": null,
+    "name": "CNN - Entertainment",
+    "category": "ENTERTAINMENT",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://feeds.npr.org/1008/rss.xml",
+    "alternateUrl": null,
+    "name": "NPR - Entertainment",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml",
+    "alternateUrl": null,
+    "name": "NYT - Movies",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.tmz.com/rss.xml",
+    "alternateUrl": null,
+    "name": "TMZ",
+    "category": "ENTERTAINMENT",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://variety.com/feed/",
+    "alternateUrl": null,
+    "name": "Variety",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.hollywoodreporter.com/feed/",
+    "alternateUrl": null,
+    "name": "The Hollywood Reporter",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://deadline.com/feed/",
+    "alternateUrl": null,
+    "name": "Deadline",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.rollingstone.com/feed/",
+    "alternateUrl": null,
+    "name": "Rolling Stone",
+    "category": "ENTERTAINMENT",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://abcnews.go.com/abcnews/sportsheadlines",
+    "alternateUrl": null,
+    "name": "ABC News - Sports",
+    "category": "SPORTS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.bbci.co.uk/sport/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC Sport",
+    "category": "SPORTS",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.cbsnews.com/latest/rss/sports",
+    "alternateUrl": null,
+    "name": "CBS News - Sports",
+    "category": "SPORTS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://rss.cnn.com/rss/edition_sport.rss",
+    "alternateUrl": null,
+    "name": "CNN - Sport",
+    "category": "SPORTS",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.espn.com/espn/rss/news",
+    "alternateUrl": null,
+    "name": "ESPN",
+    "category": "SPORTS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "http://feeds.foxnews.com/foxnews/sports",
+    "alternateUrl": null,
+    "name": "Fox News - Sports",
+    "category": "SPORTS",
+    "bias": "RIGHT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml",
+    "alternateUrl": null,
+    "name": "NYT - Sports",
+    "category": "SPORTS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://sports.yahoo.com/rss/",
+    "alternateUrl": null,
+    "name": "Yahoo Sports",
+    "category": "SPORTS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.sbnation.com/rss/index.xml",
+    "alternateUrl": null,
+    "name": "SB Nation",
+    "category": "SPORTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.cbssports.com/rss/headlines/",
+    "alternateUrl": null,
+    "name": "CBS Sports",
+    "category": "SPORTS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://boingboing.net/feed",
+    "alternateUrl": null,
+    "name": "Boing Boing",
+    "category": "ENTERTAINMENT",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://api.axios.com/feed/top",
+    "alternateUrl": null,
+    "name": "Axios",
+    "category": "NEWS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://thehill.com/news/feed/",
+    "alternateUrl": null,
+    "name": "The Hill",
+    "category": "NEWS",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.theatlantic.com/feed/all/",
+    "alternateUrl": null,
+    "name": "The Atlantic",
+    "category": "NEWS",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://nypost.com/feed/",
+    "alternateUrl": null,
+    "name": "New York Post",
+    "category": "NEWS",
+    "bias": "CONSERVATIVE",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.theblaze.com/feeds/feed.rss",
+    "alternateUrl": null,
+    "name": "The Blaze",
+    "category": "NEWS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.dailywire.com/feeds/rss.xml",
+    "alternateUrl": null,
+    "name": "Daily Wire",
+    "category": "NEWS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://dailycaller.com/feed/",
+    "alternateUrl": null,
+    "name": "Daily Caller",
+    "category": "NEWS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://thefederalist.com/feed/",
+    "alternateUrl": null,
+    "name": "The Federalist",
+    "category": "NEWS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.commondreams.org/feeds/feed.rss",
+    "alternateUrl": null,
+    "name": "Common Dreams",
+    "category": "NEWS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://jacobin.com/feed",
+    "alternateUrl": null,
+    "name": "Jacobin",
+    "category": "NEWS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://thebulwark.com/feed",
+    "alternateUrl": null,
+    "name": "The Bulwark",
+    "category": "NEWS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.realclearpolitics.com/index.xml",
+    "alternateUrl": null,
+    "name": "RealClearPolitics",
+    "category": "POLITICS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.washingtontimes.com/rss/headlines/news/politics/",
+    "alternateUrl": null,
+    "name": "Washington Times",
+    "category": "POLITICS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.rt.com/rss/",
+    "alternateUrl": null,
+    "name": "Russia Today",
+    "category": "WORLD",
+    "bias": "RIGHT",
+    "type": "STATE"
+  },
+  {
+    "url": "https://thediplomat.com/feed/",
+    "alternateUrl": null,
+    "name": "The Diplomat",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.france24.com/en/rss",
+    "alternateUrl": null,
+    "name": "France 24",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "https://rss.dw.com/rdf/rss-en-all",
+    "alternateUrl": null,
+    "name": "Deutsche Welle",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.democracynow.org/democracynow.rss",
+    "alternateUrl": null,
+    "name": "Democracy Now",
+    "category": "WORLD",
+    "bias": "LEFT",
+    "type": "STATE"
+  },
+  {
+    "url": "https://spectatorworld.com/feed/",
+    "alternateUrl": null,
+    "name": "The Spectator World",
+    "category": "WORLD",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://asiatimes.com/feed/",
+    "alternateUrl": null,
+    "name": "Asia Times",
+    "category": "WORLD",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://nationalinterest.org/feed",
+    "alternateUrl": null,
+    "name": "The National Interest",
+    "category": "WORLD",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.thenation.com/feed/",
+    "alternateUrl": null,
+    "name": "The Nation",
+    "category": "US",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.washingtontimes.com/rss/headlines/news/national/",
+    "alternateUrl": null,
+    "name": "Washington Times US",
+    "category": "US",
+    "bias": "CONSERVATIVE",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.dailykos.com/blogs/main.rss",
+    "alternateUrl": null,
+    "name": "Daily Kos",
+    "category": "US",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://slate.com/feeds/all.rss",
+    "alternateUrl": null,
+    "name": "Slate",
+    "category": "US",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.latimes.com/nation/rss2.0.xml",
+    "alternateUrl": null,
+    "name": "LA Times",
+    "category": "US",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.newsweek.com/rss",
+    "alternateUrl": null,
+    "name": "Newsweek",
+    "category": "US",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.zdnet.com/news/rss.xml",
+    "alternateUrl": null,
+    "name": "ZDNet",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://rss.slashdot.org/Slashdot/slashdotMain",
+    "alternateUrl": null,
+    "name": "Slashdot",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://gizmodo.com/rss",
+    "alternateUrl": null,
+    "name": "Gizmodo",
+    "category": "TECH",
+    "bias": "LEFT",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://venturebeat.com/feed/",
+    "alternateUrl": null,
+    "name": "VentureBeat",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://hotair.com/tech/feed/",
+    "alternateUrl": null,
+    "name": "Hot Air Tech",
+    "category": "TECH",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.theregister.com/headlines.atom",
+    "alternateUrl": null,
+    "name": "The Register",
+    "category": "TECH",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://freerepublic.com/tag/tech/feed.rss",
+    "alternateUrl": null,
+    "name": "Free Republic Tech",
+    "category": "TECH",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "http://www.realclimate.org/index.php/feed/",
+    "alternateUrl": null,
+    "name": "Real Climate",
+    "category": "SCIENCE",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://sciencebasedmedicine.org/feed/",
+    "alternateUrl": null,
+    "name": "Science Based Medicine",
+    "category": "SCIENCE",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.science20.com/feed",
+    "alternateUrl": null,
+    "name": "Science 2.0",
+    "category": "SCIENCE",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://wattsupwiththat.com/feed/",
+    "alternateUrl": null,
+    "name": "Watts Up With That",
+    "category": "SCIENCE",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.medpagetoday.com/rss/headlines.xml",
+    "alternateUrl": null,
+    "name": "MedPage Today",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.medscape.com/cx/rssfeeds/2700.xml",
+    "alternateUrl": null,
+    "name": "Medscape",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.healthline.com/rss/health-news",
+    "alternateUrl": null,
+    "name": "Healthline",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.acsh.org/rss.xml",
+    "alternateUrl": null,
+    "name": "American Council on Science and Health",
+    "category": "HEALTH",
+    "bias": "CONSERVATIVE",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.healthaffairs.org/action/showFeed?type=etoc&feed=rss&jc=hlthaff",
+    "alternateUrl": null,
+    "name": "Health Affairs",
+    "category": "HEALTH",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://healthy-skeptic.com/feed/",
+    "alternateUrl": null,
+    "name": "The Healthy Skeptic",
+    "category": "HEALTH",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.naturalnews.com/rss.xml",
+    "alternateUrl": null,
+    "name": "Natural News",
+    "category": "HEALTH",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://medicalxpress.com/rss-feed/",
+    "alternateUrl": null,
+    "name": "Medical Xpress",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.sportingnews.com/us/rss",
+    "alternateUrl": null,
+    "name": "Sporting News",
+    "category": "SPORTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://deadspin.com/rss",
+    "alternateUrl": null,
+    "name": "Deadspin",
+    "category": "SPORTS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.outkick.com/feed/",
+    "alternateUrl": null,
+    "name": "Outkick",
+    "category": "SPORTS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://barrettsportsmedia.com/feed/",
+    "alternateUrl": null,
+    "name": "Barrett Sports Media",
+    "category": "SPORTS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://screenrant.com/feed/",
+    "alternateUrl": null,
+    "name": "Screen Rant",
+    "category": "ENTERTAINMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.avclub.com/rss",
+    "alternateUrl": null,
+    "name": "The A.V. Club",
+    "category": "ENTERTAINMENT",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.breitbart.com/entertainment/feed/",
+    "alternateUrl": null,
+    "name": "Big Hollywood",
+    "category": "ENTERTAINMENT",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.movieguide.org/rss",
+    "alternateUrl": null,
+    "name": "MovieGuide",
+    "category": "ENTERTAINMENT",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://popculture.com/rss",
+    "alternateUrl": null,
+    "name": "PopCulture.com",
+    "category": "ENTERTAINMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://collider.com/feed/",
+    "alternateUrl": null,
+    "name": "Collider",
+    "category": "ENTERTAINMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://feeds.feedburner.com/zerohedge/feed",
+    "alternateUrl": null,
+    "name": "Zero Hedge",
+    "category": "ECONOMICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://mises.org/feed/rss.xml",
+    "alternateUrl": null,
+    "name": "Mises Institute",
+    "category": "ECONOMICS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.epi.org/feed/",
+    "alternateUrl": null,
+    "name": "Economic Policy Institute",
+    "category": "ECONOMICS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://insideclimatenews.org/feed/",
+    "alternateUrl": null,
+    "name": "Inside Climate News",
+    "category": "ENVIRONMENT",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://grist.org/feed/",
+    "alternateUrl": null,
+    "name": "Grist",
+    "category": "ENVIRONMENT",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.climatedepot.com/feed/",
+    "alternateUrl": null,
+    "name": "Climate Depot",
+    "category": "ENVIRONMENT",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://joannenova.com.au/feed/",
+    "alternateUrl": null,
+    "name": "JoNova",
+    "category": "ENVIRONMENT",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://e360.yale.edu/feed.xml",
+    "alternateUrl": null,
+    "name": "Yale Environment 360",
+    "category": "ENVIRONMENT",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.eenews.net/rss",
+    "alternateUrl": null,
+    "name": "E&E News",
+    "category": "ENVIRONMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://co2coalition.org/feed/",
+    "alternateUrl": null,
+    "name": "CO2 Coalition",
+    "category": "ENVIRONMENT",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.greencarreports.com/rss",
+    "alternateUrl": null,
+    "name": "Green Car Reports",
+    "category": "ENVIRONMENT",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.thegreenmarketoracle.com/feeds/posts/default",
+    "alternateUrl": null,
+    "name": "The Green Market",
+    "category": "ENVIRONMENT",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.carbonbrief.org/feed",
+    "alternateUrl": null,
+    "name": "Carbon Brief",
+    "category": "ENVIRONMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://pitchfork.com/rss/news/",
+    "alternateUrl": null,
+    "name": "Pitchfork",
+    "category": "MUSIC",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nme.com/feed",
+    "alternateUrl": null,
+    "name": "NME",
+    "category": "MUSIC",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.billboard.com/feed/",
+    "alternateUrl": null,
+    "name": "Billboard",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://consequenceofsound.net/feed/",
+    "alternateUrl": null,
+    "name": "Consequence of Sound",
+    "category": "MUSIC",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.stereogum.com/feed/",
+    "alternateUrl": null,
+    "name": "Stereogum",
+    "category": "MUSIC",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://ultimateclassicrock.com/feed/",
+    "alternateUrl": null,
+    "name": "Ultimate Classic Rock",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://theboot.com/feed/",
+    "alternateUrl": null,
+    "name": "The Boot",
+    "category": "MUSIC",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.savingcountrymusic.com/feed/",
+    "alternateUrl": null,
+    "name": "Saving Country Music",
+    "category": "MUSIC",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://metalinjection.net/feed",
+    "alternateUrl": null,
+    "name": "Metal Injection",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://djbooth.net/rss",
+    "alternateUrl": null,
+    "name": "DJ Booth",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.allmusic.com/rss",
+    "alternateUrl": null,
+    "name": "AllMusic",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://thevinylfactory.com/feed/",
+    "alternateUrl": null,
+    "name": "The Vinyl Factory",
+    "category": "MUSIC",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.xxlmag.com/feed/",
+    "alternateUrl": null,
+    "name": "XXL Magazine",
+    "category": "MUSIC",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.scotusblog.com/feed/",
+    "alternateUrl": null,
+    "name": "SCOTUSblog",
+    "category": "LAW",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.abajournal.com/rss/feed/",
+    "alternateUrl": null,
+    "name": "ABA Journal",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.techdirt.com/feed/",
+    "alternateUrl": null,
+    "name": "Techdirt",
+    "category": "LAW",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.acslaw.org/feed/",
+    "alternateUrl": null,
+    "name": "American Constitution Society",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://balkin.blogspot.com/feeds/posts/default",
+    "alternateUrl": null,
+    "name": "Balkinization",
+    "category": "LAW",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://legalinsurrection.com/feed/",
+    "alternateUrl": null,
+    "name": "Legal Insurrection",
+    "category": "LAW",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.wlf.org/feed/",
+    "alternateUrl": null,
+    "name": "Washington Legal Foundation",
+    "category": "LAW",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://pacificlegal.org/feed/",
+    "alternateUrl": null,
+    "name": "Pacific Legal Foundation",
+    "category": "LAW",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://truthonthemarket.com/feed/",
+    "alternateUrl": null,
+    "name": "Truth on the Market",
+    "category": "LAW",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://aitrends.com/feed/",
+    "alternateUrl": null,
+    "name": "AI Trends",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://singularityhub.com/feed/",
+    "alternateUrl": null,
+    "name": "Singularity Hub",
+    "category": "AI",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://machinelearningmastery.com/feed/",
+    "alternateUrl": null,
+    "name": "Machine Learning Mastery",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://artificialintelligence-news.com/feed/",
+    "alternateUrl": null,
+    "name": "AI News",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://towardsdatascience.com/feed",
+    "alternateUrl": null,
+    "name": "Towards Data Science",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://deepmind.com/blog/rss.xml",
+    "alternateUrl": null,
+    "name": "DeepMind Blog",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://mindmatters.ai/feed/",
+    "alternateUrl": null,
+    "name": "Mind Matters",
+    "category": "AI",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://futureoflife.org/feed/",
+    "alternateUrl": null,
+    "name": "Future of Life Institute",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://thegradient.pub/rss/",
+    "alternateUrl": null,
+    "name": "The Gradient",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.alignmentforum.org/feed.xml",
+    "alternateUrl": null,
+    "name": "AI Alignment Forum",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.lesswrong.com/feed.xml",
+    "alternateUrl": null,
+    "name": "Less Wrong",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.ben-evans.com/benedictevans?format=rss",
+    "alternateUrl": null,
+    "name": "Benedict Evans",
+    "category": "AI",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.space.com/feeds/all",
+    "alternateUrl": null,
+    "name": "Space.com",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.universetoday.com/feed/",
+    "alternateUrl": null,
+    "name": "Universe Today",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    "alternateUrl": null,
+    "name": "NASA",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.esa.int/rssfeed/Our_Activities/Space_News",
+    "alternateUrl": null,
+    "name": "ESA",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "https://arstechnica.com/space/feed/",
+    "alternateUrl": null,
+    "name": "Ars Technica Space",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://spacenews.com/feed/",
+    "alternateUrl": null,
+    "name": "SpaceNews",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://spaceref.com/feed/",
+    "alternateUrl": null,
+    "name": "SpaceRef",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://behindtheblack.com/feed/",
+    "alternateUrl": null,
+    "name": "Behind the Black",
+    "category": "SPACE",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://spacepolicyonline.com/feed/",
+    "alternateUrl": null,
+    "name": "SpacePolicyOnline",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.spaceintelreport.com/feed/",
+    "alternateUrl": null,
+    "name": "Space Intel Report",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nasaspaceflight.com/feed/",
+    "alternateUrl": null,
+    "name": "NASASpaceFlight",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "STATE"
+  },
+  {
+    "url": "https://astronomynow.com/feed/",
+    "alternateUrl": null,
+    "name": "Astronomy Now",
+    "category": "SPACE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.gq.com/feed/rss",
+    "alternateUrl": null,
+    "name": "GQ",
+    "category": "FASHION",
+    "bias": "LIBERAL",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://wwd.com/feed/",
+    "alternateUrl": null,
+    "name": "WWD",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.businessoffashion.com/feed.xml",
+    "alternateUrl": null,
+    "name": "The Business of Fashion",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.highsnobiety.com/feed/",
+    "alternateUrl": null,
+    "name": "Highsnobiety",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://hypebeast.com/feed",
+    "alternateUrl": null,
+    "name": "Hypebeast",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.whowhatwear.com/rss",
+    "alternateUrl": null,
+    "name": "WhoWhatWear",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.fashiongonerogue.com/feed/",
+    "alternateUrl": null,
+    "name": "Fashion Gone Rogue",
+    "category": "FASHION",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://fashionjournal.com.au/feed/",
+    "alternateUrl": null,
+    "name": "Fashion Journal",
+    "category": "FASHION",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.thefashionspot.com/feed/",
+    "alternateUrl": null,
+    "name": "The Fashion Spot",
+    "category": "FASHION",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://news.artnet.com/feed/",
+    "alternateUrl": null,
+    "name": "Artnet",
+    "category": "ARTS",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://hyperallergic.com/feed/",
+    "alternateUrl": null,
+    "name": "Hyperallergic",
+    "category": "ARTS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.artnews.com/feed/",
+    "alternateUrl": null,
+    "name": "ARTnews",
+    "category": "ARTS",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.artforum.com/feed/",
+    "alternateUrl": null,
+    "name": "ArtForum",
+    "category": "ARTS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.artnews.com/art-in-america/feed/",
+    "alternateUrl": null,
+    "name": "Art in America",
+    "category": "ARTS",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://observer.com/arts/rss/",
+    "alternateUrl": null,
+    "name": "Observer Arts",
+    "category": "ARTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://contemporaryartreview.la/feed/",
+    "alternateUrl": null,
+    "name": "Contemporary Art Review",
+    "category": "ARTS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.artsy.net/rss/news",
+    "alternateUrl": null,
+    "name": "Artsy",
+    "category": "ARTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.artandobject.com/rss.xml",
+    "alternateUrl": null,
+    "name": "Art & Object",
+    "category": "ARTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://newcriterion.com/rss/",
+    "alternateUrl": null,
+    "name": "New Criterion",
+    "category": "ARTS",
+    "bias": "RIGHT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.traditionalbuilding.com/rss",
+    "alternateUrl": null,
+    "name": "Traditional Building",
+    "category": "ARTS",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.beautifullife.info/art-works/feed/",
+    "alternateUrl": null,
+    "name": "Beautiful Art",
+    "category": "ARTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://forecastpublicart.org/feed/",
+    "alternateUrl": null,
+    "name": "Public Art Review",
+    "category": "ARTS",
+    "bias": "LEFT",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://aestheticamagazine.com/feed/",
+    "alternateUrl": null,
+    "name": "Aesthetica Magazine",
+    "category": "ARTS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://lawandcrime.com/feed/",
+    "alternateUrl": null,
+    "name": "Law & Crime",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.courthousenews.com/feed/",
+    "alternateUrl": null,
+    "name": "Courthouse News",
+    "category": "LAW",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss",
+    "alternateUrl": null,
+    "name": "New England Journal of Medicine",
+    "category": "HEALTH",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://fivethirtyeight.com/politics/feed/",
+    "alternateUrl": null,
+    "name": "FiveThirtyEight Politics",
+    "category": "POLITICS",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+    "alternateUrl": null,
+    "name": "BBC Asia",
+    "category": "WORLD",
+    "bias": "LIBERAL",
+    "type": "STATE"
+  },
+  {
+    "url": "https://www.japantimes.co.jp/feed/",
+    "alternateUrl": null,
+    "name": "Japan Times",
+    "category": "WORLD",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.androidcentral.com/rss.xml",
+    "alternateUrl": null,
+    "name": "Android Central",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://9to5mac.com/feed/",
+    "alternateUrl": null,
+    "name": "9to5Mac",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.androidpolice.com/feed/",
+    "alternateUrl": null,
+    "name": "Android Police",
+    "category": "TECH",
+    "bias": "CENTRIST",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://knowledge.wharton.upenn.edu/feed/",
+    "alternateUrl": null,
+    "name": "Knowledge@Wharton",
+    "category": "ECONOMICS",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.project-syndicate.org/rss",
+    "alternateUrl": null,
+    "name": "Project Syndicate",
+    "category": "ECONOMICS",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.quantamagazine.org/feed/",
+    "alternateUrl": null,
+    "name": "Quanta Magazine",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://phys.org/rss-feed/",
+    "alternateUrl": null,
+    "name": "Phys.org",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://spectrum.ieee.org/rss",
+    "alternateUrl": null,
+    "name": "IEEE Spectrum",
+    "category": "SCIENCE",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.science.org/rss/news_current.xml",
+    "alternateUrl": null,
+    "name": "Science Magazine",
+    "category": "SCIENCE",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://consequence.net/feed/",
+    "alternateUrl": null,
+    "name": "Consequence",
+    "category": "ENTERTAINMENT",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.pluggedin.com/rss/",
+    "alternateUrl": null,
+    "name": "Plugged In",
+    "category": "ENTERTAINMENT",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://movieweb.com/feed/",
+    "alternateUrl": null,
+    "name": "MovieWeb",
+    "category": "ENTERTAINMENT",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://api.foxsports.com/v1/rss?partnerKey=zBaFxRyGKCfxBagJG9b8pqLyndmvo7UU",
+    "alternateUrl": null,
+    "name": "Fox Sports",
+    "category": "SPORTS",
+    "bias": "CONSERVATIVE",
+    "type": "CORPORATE"
+  },
+  {
+    "url": "https://www.huggingface.co/blog/feed.xml",
+    "alternateUrl": null,
+    "name": "Hugging Face Blog",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://distill.pub/rss.xml",
+    "alternateUrl": null,
+    "name": "Distill",
+    "category": "AI",
+    "bias": "CENTRIST",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://climatechangenews.com/feed/",
+    "alternateUrl": null,
+    "name": "Climate Change News",
+    "category": "ENVIRONMENT",
+    "bias": "LIBERAL",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.cfact.org/feed/",
+    "alternateUrl": null,
+    "name": "CFACT",
+    "category": "ENVIRONMENT",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  },
+  {
+    "url": "https://www.masterresource.org/feed/",
+    "alternateUrl": null,
+    "name": "Master Resource",
+    "category": "ENVIRONMENT",
+    "bias": "CONSERVATIVE",
+    "type": "INDEPENDENT"
+  }
+]

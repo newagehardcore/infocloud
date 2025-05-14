@@ -79,7 +79,7 @@ const checkMongoDB = async () => {
 // Check Miniflux status
 const checkMiniflux = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/healthcheck', { timeout: 3000 });
+    const response = await axios.get('http://miniflux:8080/healthcheck', { timeout: 3000 });
     return {
       name: 'Miniflux',
       status: response.status === 200 ? 'running' : 'issue detected',
@@ -102,7 +102,7 @@ const checkOllama = async () => {
   let errorMsg = 'Unknown error';
 
   try {
-    const response = await axios.get('http://localhost:11434/api/tags', { timeout: 3000 });
+    const response = await axios.get('http://ollama:11434/api/tags', { timeout: 3000 });
     ollamaStatus = 'running';
     errorMsg = null;
     
@@ -125,7 +125,7 @@ const checkOllama = async () => {
 };
 
 // Enhanced API endpoint for the status dashboard
-router.get('/api', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const dockerStatus = await checkDocker();
     const mongoDBStatus = await checkMongoDB();
@@ -197,7 +197,7 @@ router.get('/api', async (req, res) => {
 });
 
 // Route to purge the database
-router.post('/api/admin/purge-db', async (req, res) => {
+router.post('/admin/purge-db', async (req, res) => {
     console.log("Received request to purge database...");
     try {
         const result = await NewsItem.deleteMany({});
@@ -209,8 +209,8 @@ router.post('/api/admin/purge-db', async (req, res) => {
     }
 });
 
-// Route for Force Refresh
-router.post('/api/admin/force-refresh', async (req, res) => {
+// Route to force refresh all feeds
+router.post('/admin/force-refresh', async (req, res) => {
     console.log("Received request to force refresh data...");
     try {
         forceRefreshAllFeeds()
@@ -227,8 +227,8 @@ router.post('/api/admin/force-refresh', async (req, res) => {
     }
 });
 
-// NEW: Route to get keyword statistics by category and bias
-router.get('/api/stats', async (req, res) => {
+// Route to get statistics
+router.get('/stats', async (req, res) => {
     console.log("Received request for tag statistics...");
     try {
         const stats = await NewsItem.aggregate([
@@ -291,8 +291,8 @@ router.get('/api/stats', async (req, res) => {
     }
 });
 
-// NEW: Route for Admin Panel Tag Statistics
-router.get('/api/admin/tag-stats', async (req, res) => {
+// Route to get tag statistics
+router.get('/admin/tag-stats', async (req, res) => {
     console.log("Received request for ADMIN tag statistics...");
     try {
         const results = await NewsItem.aggregate([
@@ -388,12 +388,12 @@ router.get('/api/admin/tag-stats', async (req, res) => {
     }
 });
 
-// Route to serve the admin status page
+// Route to serve admin.html
 router.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
-// Route to get available Ollama models for the dropdown
+// Route to get available Ollama models
 router.get('/ollama-models', async (req, res) => {
   try {
     const ollamaApiUrl = process.env.OLLAMA_API_URL || 'http://localhost:11434';
@@ -419,8 +419,8 @@ router.get('/ollama-models', async (req, res) => {
   }
 });
 
-// Route to set the active LLM model
-router.post('/api/set-llm-model', async (req, res) => {
+// Route to set active LLM model
+router.post('/set-llm-model', async (req, res) => {
   const { model: newModelName } = req.body;
 
   if (!newModelName || typeof newModelName !== 'string' || newModelName.trim() === '') {
