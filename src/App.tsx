@@ -20,7 +20,11 @@ import EditMenu from './components/EditMenu';
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
 
 // Define Backend API Base URL - use relative URL to avoid hostname resolution issues
-const API_BASE_URL = '/api';
+// Same-origin '/api' in dev (CRA proxy → localhost:5001). For static hosting
+// (GitHub Pages), set REACT_APP_API_URL to the public backend origin at build time.
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL.replace(/\/$/, '')}/api`
+  : '/api';
 
 // Helper function to filter news items by bias
 const filterNewsByBias = (items: NewsItem[], enabledBiases: Set<PoliticalBias>) => {

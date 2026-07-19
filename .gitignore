@@ -43,3 +43,7 @@ docker/mongodb_config/
 
 # Docker backups
 docker-backups/
+
+# Times New Roman is a Monotype font copied from macOS for local dev only —
+# never publish it (public builds use Tinos, its open-license metric twin)
+public/fonts/TimesNewRoman.ttf

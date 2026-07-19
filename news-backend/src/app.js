@@ -92,11 +92,17 @@ console.error = function(...args) {
 // Init Middleware
 app.use(express.json({ extended: false })); // Allows us to accept JSON data in the body
 
-// Enable CORS for all routes
+// Enable CORS. ALLOWED_ORIGINS is a comma-separated list of origins the
+// static frontend is served from (e.g. https://user.github.io); when unset,
+// all origins are allowed (local development).
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
 app.use(cors({
-  origin: '*', // Allow all origins in development
+  origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // Allow these headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'] // Allow these headers
 }));
 
 // Connect to Database

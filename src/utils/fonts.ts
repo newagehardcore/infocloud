@@ -18,6 +18,18 @@ export const getSourceTypeFont = (type?: SourceType): string => {
   }
 };
 
+// Resolves under the deploy path (PUBLIC_URL) so fonts load when the site is
+// hosted on a subpath like username.github.io/infocloud
+const FONT_BASE = `${process.env.PUBLIC_URL || ''}/fonts`;
+
+// Local dev uses real Times New Roman (copied from macOS, gitignored — it's a
+// Monotype font we can't redistribute). Public builds use Tinos, its
+// open-license metric twin, so the deployed site and repo stay clean.
+// REACT_APP_USE_TNR=true is set in .env.development.
+const INDEPENDENT_FONT_FILE = process.env.REACT_APP_USE_TNR === 'true'
+  ? 'TimesNewRoman.ttf'
+  : 'Tinos-Regular.ttf';
+
 /**
  * Get the preferred font path for tags
  * For drei's Text component, we need to return a path to the font file
@@ -25,16 +37,14 @@ export const getSourceTypeFont = (type?: SourceType): string => {
 export const getTagFont = (type?: SourceType): string => {
   switch (type) {
     case SourceType.Independent:
-      // Real Times New Roman (copied from macOS). Monotype font — not licensed
-      // for web redistribution; swap back to Tinos-Regular.ttf before public launch.
-      return '/fonts/TimesNewRoman.ttf';
+      return `${FONT_BASE}/${INDEPENDENT_FONT_FILE}`;
     case SourceType.Corporate:
-      return '/fonts/helvetica.ttf'; // Helvetica
+      return `${FONT_BASE}/helvetica.ttf`; // Helvetica
     case SourceType.State:
-      return '/fonts/ArchivoBlack-Regular.ttf'; // Wide fat bold
+      return `${FONT_BASE}/ArchivoBlack-Regular.ttf`; // Wide fat bold
     case SourceType.Unknown:
     default:
-      return '/fonts/helvetica.ttf'; // Default
+      return `${FONT_BASE}/helvetica.ttf`; // Default
   }
 };
 
@@ -57,12 +67,12 @@ export const preloadFonts = (): void => {
       /* Web fonts for source-type styling (same files troika uses in the cloud) */
       @font-face {
         font-family: 'Tinos';
-        src: url('/fonts/TimesNewRoman.ttf') format('truetype');
+        src: url('${FONT_BASE}/${INDEPENDENT_FONT_FILE}') format('truetype');
         font-display: swap;
       }
       @font-face {
         font-family: 'Archivo Black';
-        src: url('/fonts/ArchivoBlack-Regular.ttf') format('truetype');
+        src: url('${FONT_BASE}/ArchivoBlack-Regular.ttf') format('truetype');
         font-display: swap;
       }
 

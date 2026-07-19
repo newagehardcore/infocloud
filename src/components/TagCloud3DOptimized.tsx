@@ -22,10 +22,21 @@ const FrameloopWatchdog: React.FC = () => {
     // invalidate can fire before the root is activated (returning early) —
     // leaving frameloop="always" permanently stalled until some interaction
     // invalidates again. Nudge it whenever the clock stops advancing.
+    // invalidate() alone is not always enough (it no-ops while the store is
+    // inactive, which happens in production builds), so if the clock is STILL
+    // stuck on the next check, fake a window resize — r3f's measure/resize
+    // path unconditionally restarts the loop.
     let lastElapsed = -1;
+    let stuckChecks = 0;
     const id = setInterval(() => {
       if (clock.elapsedTime === lastElapsed) {
+        stuckChecks += 1;
         invalidate();
+        if (stuckChecks >= 2) {
+          window.dispatchEvent(new Event('resize'));
+        }
+      } else {
+        stuckChecks = 0;
       }
       lastElapsed = clock.elapsedTime;
     }, 500);
@@ -395,6 +406,18 @@ const TagCloud3DContainer: React.FC<{
       return () => clearTimeout(t);
     }
   }, [canvasReady, words]);
+
+  // Kick r3f awake after the Canvas mounts. In production builds the first
+  // commit can stall (scene stays blank, in-canvas watchdog never mounts, so
+  // it can't help); a synthetic window resize re-runs r3f's measure path,
+  // which unconditionally restarts the loop. Fire a few times then stop.
+  useEffect(() => {
+    if (!canvasReady) return;
+    const timers = [400, 1200, 2500, 5000].map(ms =>
+      setTimeout(() => window.dispatchEvent(new Event('resize')), ms)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [canvasReady]);
 
   // Detect new words when the words prop changes
   useEffect(() => {
