@@ -2,6 +2,7 @@
   "name": "infocloud",
   "version": "1.0.0",
   "private": true,
+  "proxy": "http://localhost:5001",
   "dependencies": {
     "@craco/craco": "^7.1.0",
     "@react-three/drei": "^9.88.0",

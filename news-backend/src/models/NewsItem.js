@@ -96,11 +96,18 @@ const NewsItemSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  // Bias determined by LLM
+  // Final bias: source bias blended with LLM content-bias (60/40)
   bias: {
     type: String,
     enum: Object.values(PoliticalBias), // Validate against enum
     default: PoliticalBias.Unknown
+  },
+  // Final category: LLM per-article category, falling back to source category
+  category: {
+    type: String,
+    enum: Object.values(NewsCategory),
+    required: false,
+    index: true
   },
   // LLM Processing Status
   llmProcessed: {
@@ -125,6 +132,9 @@ NewsItemSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 14 }
 
 // Add compound index for common queries (e.g., filtering by bias and category)
 NewsItemSchema.index({ 'source.bias': 1, 'source.category': 1, publishedAt: -1 });
+
+// Index for URL-based dedupe lookups at ingestion time
+NewsItemSchema.index({ url: 1 });
 
 // Compile and export the model
 // Mongoose will automatically look for the plural, lowercased version of your model name: "newsitems"

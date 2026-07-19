@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
@@ -12,6 +12,28 @@ const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
 const MAX_FONT_SIZE = 4.5;
 const RANK_SCALE_POWER = 55.0; // Power for rank-based scaling (higher = smaller words shrink faster)
 
+// Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
+// mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
+const FrameloopWatchdog: React.FC = () => {
+  const invalidate = useThree(state => state.invalidate);
+  const clock = useThree(state => state.clock);
+  useEffect(() => {
+    // r3f's render loop stops when no root needs frames, and the mount-time
+    // invalidate can fire before the root is activated (returning early) —
+    // leaving frameloop="always" permanently stalled until some interaction
+    // invalidates again. Nudge it whenever the clock stops advancing.
+    let lastElapsed = -1;
+    const id = setInterval(() => {
+      if (clock.elapsedTime === lastElapsed) {
+        invalidate();
+      }
+      lastElapsed = clock.elapsedTime;
+    }, 500);
+    return () => clearInterval(id);
+  }, [invalidate, clock]);
+  return null;
+};
+
 // Main tag cloud component with performance optimizations
 const TagCloud3D: React.FC<{
   words: TagCloudWord[];
@@ -20,8 +42,6 @@ const TagCloud3D: React.FC<{
   newWords: Set<string>;
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
   const [renderSettings, setRenderSettings] = useState(getAdaptiveRenderingSettings());
-  const [positions, setPositions] = useState<[number, number, number][]>([]);
-  const [fontSizes, setFontSizes] = useState<Map<string, number>>(new Map()); // State for calculated font sizes
   
   // Get color based on political bias
   const getBiasColor = useCallback((bias: PoliticalBias): string => {
@@ -42,35 +62,25 @@ const TagCloud3D: React.FC<{
     }
   }, []);
   
-  // Calculate all font sizes based on rank when words change
-  useEffect(() => {
-    if (words.length === 0) {
-      setFontSizes(new Map());
-      return;
-    }
-
-    // Sort words by frequency (value) descending
-    const sortedWords = [...words].sort((a, b) => b.value - a.value);
+  // Calculate all font sizes based on rank, synchronously with the words.
+  // (useMemo, not effect state: positions/sizes must never lag one render
+  // behind `words`, or a large word briefly renders at another word's
+  // near-camera slot — the "white flash" on category switch.)
+  const fontSizes = React.useMemo(() => {
     const newFontSizes = new Map<string, number>();
+    if (words.length === 0) return newFontSizes;
+
+    const sortedWords = [...words].sort((a, b) => b.value - a.value);
     const count = sortedWords.length;
 
     sortedWords.forEach((word, rank) => {
-      // Normalize rank (0 = highest frequency, 1 = lowest frequency)
-      // Handle edge case of a single word (rank 0 / (1-1 || 1) -> 0)
       const normalizedRank = count > 1 ? rank / (count - 1) : 0;
-
-      // Apply inverse power scaling to the normalized rank
-      // (1 - normalizedRank) maps lowest freq (rank 1) to 0, highest freq (rank 0) to 1
       const scaledRankFactor = Math.pow(1 - normalizedRank, RANK_SCALE_POWER);
-
-      // Calculate final size
       const fontSize = MIN_FONT_SIZE + scaledRankFactor * (MAX_FONT_SIZE - MIN_FONT_SIZE);
       newFontSizes.set(word.text, fontSize);
     });
-
-    setFontSizes(newFontSizes);
-
-  }, [words]); // Recalculate only when words array changes
+    return newFontSizes;
+  }, [words]);
   
   // Deterministic position generator based on word text
   const hashStringToSeed = useCallback((str: string): number => {
@@ -230,19 +240,33 @@ const TagCloud3D: React.FC<{
       }
     }
     
+    // Clamp positions into a bounded shell so no word can sit near the camera
+    // (camera is at z=60; an unclamped word at z~45 fills the whole viewport)
+    const MAX_RADIUS = 28;
+    const MAX_DEPTH = 20;
+    const clampPosition = (pos: [number, number, number]): [number, number, number] => {
+      let [x, y, z] = pos;
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+        return [0, 0, 0];
+      }
+      const r = Math.sqrt(x * x + y * y + z * z);
+      if (r > MAX_RADIUS) {
+        const s = MAX_RADIUS / r;
+        x *= s; y *= s; z *= s;
+      }
+      z = Math.max(-MAX_DEPTH, Math.min(MAX_DEPTH, z));
+      return [x, y, z];
+    };
+
     // Return positions array, converting any null values to default position
-    return positions.map(pos => pos || [0, 0, 0]) as [number, number, number][];
+    return positions.map(pos => clampPosition(pos || [0, 0, 0]));
   }, [hashStringToSeed, fontSizes]);
 
-  // Update positions when words change, using deterministic positioning
-  useEffect(() => {
-    // We still need positions generated per word set
-    if (words.length > 0) {
-        setPositions(generateDeterministicPositions(words));
-    } else {
-        setPositions([]);
-    }
-  }, [words, generateDeterministicPositions]);
+  // Positions computed synchronously with words + fontSizes (see note above)
+  const positions = React.useMemo(
+    () => (words.length > 0 ? generateDeterministicPositions(words) : []),
+    [words, generateDeterministicPositions]
+  );
   
   // Initialize performance monitor
   useEffect(() => {
@@ -307,6 +331,7 @@ const TagCloud3D: React.FC<{
       dpr={renderSettings.pixelRatio}
       performance={{ min: 0.5 }}
     >
+      <FrameloopWatchdog />
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
       
@@ -359,6 +384,18 @@ const TagCloud3DContainer: React.FC<{
   const [newWords, setNewWords] = useState<Set<string>>(new Set());
   const prevWordsRef = useRef<TagCloudWord[]>([]);
 
+  // Defer mounting the Canvas until the first words arrive. Mounting it while
+  // the app is mid-load (loading-bar interval re-rendering the tree every
+  // 30ms) can permanently break r3f's initialization — the scene never
+  // commits and the cloud stays blank until a resize/click.
+  const [canvasReady, setCanvasReady] = useState(false);
+  useEffect(() => {
+    if (!canvasReady && words.length > 0) {
+      const t = setTimeout(() => setCanvasReady(true), 150);
+      return () => clearTimeout(t);
+    }
+  }, [canvasReady, words]);
+
   // Detect new words when the words prop changes
   useEffect(() => {
     const currentWordTexts = new Set(words.map(w => w.text));
@@ -388,14 +425,18 @@ const TagCloud3DContainer: React.FC<{
   };
   
   // Render the actual TagCloud3D component, passing down props
+  if (!canvasReady) return null;
   return (
-    <TagCloud3D 
-      words={words} 
-      onWordClick={handleWordClick} 
+    <TagCloud3D
+      words={words}
+      onWordClick={handleWordClick}
       selectedWord={selectedWord}
       newWords={newWords} // Pass the set of new words
     />
   );
 };
 
-export default TagCloud3DContainer;
+// Memoized: parent (App) re-renders at high frequency during the loading
+// animation, and re-rendering the Canvas while r3f is initializing prevents
+// its content from ever mounting (blank cloud until a resize/click).
+export default React.memo(TagCloud3DContainer);

@@ -656,6 +656,32 @@
     <div id="toast-notification">Toast message</div>
 
     <script>
+        // Attach the admin token (if one is configured server-side) to every
+        // mutating request. Token is remembered in localStorage; a 401 clears
+        // it and prompts again on the next action.
+        (function () {
+            const realFetch = window.fetch.bind(window);
+            window.fetch = async function (input, init = {}) {
+                const method = (init.method || 'GET').toUpperCase();
+                if (method !== 'GET' && method !== 'HEAD') {
+                    let token = localStorage.getItem('admin_token');
+                    if (!token) {
+                        token = prompt('Admin token (ADMIN_TOKEN from the server .env — leave blank if none is set):') || '';
+                        localStorage.setItem('admin_token', token);
+                    }
+                    if (token) {
+                        init.headers = Object.assign({}, init.headers, { 'X-Admin-Token': token });
+                    }
+                }
+                const response = await realFetch(input, init);
+                if (response.status === 401) {
+                    localStorage.removeItem('admin_token');
+                    alert('Admin token rejected — you will be prompted again on the next action.');
+                }
+                return response;
+            };
+        })();
+
         // <<< Define variables and functions in the outer scope >>>
         const API_BASE_URL = window.location.origin; // This will get the correct origin in Docker
         const statusPanel = document.getElementById('status-panel');
@@ -1400,7 +1426,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/status/admin/tag-stats`);
+                const response = await fetch(`${API_BASE_URL}/api/status/admin/tag-stats?_t=${Date.now()}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }

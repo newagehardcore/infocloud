@@ -5,7 +5,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { LRUCache } = require('lru-cache');
-const { PoliticalBias } = require('../types');
+const { PoliticalBias, NewsCategory } = require('../types');
 const { lemmatizeWord } = require('../utils/textUtils');
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +24,7 @@ try {
     activeModel = config.activeModel;
     console.log(`[LLM Service] Loaded active model from config: ${activeModel}`);
   } else {
-      console.warn(`[LLM Service] activeModel not found in ${configPath}, using default: ${activeModel}`);
+    console.warn(`[LLM Service] activeModel not found in ${configPath}, using default: ${activeModel}`);
   }
 } catch (err) {
   console.error(`[LLM Service] Error reading ${configPath}, using default model ${activeModel}. Error: ${err.message}`);
@@ -32,7 +32,7 @@ try {
 // <<< End reading config >>>
 
 // Configure caching
-const cache = new LRUCache({ 
+const cache = new LRUCache({
   max: 1000,
   ttl: 1000 * 60 * 60 * 24 // 24 hour cache
 });
@@ -65,7 +65,7 @@ function setActiveModel(newModelName) {
  */
 function createHash(text) {
   // Normalize before hashing: lowercase and remove punctuation/excess whitespace
-  const normalizedText = text.toLowerCase().replace(/[.,\/#!$%^&*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ").trim();
+  const normalizedText = text.toLowerCase().replace(/[.,\/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s{2,}/g, " ").trim();
   return crypto.createHash('md5').update(normalizedText).digest('hex');
 }
 
@@ -83,31 +83,40 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
   if (!title || title.trim().length === 0) {
     return {
       bias: existingBias, // Return existing or Unknown if title is empty
+      llmBias: PoliticalBias.Unknown,
+      category: null,
       keywords: []
     };
   }
-  
-  // Combine title and sentence for processing and caching
-  // Cache key should also consider if bias was requested, to avoid serving a keyword-only result if bias was needed later
-  const requestingBias = !existingBias || existingBias === PoliticalBias.Unknown;
-  const inputText = `${title}${firstSentence ? '. ' + firstSentence : ''}`;
-  const cacheKey = `article-combo-${requestingBias ? 'full' : 'kw_only'}-${createHash(inputText)}`;
-  
-  if (cache.has(cacheKey)) return cache.get(cacheKey);
-  
-  let promptInstruction = "You are a highly efficient news headline analyst. Your task is to extract ";
-  let jsonFields = "";
-  let jsonStructureExample = "";
 
-  if (requestingBias) {
-    promptInstruction += "both the political bias (one of: Left, Center-Left, Center, Center-Right, Right, Unknown) and up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword.";
-    jsonFields = `{\n  "bias": "<Calculated Political Bias (Left, Center-Left, Center, Center-Right, Right, or Unknown)>",\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"],\n}`; // Corrected field names
-    jsonStructureExample = `Example: { "bias": "Center-Left", "keywords": ["Specific Event X", "Related Entity Y"] }`;
-  } else {
-    promptInstruction += "up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword. Do not determine bias.";
-    jsonFields = `{\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"],\n}`; // Corrected field names
-    jsonStructureExample = `Example: { "keywords": ["Specific Event X", "Related Entity Y"] }`;
-  }
+  // Combine title and sentence for processing and caching
+  const inputText = `${title}${firstSentence ? '. ' + firstSentence : ''}`;
+  const cacheKey = `article-v3-${createHash(inputText)}`;
+
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const categoryList = Object.values(NewsCategory).filter(c => c !== NewsCategory.UNKNOWN).join(', ');
+  const categoryGuide = `Category definitions — pick the ONE that best matches the subject matter:
+- POLITICS: government, elections, legislation, political figures and parties
+- WORLD: international affairs, foreign countries, diplomacy, conflicts, global events (use this for foreign-country stories that aren't a specialty topic below)
+- US: American domestic general news — crime, weather, local events, society (not primarily political)
+- ECONOMICS: business, markets, finance, trade, jobs, companies' financial news
+- TECH: consumer technology, software, gadgets, internet companies and products
+- AI: artificial intelligence, machine learning
+- SCIENCE: research, discoveries, physics/biology/chemistry
+- SPACE: astronomy, spaceflight, NASA/rockets/satellites
+- HEALTH: medicine, disease, healthcare, wellness
+- ENVIRONMENT: climate, energy, nature, conservation
+- SPORTS: athletic events, teams, athletes (even international ones)
+- ENTERTAINMENT: film, TV, celebrities, gaming
+- MUSIC: musicians, albums, concerts, the music industry
+- ARTS: visual art, museums, literature, theater, architecture
+- FASHION: clothing, designers, style, modeling
+- LAW: courts, trials, rulings, the legal profession
+- NEWS: only if nothing above fits`;
+  const promptInstruction = `You are a highly efficient news headline analyst. Your task is to extract three things from the article text itself: (1) the political bias OF THE ARTICLE'S FRAMING AND LANGUAGE (one of: Left, Liberal, Centrist, Conservative, Right, Unknown). Judge bias ONLY from loaded/partisan language actually present in the text — a neutral factual headline is Centrist, and non-political content (sports, product news, entertainment, science) is Unknown. (2) The single best topical category (one of: ${categoryList}).\n${categoryGuide}\n(3) Up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword. The field values must come from your analysis of THIS text — never reuse values you saw in an example.`;
+  const jsonFields = `{\n  "bias": "<Left, Liberal, Centrist, Conservative, Right, or Unknown>",\n  "category": "<one of: ${categoryList}>",\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"]\n}`;
+  const jsonStructureExample = `Example for a headline "New telescope spots distant galaxy": { "bias": "Unknown", "category": "SPACE", "keywords": ["new telescope", "distant galaxy"] }`;
 
   try {
     const response = await axios.post(`${OLLAMA_API_URL}/api/generate`, {
@@ -126,14 +135,31 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
 
     let resultJson;
     try {
-      resultJson = JSON.parse(response.data.response);
-      
-      // The bias returned from here is the one provided to this function (existingBias).
-      // The LLM is not the source of truth for bias.
-      const finalBiasToReturn = existingBias;
+      // Extract JSON from response if it contains extra text
+      const responseText = response.data.response;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+
+      resultJson = JSON.parse(jsonString);
+
+      // Raw LLM content-bias — blended with the source bias downstream
+      // (wordProcessingService). Kept separate so the source bias still guides.
+      const llmBias = resultJson.bias ? mapToPoliticalBias(resultJson.bias) : PoliticalBias.Unknown;
+
+      // Validate the LLM's category against the enum; null if invalid/missing
+      const rawCategory = typeof resultJson.category === 'string' ? resultJson.category.trim().toUpperCase() : null;
+      const llmCategory = rawCategory && Object.values(NewsCategory).includes(rawCategory) ? rawCategory : null;
+
+      // Legacy behavior for `bias`: existing bias wins unless Unknown
+      let finalBiasToReturn = existingBias;
+      if ((!existingBias || existingBias === PoliticalBias.Unknown || existingBias === 'Unknown') && resultJson.bias) {
+        finalBiasToReturn = llmBias;
+      }
 
       const processedResult = {
-        bias: finalBiasToReturn, // Always use the bias passed into the function
+        bias: finalBiasToReturn,
+        llmBias,
+        category: llmCategory,
         keywords: Array.isArray(resultJson.keywords) ?
           resultJson.keywords
             .map(k => k.trim()) // Trim whitespace first
@@ -159,24 +185,28 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
       // Fallback: return existingBias and no keywords if JSON parsing fails.
       const fallbackResult = {
         bias: existingBias,
+        llmBias: PoliticalBias.Unknown,
+        category: null,
         keywords: []
       };
       cache.set(cacheKey, fallbackResult); // Cache fallback to prevent re-processing bad response
       return fallbackResult;
     }
   } catch (error) {
-    const errorMessage = error.code === 'ECONNREFUSED' 
+    const errorMessage = error.code === 'ECONNREFUSED'
       ? `LLM connection failed for article "${title}": Ollama service not available (ECONNREFUSED)`
-      : `LLM processing error for article "${title}" (First sentence: "${firstSentence ? firstSentence.substring(0,50)+'...' : 'N/A'}"): ${error.response ? error.response.status + ' ' + error.response.statusText : error.message || error}`;
-    
+      : `LLM processing error for article "${title}" (First sentence: "${firstSentence ? firstSentence.substring(0, 50) + '...' : 'N/A'}"): ${error.response ? error.response.status + ' ' + error.response.statusText : error.message || error}`;
+
     console.error(errorMessage);
     // Log the actual error object if it's not a connection refusal, for more details on 500s etc.
     if (error.code !== 'ECONNREFUSED' && error.response) {
-        console.error('[LLM Service] Ollama Error Response Data:', error.response.data);
+      console.error('[LLM Service] Ollama Error Response Data:', error.response.data);
     }
-    
+
     return {
       bias: existingBias, // On error, retain existing bias or Unknown
+      llmBias: PoliticalBias.Unknown,
+      category: null,
       keywords: []
     };
   }
@@ -196,26 +226,28 @@ async function processArticleWithRetry(title, firstSentence = '', existingBias =
     return await processArticle(title, firstSentence, existingBias);
   } catch (error) {
     // Broaden retry conditions
-    const isNetworkError = error.code === 'ECONNREFUSED' || 
-                           error.code === 'ECONNRESET' || 
-                           (error.message && error.message.toLowerCase().includes('socket hang up')) ||
-                           (error.message && error.message.toLowerCase().includes('timeout')); // Catch axios timeout
+    const isNetworkError = error.code === 'ECONNREFUSED' ||
+      error.code === 'ECONNRESET' ||
+      (error.message && error.message.toLowerCase().includes('socket hang up')) ||
+      (error.message && error.message.toLowerCase().includes('timeout')); // Catch axios timeout
     const isServerError = error.response && (error.response.status === 500 || error.response.status === 503 || error.response.status === 504);
-    
+
     const shouldRetry = (isNetworkError || isServerError);
 
     if (shouldRetry && retries > 0) {
       console.warn(`[LLM Service] Retrying for "${title}" due to ${error.message}. Retries left: ${retries}`);
       await new Promise(resolve => setTimeout(resolve, 1500 + ((2 - retries) * 1000))); // Wait 1.5s, 2.5s, 3.5s
       return processArticleWithRetry(title, firstSentence, existingBias, retries - 1);
-    } 
-    
+    }
+
     console.error(`[LLM Service] Final failure for "${title}" after retries or unretryable error: ${error.message}`);
     if (error.response && error.response.data) {
       console.error("[LLM Service] Ollama Error Response Data on final failure:", error.response.data);
     }
     return {
-      bias: existingBias, 
+      bias: existingBias,
+      llmBias: PoliticalBias.Unknown,
+      category: null,
       keywords: []
     };
   }
@@ -230,7 +262,7 @@ async function processArticleWithRetry(title, firstSentence = '', existingBias =
 function mapToPoliticalBias(biasString) {
   // Ensure biasString is a string and handle null/undefined safely
   const normalized = typeof biasString === 'string' ? biasString.toLowerCase() : '';
-  
+
   // Use strict equality or more specific checks if needed based on PoliticalBias enum structure
   if (normalized === 'left') return PoliticalBias.Left;
   if (normalized === 'liberal') return PoliticalBias.Liberal;
@@ -244,7 +276,7 @@ function mapToPoliticalBias(biasString) {
   if (normalized.includes('centrist')) return PoliticalBias.Centrist;
   if (normalized.includes('conservative')) return PoliticalBias.Conservative;
   if (normalized.includes('right')) return PoliticalBias.Right;
-  
+
   return PoliticalBias.Unknown;
 }
 

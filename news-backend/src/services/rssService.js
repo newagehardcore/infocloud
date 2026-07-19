@@ -2,6 +2,7 @@ const fs = require('fs').promises; // <--- Add fs.promises
 const { getDB } = require('../config/db');
 const axios = require('axios');
 const path = require('path');
+const { isSystemSuspended } = require('./systemState'); // Import system state
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') }); // Load .env from backend root
 
 // --- REMOVE CACHE CLEARING ---
@@ -43,6 +44,55 @@ const MAX_ENTRIES_PER_FETCH = 1000; // Limit how many entries to process at once
 const MAX_DESC_LENGTH = 500; // Max length for description
 
 /**
+ * Removes duplicate articles from a prepared bulkOps array.
+ * The same article is often syndicated across sibling feeds (e.g. Breitbart
+ * sections, BBC sections) with identical URLs but different Miniflux entry
+ * IDs, which creates duplicate NewsItems. Dedupe by URL: first within the
+ * batch itself, then against articles already stored under a different
+ * minifluxEntryId.
+ * @param {Array} bulkOps - updateOne upsert ops keyed on minifluxEntryId
+ * @returns {Promise<Array>} filtered bulkOps
+ */
+async function dedupeBulkOpsByUrl(bulkOps) {
+  const seenUrls = new Set();
+  const withinBatch = [];
+  for (const op of bulkOps) {
+    const url = op.updateOne.update.$set.url;
+    if (url) {
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+    }
+    withinBatch.push(op);
+  }
+
+  // Check against DB in chunks to keep $in reasonable
+  const urlToEntryId = new Map();
+  const urls = Array.from(seenUrls);
+  const chunkSize = 500;
+  for (let i = 0; i < urls.length; i += chunkSize) {
+    const chunk = urls.slice(i, i + chunkSize);
+    const existing = await NewsItem.find({ url: { $in: chunk } })
+      .select('url minifluxEntryId')
+      .lean();
+    existing.forEach(doc => urlToEntryId.set(doc.url, doc.minifluxEntryId));
+  }
+
+  const deduped = withinBatch.filter(op => {
+    const url = op.updateOne.update.$set.url;
+    if (!url) return true;
+    const existingEntryId = urlToEntryId.get(url);
+    // Keep if URL is new, or if it's the same article being updated
+    return existingEntryId === undefined || existingEntryId === op.updateOne.filter.minifluxEntryId;
+  });
+
+  const dropped = bulkOps.length - deduped.length;
+  if (dropped > 0) {
+    console.log(`[RSS Service] Dedupe: dropped ${dropped} duplicate article(s) by URL (${bulkOps.length} -> ${deduped.length}).`);
+  }
+  return deduped;
+}
+
+/**
  * Cleans HTML content from Miniflux entries.
  * Basic cleaning: remove tags, decode entities, trim.
  * @param {string} htmlContent
@@ -66,10 +116,10 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
   try {
     const cleanedContent = entry.content ? cleanHtmlContent(entry.content) : '';
 
-    if (!entry || !sourceInfo || 
-        !entry.id || !entry.feed_id || !entry.url || !entry.title || 
-        !cleanedContent || cleanedContent.trim() === '' || // Explicitly check cleanedContent
-        !sourceInfo.category || sourceInfo.category.trim() === '') {
+    if (!entry || !sourceInfo ||
+      !entry.id || !entry.feed_id || !entry.url || !entry.title ||
+      !cleanedContent || cleanedContent.trim() === '' || // Explicitly check cleanedContent
+      !sourceInfo.category || sourceInfo.category.trim() === '') {
       console.warn(`[RSS Service - mapMinifluxEntryToNewsItem] Skipping entry due to missing essential fields (id, feed_id, url, title), empty cleanedContent, missing sourceInfo, or empty/invalid source category. Entry ID: ${entry?.id}, Feed ID: ${entry?.feed_id}, Source Category: ${sourceInfo?.category}, CleanedContent Empty: ${!cleanedContent || cleanedContent.trim() === ''}`);
       return null;
     }
@@ -94,7 +144,7 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
     }
 
     // --- Add new log here ---
-    console.log(`[RSS Service - mapMinifluxEntryToNewsItem] PRE-SAVE CHECK for Miniflux Entry ID ${entry?.id}: cleanedContent (first 70 chars): '${cleanedContent.substring(0,70)}', title: '${title}'`);
+    console.log(`[RSS Service - mapMinifluxEntryToNewsItem] PRE-SAVE CHECK for Miniflux Entry ID ${entry?.id}: cleanedContent (first 70 chars): '${cleanedContent.substring(0, 70)}', title: '${title}'`);
     // --- End new log ---
 
     const mappedSourceBias = getTitleCaseBias(sourceInfo.bias);
@@ -107,7 +157,7 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
       source: {
         name: sourceInfo.name,
         bias: mappedSourceBias, // Use the title-cased bias
-        category: sourceInfo.category, 
+        category: sourceInfo.category,
         minifluxFeedId: sourceInfo.minifluxFeedId // <<< Correctly populate from the Source document
       },
       publishedAt,
@@ -132,6 +182,10 @@ function mapMinifluxEntryToNewsItem(entry, sourceInfo) {
  * @returns {Promise<{ processedCount: number, errorCount: number, skippedCount: number }>} - Count of processed, errored, and skipped items.
  */
 async function forceRefreshAllFeeds() {
+  if (isSystemSuspended()) {
+    console.warn('[RSS Service] forceRefreshAllFeeds BLOCKED because system is suspended.');
+    return { processedCount: 0, errorCount: 0, skippedCount: 0, message: 'System suspended' };
+  }
   console.log('[RSS Service] Starting Force Refresh...');
   let sources = [];
   try {
@@ -185,34 +239,39 @@ async function forceRefreshAllFeeds() {
     const allEntries = [];
     console.log(`[RSS Service] Force Refresh: Starting to fetch entries for ${feedIds.length} feeds...`);
     for (const feedId of feedIds) {
-        console.log(`[RSS Service] Force Refresh: Fetching entries for feed ID: ${feedId}`);
-        try {
-            const entriesResponse = await axios.get(
-                `${minifluxUrl}/v1/feeds/${feedId}/entries`,
-                {
-                    headers,
-                    params: {
-                        order: 'published_at',
-                        direction: 'desc',
-                        limit: 100
-                    }
-                }
-            );
+      // Double check suspension during long loops
+      if (isSystemSuspended()) {
+        console.log('[RSS Service] Force Refresh LOOP ABORTED due to suspension.');
+        break;
+      }
+      console.log(`[RSS Service] Force Refresh: Fetching entries for feed ID: ${feedId}`);
+      try {
+        const entriesResponse = await axios.get(
+          `${minifluxUrl}/v1/feeds/${feedId}/entries`,
+          {
+            headers,
+            params: {
+              order: 'published_at',
+              direction: 'desc',
+              limit: 100
+            }
+          }
+        );
 
-            const entries = entriesResponse.data.entries || [];
-            console.log(`[RSS Service] Force Refresh: Feed ${feedId} raw fetch count: ${entries.length}`);
-            
-            const recentEntries = entries.filter(entry =>
-                new Date(entry.published_at) >= cutoffDate
-            );
-            allEntries.push(...recentEntries);
+        const entries = entriesResponse.data.entries || [];
+        console.log(`[RSS Service] Force Refresh: Feed ${feedId} raw fetch count: ${entries.length}`);
 
-        } catch (feedError) {
-            console.error(`[RSS Service] Force Refresh Error: Failed to fetch entries for feed ${feedId}:`, feedError.message);
-            errorCount++; // Count feed-level errors
-        }
-        // Add a small delay to avoid hammering the API
-        await new Promise(resolve => setTimeout(resolve, 50));
+        const recentEntries = entries.filter(entry =>
+          new Date(entry.published_at) >= cutoffDate
+        );
+        allEntries.push(...recentEntries);
+
+      } catch (feedError) {
+        console.error(`[RSS Service] Force Refresh Error: Failed to fetch entries for feed ${feedId}:`, feedError.message);
+        errorCount++; // Count feed-level errors
+      }
+      // Add a small delay to avoid hammering the API
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     console.log(`[RSS Service] Force Refresh: Fetched a total of ${allEntries.length} entries within the last 2 days from all feeds.`);
@@ -247,19 +306,20 @@ async function forceRefreshAllFeeds() {
         skippedCount++;
         return; // Skip this entry
       }
-      
+
       // Ensure source sub-document is correctly populated based on the (now corrected) newsItemData from mapMinifluxEntryToNewsItem
       newsItemData.source = {
-          name: sourceInfo.name,
-          bias: getTitleCaseBias(sourceInfo.bias),   // Use the title-cased bias
-          category: sourceInfo.category
+        name: sourceInfo.name,
+        bias: getTitleCaseBias(sourceInfo.bias),   // Use the title-cased bias
+        category: sourceInfo.category,
+        type: sourceInfo.type || 'UNKNOWN'
       };
 
       // Reset processing status so they get picked up by LLM queue
       newsItemData.llmProcessed = false;
       newsItemData.llmProcessingError = null;
       newsItemData.llmProcessingAttempts = 0;
-      newsItemData.keywords = []; 
+      newsItemData.keywords = [];
       newsItemData.bias = PoliticalBias.Unknown; // Reset bias; let LLM reprocess
 
       bulkOps.push({
@@ -273,14 +333,18 @@ async function forceRefreshAllFeeds() {
 
     console.log(`[RSS Service] Force Refresh: Total entries to process: ${bulkOps.length}, Skipped: ${skippedCount}`);
 
+    // Drop syndicated duplicates (same URL from sibling feeds)
+    const dedupedBulkOps = await dedupeBulkOpsByUrl(bulkOps);
+
     // 4. Execute Bulk Upsert in Batches
     const batchSize = 20; // Process 20 operations at a time (Reduced further)
-    console.log(`[RSS Service] Force Refresh: Preparing to process ${bulkOps.length} operations in batches of ${batchSize}...`);
+    console.log(`[RSS Service] Force Refresh: Preparing to process ${dedupedBulkOps.length} operations in batches of ${batchSize}...`);
 
-    for (let i = 0; i < bulkOps.length; i += batchSize) {
-      const batch = bulkOps.slice(i, i + batchSize);
-      console.log(`[RSS Service] Force Refresh: Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(bulkOps.length / batchSize)} (Size: ${batch.length})`);
-      
+    for (let i = 0; i < dedupedBulkOps.length; i += batchSize) {
+      if (isSystemSuspended()) { console.log('[RSS Service] Aborting Force Refresh Batching due to suspension.'); break; }
+      const batch = dedupedBulkOps.slice(i, i + batchSize);
+      console.log(`[RSS Service] Force Refresh: Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(dedupedBulkOps.length / batchSize)} (Size: ${batch.length})`);
+
       if (batch.length > 0) {
         try {
           const result = await NewsItem.bulkWrite(batch, { ordered: false });
@@ -290,15 +354,15 @@ async function forceRefreshAllFeeds() {
           errorCount += batchErrors;
           console.log(`[RSS Service] Force Refresh: Batch complete. Processed in batch: ${batchProcessed}, Errors in batch: ${batchErrors}`);
         } catch (batchError) {
-            console.error(`[RSS Service] Force Refresh: Error during bulkWrite batch ${Math.floor(i / batchSize) + 1}:`, batchError);
-            errorCount += batch.length; // Assume all items in the failed batch errored
+          console.error(`[RSS Service] Force Refresh: Error during bulkWrite batch ${Math.floor(i / batchSize) + 1}:`, batchError);
+          errorCount += batch.length; // Assume all items in the failed batch errored
         }
       } else {
         console.log(`[RSS Service] Force Refresh: Skipping empty batch.`);
       }
-       // Optional: Add a small delay between batches if needed, e.g., await new Promise(resolve => setTimeout(resolve, 100));
+      // Optional: Add a small delay between batches if needed, e.g., await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     console.log(`[RSS Service] Force Refresh: Finished processing all batches.`);
 
   } catch (error) {
@@ -314,6 +378,10 @@ async function forceRefreshAllFeeds() {
  * This is typically run by a cron job.
  */
 async function fetchAndProcessMinifluxEntries() {
+  if (isSystemSuspended()) {
+    console.warn('[RSS Service] fetchAndProcessMinifluxEntries BLOCKED because system is suspended.');
+    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0, message: 'System suspended' };
+  }
   console.log('[RSS Service] Starting Fetch & Process Unread Miniflux Entries...');
   let sources = [];
   try {
@@ -344,10 +412,10 @@ async function fetchAndProcessMinifluxEntries() {
       console.warn(`[RSS Service - FetchUnread SourceCache] Skipping source "${s.name}" (DB ID: ${s._id}, UUID: ${s.id}) from sourceCache due to missing minifluxFeedId or empty category. FeedID: ${s.minifluxFeedId}, Category: ${s.category}`);
     }
   });
-  
+
   if (sourceCache.size === 0) {
-      console.warn('[RSS Service - FetchUnread] Warning: No valid sources with minifluxFeedId and category found to create sourceCache. Cannot process entries.');
-      return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0 };
+    console.warn('[RSS Service - FetchUnread] Warning: No valid sources with minifluxFeedId and category found to create sourceCache. Cannot process entries.');
+    return { processedCount: 0, errorCount: 0, markedAsReadCount: 0, skippedCount: 0 };
   }
 
   let allUnreadEntries = [];
@@ -391,23 +459,24 @@ async function fetchAndProcessMinifluxEntries() {
         console.warn(`[RSS Service - FetchUnread] No source info found in cache for Miniflux Feed ID: ${entry.feed_id} (Entry ID: ${entry.id}, URL: ${entry.url}). Skipping entry. Ensure a Source exists in DB with this minifluxFeedId and has a category.`);
         skippedCount++;
         entryIdsToMarkRead.push(entry.id);
-        continue; 
+        continue;
       }
-      
+
       const newsItemDocument = mapMinifluxEntryToNewsItem(entry, sourceInfo);
 
       if (newsItemDocument) {
         // Ensure source sub-document is correctly populated based on the (now corrected) newsItemData from mapMinifluxEntryToNewsItem
         newsItemDocument.source = {
-            name: sourceInfo.name,
-            bias: getTitleCaseBias(sourceInfo.bias), // Use the title-cased bias
-            category: sourceInfo.category
+          name: sourceInfo.name,
+          bias: getTitleCaseBias(sourceInfo.bias), // Use the title-cased bias
+          category: sourceInfo.category,
+          type: sourceInfo.type || 'UNKNOWN'
         };
 
         newsItemDocument.llmProcessed = false;
         newsItemDocument.llmProcessingError = null;
         newsItemDocument.llmProcessingAttempts = 0;
-        newsItemDocument.keywords = []; 
+        newsItemDocument.keywords = [];
         newsItemDocument.bias = PoliticalBias.Unknown; // Reset bias; let LLM reprocess
 
         bulkOps.push({
@@ -426,26 +495,29 @@ async function fetchAndProcessMinifluxEntries() {
       }
     }
 
-    if (bulkOps.length > 0) {
-      console.log(`[RSS Service - FetchUnread] Performing bulk upsert for ${bulkOps.length} NewsItems...`);
+    // Drop syndicated duplicates (same URL from sibling feeds)
+    const dedupedUnreadOps = await dedupeBulkOpsByUrl(bulkOps);
+
+    if (dedupedUnreadOps.length > 0) {
+      console.log(`[RSS Service - FetchUnread] Performing bulk upsert for ${dedupedUnreadOps.length} NewsItems...`);
       // Execute Bulk Upsert in Batches
       const batchSize = 50; // Batch size for upserts
-      for (let i = 0; i < bulkOps.length; i += batchSize) {
-          const batch = bulkOps.slice(i, i + batchSize);
-          try {
-              const result = await NewsItem.bulkWrite(batch, { ordered: false });
-              const batchProcessed = result.upsertedCount + result.modifiedCount;
-              processedCount += batchProcessed;
-              // Note: result.writeErrors might contain details on individual op errors if ordered:false
-              if (result.writeErrors && result.writeErrors.length > 0) {
-                  console.warn(`[RSS Service - FetchUnread] ${result.writeErrors.length} errors during bulkWrite batch.`);
-                  errorCount += result.writeErrors.length;
-              }
-              console.log(`[RSS Service - FetchUnread] Batch upsert complete. Processed in batch: ${batchProcessed}`);
-          } catch (batchError) {
-              console.error(`[RSS Service - FetchUnread] Error during bulkWrite batch:`, batchError);
-              errorCount += batch.length; // Assume all items in this batch failed
+      for (let i = 0; i < dedupedUnreadOps.length; i += batchSize) {
+        const batch = dedupedUnreadOps.slice(i, i + batchSize);
+        try {
+          const result = await NewsItem.bulkWrite(batch, { ordered: false });
+          const batchProcessed = result.upsertedCount + result.modifiedCount;
+          processedCount += batchProcessed;
+          // Note: result.writeErrors might contain details on individual op errors if ordered:false
+          if (result.writeErrors && result.writeErrors.length > 0) {
+            console.warn(`[RSS Service - FetchUnread] ${result.writeErrors.length} errors during bulkWrite batch.`);
+            errorCount += result.writeErrors.length;
           }
+          console.log(`[RSS Service - FetchUnread] Batch upsert complete. Processed in batch: ${batchProcessed}`);
+        } catch (batchError) {
+          console.error(`[RSS Service - FetchUnread] Error during bulkWrite batch:`, batchError);
+          errorCount += batch.length; // Assume all items in this batch failed
+        }
       }
     } else {
       console.log('[RSS Service - FetchUnread] No valid NewsItems to upsert.');

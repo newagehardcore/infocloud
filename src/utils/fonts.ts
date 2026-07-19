@@ -7,11 +7,11 @@ import { SourceType } from '../types';
 export const getSourceTypeFont = (type?: SourceType): string => {
   switch (type) {
     case SourceType.Independent:
-      return "Georgia, serif"; // Serif font for independent sources
+      return '"Times New Roman", Tinos, Georgia, serif'; // Newspaper serif for independent media
     case SourceType.Corporate:
-      return "Helvetica, Arial, sans-serif"; // Sans-serif for corporate sources
+      return "Helvetica, Arial, sans-serif"; // Clean sans-serif for corporate media
     case SourceType.State:
-      return "Courier New, monospace"; // Monospace for state-controlled media
+      return '"Archivo Black", "Arial Black", sans-serif'; // Wide fat bold for state media
     case SourceType.Unknown:
     default:
       return "Helvetica, Arial, sans-serif"; // Default
@@ -25,11 +25,11 @@ export const getSourceTypeFont = (type?: SourceType): string => {
 export const getTagFont = (type?: SourceType): string => {
   switch (type) {
     case SourceType.Independent:
-      return '/fonts/georgia.ttf'; // Path to Georgia font
+      return '/fonts/Tinos-Regular.ttf'; // Times New Roman-style serif (metric twin, open license)
     case SourceType.Corporate:
-      return '/fonts/helvetica.ttf'; // Path to Helvetica font
+      return '/fonts/helvetica.ttf'; // Helvetica
     case SourceType.State:
-      return '/fonts/courier.ttf'; // Path to Courier font
+      return '/fonts/ArchivoBlack-Regular.ttf'; // Wide fat bold
     case SourceType.Unknown:
     default:
       return '/fonts/helvetica.ttf'; // Default
@@ -52,17 +52,29 @@ export const preloadFonts = (): void => {
         font-weight: 600;
       }
       
+      /* Web fonts for source-type styling (same files troika uses in the cloud) */
+      @font-face {
+        font-family: 'Tinos';
+        src: url('/fonts/Tinos-Regular.ttf') format('truetype');
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Archivo Black';
+        src: url('/fonts/ArchivoBlack-Regular.ttf') format('truetype');
+        font-display: swap;
+      }
+
       /* Source type specific fonts */
       .source-type-independent {
-        font-family: Georgia, serif !important;
+        font-family: "Times New Roman", Tinos, Georgia, serif !important;
       }
-      
+
       .source-type-corporate {
         font-family: Helvetica, Arial, sans-serif !important;
       }
-      
+
       .source-type-state {
-        font-family: "Courier New", monospace !important;
+        font-family: "Archivo Black", "Arial Black", sans-serif !important;
       }
       
       .source-type-unknown {

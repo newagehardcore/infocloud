@@ -95,16 +95,22 @@ export const Word = ({
     
     // Grow animation for new words
     if (isNew && ref.current.scale.x < 1) {
-      ref.current.scale.x += delta * 2 * animationSpeed;
-      ref.current.scale.y += delta * 2 * animationSpeed;
-      ref.current.scale.z += delta * 2 * animationSpeed;
+      const grow = Math.min(1 - ref.current.scale.x, delta * 2 * animationSpeed);
+      ref.current.scale.x += grow;
+      ref.current.scale.y += grow;
+      ref.current.scale.z += grow;
     }
-    
+
     // Hover and selection effects
+    // IMPORTANT: clamp the lerp factor to 1 — a janky frame (delta > 0.2s,
+    // common on initial load while text glyphs generate) would otherwise make
+    // lerp extrapolate past the target and diverge exponentially (scales in
+    // the billions → black screen / one giant glyph filling the viewport).
     const targetScale = (hovered || isSelected) ? 1.2 : 1;
-    ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, targetScale, delta * 5 * animationSpeed);
-    ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, delta * 5 * animationSpeed);
-    ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, targetScale, delta * 5 * animationSpeed);
+    const t = Math.min(1, delta * 5 * animationSpeed);
+    ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, targetScale, t);
+    ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, t);
+    ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, targetScale, t);
     
     // Apply gentle floating movement
     const time = state.clock.getElapsedTime();

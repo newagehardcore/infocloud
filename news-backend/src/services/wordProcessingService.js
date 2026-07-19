@@ -10,6 +10,24 @@ const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils')
 const MIN_KEYWORD_LENGTH = 3;
 const MAX_KEYWORD_LENGTH = 50;
 
+// How far back the keyword cache looks for articles. Wider than 24h so
+// low-volume categories (WORLD, US, SPACE, ...) still have enough tags.
+const CACHE_WINDOW_HOURS = parseInt(process.env.CACHE_WINDOW_HOURS || '72', 10);
+// Recency half-life: each mention's weight halves every N hours, so tag sizes
+// track what's big *right now* while the wider window keeps thin categories fed.
+const RECENCY_HALF_LIFE_HOURS = parseFloat(process.env.RECENCY_HALF_LIFE_HOURS || '12');
+
+/**
+ * Weight of a single article mention, decayed by age.
+ * 1.0 for an article published now, 0.5 at one half-life, ~0.02 at 72h (12h half-life).
+ */
+function recencyWeight(publishedAt) {
+  if (!publishedAt) return 1;
+  const ageHours = (Date.now() - new Date(publishedAt).getTime()) / 3600000;
+  if (!isFinite(ageHours) || ageHours <= 0) return 1;
+  return Math.pow(0.5, ageHours / RECENCY_HALF_LIFE_HOURS);
+}
+
 // --- NEW Single Keyword Cache (Map-based) ---
 let keywordCache = {
   data: new Map(), // Map<string, { count: number, biases: PoliticalBias[], categories: NewsCategory[], items: Set<string> }>
@@ -179,8 +197,8 @@ const NEWS_SOURCE_NAMES = new Set([ // (Copied from your provided file)
 ]);
 
 const DEFAULT_CONFIG = { // (Copied from your provided file)
-  minWordLength: MIN_KEYWORD_LENGTH, 
-  maxWordLength: MAX_KEYWORD_LENGTH, 
+  minWordLength: MIN_KEYWORD_LENGTH,
+  maxWordLength: MAX_KEYWORD_LENGTH,
   minPhraseWords: 2,
   maxPhraseWords: 5,
   removeStopWords: true,
@@ -226,14 +244,14 @@ const extractMeaningfulPhrases = (text) => { // (Copied from your provided file)
   doc.match('#Adjective+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
-        phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
       phrases.push({ text: phrase, weight: 1.0 });
     }
   });
   doc.match('#Noun+ #Verb+ #Noun+').forEach(match => {
     const phrase = match.text('normal');
     if (phrase.split(' ').length >= DEFAULT_CONFIG.minPhraseWords &&
-        phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
+      phrase.split(' ').length <= DEFAULT_CONFIG.maxPhraseWords) {
       phrases.push({ text: phrase, weight: 1.1 });
     }
   });
@@ -314,16 +332,16 @@ function filterAndValidateKeyword(originalKeyword) {
   }
   if (/\d/.test(keyword) && keyword.length < 5) {
     return null;
-  } 
+  }
   if (STOP_WORDS.has(keyword) || NEWS_SPECIFIC_WORDS.has(keyword) || NEWS_SOURCE_NAMES.has(keyword)) {
     return null;
   }
-  
+
   let beforeLemmatize = keyword;
   if (!isProperNoun(keyword)) {
     keyword = lemmatizeWord(keyword);
   }
-  
+
   if (keyword.length < MIN_KEYWORD_LENGTH || keyword.length > MAX_KEYWORD_LENGTH) {
     return null;
   }
@@ -339,12 +357,23 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
     return;
   }
   const itemId = processedNewsItem._id ? processedNewsItem._id.toString() : processedNewsItem.minifluxEntryId.toString();
+
+  // Enforce cache window for cache updates (widened from 24h so thin
+  // categories have enough material for their tag clouds)
+  const cutoffDate = new Date(Date.now() - CACHE_WINDOW_HOURS * 3600 * 1000);
+  if (processedNewsItem.publishedAt && new Date(processedNewsItem.publishedAt) < cutoffDate) {
+    console.log(`[Cache Update] Skipping item ${itemId} - Published at ${processedNewsItem.publishedAt} (older than ${CACHE_WINDOW_HOURS}h)`);
+    return;
+  }
+
   console.log(`[Cache Update] Processing item: ${itemId}, llmProcessed: ${processedNewsItem.llmProcessed}`); // <-- Log item status
 
   const itemBias = processedNewsItem.bias || PoliticalBias.Unknown;
-  const itemCategory = (processedNewsItem.source && processedNewsItem.source.category)
-    ? processedNewsItem.source.category
-    : NewsCategory.UNKNOWN;
+  // Prefer the per-article (LLM) category; fall back to the source's category
+  const itemCategory = processedNewsItem.category
+    || ((processedNewsItem.source && processedNewsItem.source.category)
+      ? processedNewsItem.source.category
+      : NewsCategory.UNKNOWN);
   const itemType = (processedNewsItem.source && processedNewsItem.source.type)
     ? processedNewsItem.source.type
     : 'UNKNOWN';
@@ -353,15 +382,22 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
     const validatedKeyword = filterAndValidateKeyword(keywordText);
     if (validatedKeyword) {
       console.log(`[Cache Update Item ${itemId}] Adding/Updating keyword: "${validatedKeyword}"`); // <-- Log keyword being processed
+      const mentionWeight = recencyWeight(processedNewsItem.publishedAt || processedNewsItem.createdAt);
       if (keywordCache.data.has(validatedKeyword)) {
         const existingEntry = keywordCache.data.get(validatedKeyword);
         existingEntry.count += 1;
+        existingEntry.weight = (existingEntry.weight || existingEntry.count - 1) + mentionWeight;
         existingEntry.items.add(itemId);
         if (itemBias) existingEntry.biases.push(itemBias);
         // Add category to the set, then convert set to array for storage
         const categorySet = new Set(existingEntry.categories || []);
         categorySet.add(itemCategory);
         existingEntry.categories = Array.from(categorySet);
+        // Track how many articles mention this keyword per category
+        existingEntry.categoryCounts = existingEntry.categoryCounts || {};
+        existingEntry.categoryCounts[itemCategory] = (existingEntry.categoryCounts[itemCategory] || 0) + 1;
+        existingEntry.categoryWeights = existingEntry.categoryWeights || {};
+        existingEntry.categoryWeights[itemCategory] = (existingEntry.categoryWeights[itemCategory] || 0) + mentionWeight;
         // Add type to the set, then convert set to array for storage
         const typeSet = new Set(existingEntry.types || []);
         typeSet.add(itemType);
@@ -369,8 +405,11 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
       } else {
         keywordCache.data.set(validatedKeyword, {
           count: 1,
+          weight: mentionWeight,
           biases: itemBias ? [itemBias] : [],
           categories: itemCategory ? [itemCategory] : [], // Initialize categories as an array
+          categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
+          categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},
           types: itemType ? [itemType] : [], // Initialize types as an array
           items: new Set([itemId])
         });
@@ -379,6 +418,31 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
   });
   keywordCache.timestamp = new Date();
   // console.log(`[Cache] Incremental update for item ${itemId}. Keywords added/updated: ${processedNewsItem.keywords.length}. Cache size: ${keywordCache.data.size}`);
+}
+
+// Numeric scale for blending source bias with LLM content bias
+const BIAS_SCALE = {
+  [PoliticalBias.Left]: -2,
+  [PoliticalBias.Liberal]: -1,
+  [PoliticalBias.Centrist]: 0,
+  [PoliticalBias.Conservative]: 1,
+  [PoliticalBias.Right]: 2
+};
+const SCALE_TO_BIAS = [PoliticalBias.Left, PoliticalBias.Liberal, PoliticalBias.Centrist, PoliticalBias.Conservative, PoliticalBias.Right];
+
+/**
+ * Blend the source's editorial bias with the LLM's content-bias score.
+ * The source guides (60%) and the article's own framing adjusts (40%).
+ * If either side is Unknown, the other side wins outright.
+ */
+function blendBias(sourceBias, llmBias) {
+  const s = BIAS_SCALE[sourceBias];
+  const l = BIAS_SCALE[llmBias];
+  if (s === undefined && l === undefined) return PoliticalBias.Unknown;
+  if (s === undefined) return llmBias;
+  if (l === undefined) return sourceBias;
+  const blended = Math.round(s * 0.6 + l * 0.4);
+  return SCALE_TO_BIAS[blended + 2];
 }
 
 async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
@@ -405,7 +469,7 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
     try {
       // Pass the itemSourceBias to LLM. Its keywords will be used, but its bias suggestion will be ignored.
       llmResult = await processArticleWithRetry(title, firstSentence, itemSourceBias);
-      
+
       if (llmResult && llmResult.keywords && llmResult.keywords.length > 0) {
         keywordsToUse = llmResult.keywords;
         // DO NOT update itemSourceBias with llmResult.bias. The source's bias is king.
@@ -414,8 +478,8 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
         llmFallbackCountForBatch++;
         const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
           .map(p => p.text)
-          .filter(k => shouldKeepWord(k, config)); 
-        keywordsToUse = traditionalKeywords.slice(0, 10); 
+          .filter(k => shouldKeepWord(k, config));
+        keywordsToUse = traditionalKeywords.slice(0, 10);
         llmSuccess = false; // Explicitly false, even if traditional keywords found
       } else {
         // LLM call failed or returned null/undefined
@@ -437,24 +501,31 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
     }
 
     const finalKeywords = Array.from(new Set(keywordsToUse.map(k => filterAndValidateKeyword(k)).filter(Boolean)));
+
+    // Final bias: source bias guides, LLM content-bias adjusts (60/40 blend)
+    const llmBias = (llmResult && llmResult.llmBias) ? llmResult.llmBias : PoliticalBias.Unknown;
+    const finalBias = blendBias(itemSourceBias, llmBias);
+
+    // Final category: LLM's per-article category wins; source category is the fallback
+    const sourceCategory = (item.source && item.source.category) ? item.source.category : null;
+    const finalCategory = (llmResult && llmResult.category) ? llmResult.category : sourceCategory;
+
     const processedItem = {
       ...item, // Spread original item data (like minifluxEntryId, _id, etc.)
       title: item.title, // ensure original title is preserved if needed by other parts
       contentSnippet: item.contentSnippet, // ensure original snippet is preserved
       keywords: finalKeywords,
-      // Ensure the bias saved is ALWAYS the itemSourceBias (derived from item.source.bias).
-      bias: itemSourceBias,
-      // category: item.category, // item.category is already part of ...item spread if it exists. Redundant.
-      // source: item.source, // item.source is already part of ...item spread. Redundant unless structure needs modification.
+      bias: finalBias,
+      category: finalCategory,
       llmProcessed: llmSuccess,
       llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1,
       processedAt: new Date()
     };
-    
-    updateGlobalCacheWithSingleItem(processedItem); 
+
+    updateGlobalCacheWithSingleItem(processedItem);
     processedResults.push(processedItem);
   }
-  
+
   if (llmFallbackCountForBatch > 0) {
     console.log(`[Word Processing Service] LLM fallback used for ${llmFallbackCountForBatch} items in this batch.`);
   }
@@ -467,29 +538,37 @@ async function aggregateKeywordsForCloud() {
     console.log('[Cache Aggregation] Full aggregation already in progress. Skipping.');
     return;
   }
-  
+
   try {
     keywordCache.isUpdating = true;
     console.log('[Cache Aggregation] Starting full keyword aggregation for global cache...');
-    
+
     // Create a new Map instance for temp storage to avoid issues with the existing one
     const tempKeywordMap = new Map();
-    
+
     try {
-      const allNewsItems = await NewsItem.find({ llmProcessed: true }).lean().exec();
-      console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true for cache aggregation.`);
-      
+      // Calculate cache-window cutoff (default 72h; see CACHE_WINDOW_HOURS)
+      const cutoffDate = new Date(Date.now() - CACHE_WINDOW_HOURS * 3600 * 1000);
+      console.log(`[Cache Aggregation] Filtering for articles published after: ${cutoffDate.toISOString()} (${CACHE_WINDOW_HOURS}h window)`);
+
+      const allNewsItems = await NewsItem.find({
+        llmProcessed: true,
+        publishedAt: { $gte: cutoffDate }
+      }).lean().exec();
+      console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true AND published within last 24h.`);
+
       if (!allNewsItems || allNewsItems.length === 0) {
         console.log('[Cache Aggregation] No llmProcessed:true items found in DB for cache aggregation.');
         keywordCache.data = new Map();
         keywordCache.timestamp = new Date();
         return;
       }
-      
-      // Log first item check
+
+      console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true AND published within last 24h.`);
+
       if (allNewsItems.length > 0) {
-        const firstItem = allNewsItems[0];
-        console.log(`[Cache Aggregation] First item check - ID: ${firstItem._id}, llmProcessed: ${firstItem.llmProcessed}`);
+        console.log(`[Cache Aggregation DEBUG] First item ID: ${allNewsItems[0]._id}, PublishedAt: ${allNewsItems[0].publishedAt}, Type: ${typeof allNewsItems[0].publishedAt}`);
+        console.log(`[Cache Aggregation DEBUG] Cutoff Date: ${cutoffDate}, Type: ${typeof cutoffDate}`);
       }
 
       // Process each news item
@@ -500,17 +579,19 @@ async function aggregateKeywordsForCloud() {
             console.warn('[Cache Aggregation] Skipping invalid item without ID');
             continue;
           }
-          
-          const itemId = item._id ? item._id.toString() : 
-                        (item.minifluxEntryId ? item.minifluxEntryId.toString() : 'unknown');
-          
+
+          const itemId = item._id ? item._id.toString() :
+            (item.minifluxEntryId ? item.minifluxEntryId.toString() : 'unknown');
+
           const itemBias = item.bias || PoliticalBias.Unknown;
-          const itemCategory = (item.source && item.source.category)
-            ? item.source.category
-            : NewsCategory.UNKNOWN;
+          // Prefer the per-article (LLM) category; fall back to the source's category
+          const itemCategory = item.category
+            || ((item.source && item.source.category)
+              ? item.source.category
+              : NewsCategory.UNKNOWN);
           // Extract source type, defaulting to UNKNOWN if not present
-          const itemType = (item.source && item.source.type) 
-            ? item.source.type 
+          const itemType = (item.source && item.source.type)
+            ? item.source.type
             : 'UNKNOWN';
 
           // Process keywords for this item
@@ -518,26 +599,35 @@ async function aggregateKeywordsForCloud() {
             console.warn(`[Cache Aggregation] Item ${itemId} has no keywords or invalid keywords array`);
             continue;
           }
-          
+
           for (const keywordText of item.keywords) {
             try {
               const validatedKeyword = filterAndValidateKeyword(keywordText);
               if (!validatedKeyword) continue;
-              
+
               console.log(`[Cache Aggregation Item ${itemId}] Processing keyword: "${validatedKeyword}" (Source llmProcessed: ${item.llmProcessed})`);
-              
+
+              const mentionWeight = recencyWeight(item.publishedAt || item.createdAt);
               if (tempKeywordMap.has(validatedKeyword)) {
                 const entry = tempKeywordMap.get(validatedKeyword);
                 entry.count += 1;
+                entry.weight += mentionWeight;
                 entry.items.add(itemId);
                 if (itemBias) entry.biases.add(itemBias);
-                if (itemCategory) entry.categories.add(itemCategory);
+                if (itemCategory) {
+                  entry.categories.add(itemCategory);
+                  entry.categoryCounts[itemCategory] = (entry.categoryCounts[itemCategory] || 0) + 1;
+                  entry.categoryWeights[itemCategory] = (entry.categoryWeights[itemCategory] || 0) + mentionWeight;
+                }
                 if (itemType) entry.types.add(itemType);
               } else {
                 tempKeywordMap.set(validatedKeyword, {
                   count: 1,
+                  weight: mentionWeight,
                   biases: itemBias ? new Set([itemBias]) : new Set(),
                   categories: itemCategory ? new Set([itemCategory]) : new Set(),
+                  categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
+                  categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},
                   types: itemType ? new Set([itemType]) : new Set(),
                   items: new Set([itemId])
                 });
@@ -589,6 +679,12 @@ async function aggregateKeywordsForCloud() {
   }
 }
 
+function clearKeywordCache() {
+  keywordCache.data = new Map();
+  keywordCache.timestamp = new Date();
+  console.log('[WordProcessingService] Keyword cache cleared.');
+}
+
 function getKeywordCache() {
   return { data: keywordCache.data, timestamp: keywordCache.timestamp };
 }
@@ -597,7 +693,8 @@ module.exports = {
   processNewsKeywords,
   aggregateKeywordsForCloud,
   getKeywordCache,
-  getLlmFallbackCount, 
-  updateGlobalCacheWithSingleItem, 
-  filterAndValidateKeyword 
+  getLlmFallbackCount,
+  updateGlobalCacheWithSingleItem,
+  filterAndValidateKeyword,
+  clearKeywordCache
 }; 

@@ -6,6 +6,7 @@ const WebSocket = require('ws'); // 2. Import ws module
 const { connectDB } = require('./config/db');
 const newsRoutes = require('./routes/news');
 const statusRoutes = require('./routes/statusRoutes');
+const { requireAdminForWrites } = require('./middleware/adminAuth');
 const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
 // Import the whole module
 const cronService = require('./cron'); 
@@ -120,9 +121,9 @@ connectDB().then(() => {
 // Define Routes
 app.get('/', (req, res) => res.send('News Backend Running'));
 
-// Mount API routes
-app.use('/api/news', newsRoutes);
-app.use('/api/status', statusRoutes); // Mount status routes under /api/status
+// Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
+app.use('/api/news', requireAdminForWrites, newsRoutes);
+app.use('/api/status', requireAdminForWrites, statusRoutes); // Mount status routes under /api/status
 // --- DEBUGGING --- //
 if (statusRoutes.stack) {
   console.log("--- STATUS ROUTES STACK ---");
@@ -136,7 +137,7 @@ if (statusRoutes.stack) {
   console.log("--- DEBUG: statusRoutes.stack is undefined ---");
 }
 // --- END DEBUGGING --- //
-app.use('/api/sources', sourceRoutes); // Mount the source routes
+app.use('/api/sources', requireAdminForWrites, sourceRoutes); // Mount the source routes
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));

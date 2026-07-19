@@ -8,7 +8,80 @@ const { PoliticalBias } = require('../types');
 const NewsItem = require('../models/NewsItem'); // Import the Mongoose model
 
 // Target number of articles to return
-const TARGET_ARTICLE_COUNT = 1000; 
+const TARGET_ARTICLE_COUNT = 1000;
+
+// Max words served for the tag cloud
+const WORD_LIMIT = 500;
+
+// The bias that appears most often in a word's biases array
+function dominantBias(word) {
+  if (!word.biases || word.biases.length === 0) return 'Unknown';
+  const counts = {};
+  let best = word.biases[0], bestN = 0;
+  word.biases.forEach(b => {
+    counts[b] = (counts[b] || 0) + 1;
+    if (counts[b] > bestN) { best = b; bestN = counts[b]; }
+  });
+  return best;
+}
+
+/**
+ * Pick up to `limit` words round-robin across dominant-bias buckets, so every
+ * bias present in the candidate set gets representation instead of the most
+ * common bias crowding the rest out. Input must be sorted by value desc;
+ * within each bucket that order is preserved.
+ */
+function biasBalancedSelect(sortedWords, limit) {
+  const buckets = new Map();
+  sortedWords.forEach(w => {
+    const b = dominantBias(w);
+    if (!buckets.has(b)) buckets.set(b, []);
+    buckets.get(b).push(w);
+  });
+  const bucketArrays = Array.from(buckets.values());
+  const result = [];
+  while (result.length < limit) {
+    let took = false;
+    for (const arr of bucketArrays) {
+      if (arr.length > 0) {
+        result.push(arr.shift());
+        took = true;
+        if (result.length >= limit) break;
+      }
+    }
+    if (!took) break; // all buckets empty
+  }
+  return result;
+}
+
+/**
+ * ALL view selection: give each category an equal slot allocation
+ * (bias-balanced within the category), then fill any remaining slots with the
+ * highest-frequency words overall. A word occupies one slot even if it spans
+ * several categories.
+ */
+function categoryQuotaSelect(sortedWords, limit) {
+  const cats = new Set();
+  sortedWords.forEach(w => (w.categories || []).forEach(c => cats.add(c)));
+  if (cats.size === 0) return sortedWords.slice(0, limit);
+
+  const quota = Math.ceil(limit / cats.size);
+  const chosen = new Map(); // text -> word
+
+  cats.forEach(cat => {
+    const candidates = sortedWords.filter(w =>
+      !chosen.has(w.text) && w.categories && w.categories.includes(cat)
+    );
+    biasBalancedSelect(candidates, quota).forEach(w => chosen.set(w.text, w));
+  });
+
+  // Fill leftover capacity with top words overall
+  for (const w of sortedWords) {
+    if (chosen.size >= limit) break;
+    if (!chosen.has(w.text)) chosen.set(w.text, w);
+  }
+  return Array.from(chosen.values()).slice(0, limit);
+}
 
 // Helper function to get all bias values (adjust if PoliticalBias enum location differs)
 const ALL_BIAS_VALUES = Object.values(PoliticalBias);
@@ -28,10 +101,10 @@ const ALL_BIAS_VALUES = Object.values(PoliticalBias);
 router.get('/', async (req, res) => {
   try {
     // --- Determine Filters --- 
-    const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all') 
+    const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all')
       ? req.query.category // Keep original case for comparison with enum potentially
       : null;
-      
+
     let selectedBiases = [];
     if (req.query.bias && req.query.bias.toLowerCase() !== 'all') {
       selectedBiases = req.query.bias.split(',').filter(b => ALL_BIAS_VALUES.includes(b));
@@ -48,14 +121,29 @@ router.get('/', async (req, res) => {
     const limitPerBias = Math.ceil(TARGET_ARTICLE_COUNT / N);
     console.log(`Querying for category: ${categoryFilter || 'all'}, biases: ${selectedBiases.join(', ')}, limit/bias: ${limitPerBias}`);
 
+    // Build strict 24-hour cutoff
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 1);
+    console.log(`[GET /api/news] Enforcing strict 24h filter (cutoff: ${cutoffDate.toISOString()})`);
+
     // --- Querying News Items (Parallel Queries per Bias) --- 
     const queryPromises = selectedBiases.map(bias => {
-      const filter = {};
+      const filter = {
+        llmProcessed: true,
+        publishedAt: { $gte: cutoffDate } // SAFETY NET: Only recent items
+      };
+
       if (categoryFilter) {
-        filter['source.category'] = categoryFilter.toUpperCase();
+        // Effective category: per-article (LLM) category when present,
+        // otherwise the source's category.
+        const cat = categoryFilter.toUpperCase();
+        filter.$or = [
+          { category: cat },
+          { category: null, 'source.category': cat } // null matches missing too
+        ];
       }
       filter.bias = bias; // Filter by the LLM-determined bias
-      
+
       return NewsItem
         .find(filter)
         .sort({ publishedAt: -1 })
@@ -81,23 +169,46 @@ router.get('/', async (req, res) => {
     if (cachedKeywordsResult && cachedKeywordsResult.data && cachedKeywordsResult.data.size > 0) {
       wordsForCloud = Array.from(cachedKeywordsResult.data.entries()).map(([text, keywordData]) => ({
         text,
-        value: keywordData.count,
+        // Recency-decayed weight (see recencyWeight in wordProcessingService):
+        // a burst of fresh coverage outranks an old story with more total articles
+        value: keywordData.weight != null ? keywordData.weight : keywordData.count,
         biases: keywordData.biases || [],
         categories: keywordData.categories || [], // Ensure categories array is present
+        categoryCounts: keywordData.categoryCounts || {},
+        categoryWeights: keywordData.categoryWeights || {},
         types: keywordData.types || [] // Add types array for font differentiation
       }));
 
-      // Filter by category if a specific category is requested
+      wordsForCloud.sort((a, b) => b.value - a.value);
+
       if (categoryFilter) {
+        // Single-category view: that category's words, sized by how often the
+        // keyword appears in THIS category (so a word that's huge globally but
+        // marginal here — e.g. "tesla" in MUSIC — doesn't dominate), bias-balanced.
         const upperCategoryFilter = categoryFilter.toUpperCase();
-        wordsForCloud = wordsForCloud.filter(word => 
-          word.categories && word.categories.some(cat => cat.toUpperCase() === upperCategoryFilter)
-        );
-        console.log(`[GET /api/news] Filtered keywords by category '${categoryFilter}'. ${wordsForCloud.length} words remain.`);
+        const candidates = wordsForCloud
+          .filter(word =>
+            (word.categoryCounts && word.categoryCounts[upperCategoryFilter] > 0) ||
+            (!Object.keys(word.categoryCounts || {}).length && word.categories &&
+              word.categories.some(cat => cat.toUpperCase() === upperCategoryFilter))
+          )
+          .map(word => ({
+            ...word,
+            value: (word.categoryWeights && word.categoryWeights[upperCategoryFilter])
+              || (word.categoryCounts && word.categoryCounts[upperCategoryFilter])
+              || 1
+          }))
+          .sort((a, b) => b.value - a.value);
+        wordsForCloud = biasBalancedSelect(candidates, WORD_LIMIT);
+        console.log(`[GET /api/news] Category '${categoryFilter}': ${candidates.length} candidates -> ${wordsForCloud.length} bias-balanced words.`);
+      } else {
+        // ALL view: allocate slots per category so every category is
+        // represented, bias-balancing within each; fill remainder globally.
+        wordsForCloud = categoryQuotaSelect(wordsForCloud, WORD_LIMIT);
       }
 
+      // Keep display order by frequency
       wordsForCloud.sort((a, b) => b.value - a.value);
-      wordsForCloud = wordsForCloud.slice(0, 500);
 
       if (wordsForCloud.length > 0) {
         console.log(`[GET /api/news] Sample of wordsForCloud being sent (first 3):`, JSON.stringify(wordsForCloud.slice(0, 3), null, 2));
@@ -110,7 +221,7 @@ router.get('/', async (req, res) => {
 
     // Return the balanced, prioritized & capped data
     res.json({
-      data: finalNews, 
+      data: finalNews,
       words: wordsForCloud
     });
 
@@ -126,27 +237,57 @@ router.get('/', async (req, res) => {
 // @query   tag: string - The tag to search for in the news item titles
 router.get('/by-tag', async (req, res) => {
   try {
-    const { tag } = req.query;
+    const { tag, category } = req.query;
 
     if (!tag) {
       return res.status(400).json({ msg: 'Tag query parameter is required' });
     }
 
-    const query = {
-      keywords: tag, 
-      llmProcessed: true
-    };
+    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    const newsItems = await NewsItem.find(query)
-    .sort({ publishedAt: -1 })
-    .limit(100)
-    .exec();
+    // Effective-category filter (per-article LLM category, source fallback)
+    const cat = (category && category.toLowerCase() !== 'all') ? category.toUpperCase() : null;
+    const catFilter = cat
+      ? { $or: [{ category: cat }, { category: null, 'source.category': cat }] }
+      : {};
+
+    const fetch = (query) => NewsItem.find(query).sort({ publishedAt: -1 }).limit(100).exec();
+
+    // Layered fallbacks so a tag shown in the cloud always resolves to articles:
+    // 1. exact keyword within the category
+    let newsItems = await fetch({ keywords: tag, llmProcessed: true, ...catFilter });
+    // 2. case-insensitive keyword within the category
+    if (newsItems.length === 0) {
+      newsItems = await fetch({ keywords: { $regex: `^${escapeRegex(tag)}$`, $options: 'i' }, llmProcessed: true, ...catFilter });
+    }
+    // 3. tag text appearing in the title, within the category
+    if (newsItems.length === 0) {
+      newsItems = await fetch({ title: { $regex: escapeRegex(tag), $options: 'i' }, ...catFilter });
+    }
+    // 4. last resort: same lookups without the category restriction
+    if (newsItems.length === 0 && cat) {
+      newsItems = await fetch({ keywords: { $regex: `^${escapeRegex(tag)}$`, $options: 'i' }, llmProcessed: true });
+      if (newsItems.length === 0) {
+        newsItems = await fetch({ title: { $regex: escapeRegex(tag), $options: 'i' } });
+      }
+    }
 
     if (!newsItems || newsItems.length === 0) {
       return res.json([]);
     }
 
-    res.json(newsItems);
+    // Defensive display-level dedupe: syndicated copies of the same article
+    // (same URL, or same title on the same day) should appear once.
+    const seen = new Set();
+    const deduped = newsItems.filter(item => {
+      const day = item.publishedAt ? new Date(item.publishedAt).toISOString().slice(0, 10) : '';
+      const keys = [item.url, `${item.title}|${day}`];
+      if (keys.some(k => k && seen.has(k))) return false;
+      keys.forEach(k => k && seen.add(k));
+      return true;
+    });
+
+    res.json(deduped);
 
   } catch (err) {
     console.error('Error fetching news items by tag:', err.message, err.stack);
@@ -183,12 +324,12 @@ router.get('/:id', async (req, res) => {
 router.post('/refresh-feeds', async (req, res) => {
   try {
     console.log('[News Route] Triggering Miniflux feed refresh...');
-    
+
     // Execute the refresh script using child_process
     const { exec } = require('child_process');
     const path = require('path');
     const REFRESH_SCRIPT_PATH = path.join(__dirname, '../miniflux/refreshFeeds.js');
-    
+
     exec(`node ${REFRESH_SCRIPT_PATH}`, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error refreshing feeds: ${error.message}`);
@@ -214,10 +355,10 @@ router.post('/purge-database', async (req, res) => {
   try {
     // Use Mongoose Model deleteMany()
     const deleteResult = await NewsItem.deleteMany({});
-    
+
     console.log(`Database purge complete. Deleted ${deleteResult.deletedCount} items.`);
     res.json({ success: true, deletedCount: deleteResult.deletedCount });
-    
+
   } catch (err) {
     console.error('Error purging database:', err.message);
     res.status(500).json({ success: false, message: 'Server Error during purge.' });

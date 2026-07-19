@@ -27,27 +27,38 @@ const filterNewsByBias = (items: NewsItem[], enabledBiases: Set<PoliticalBias>) 
     console.log('No biases enabled, returning empty array');
     return []; // No biases enabled, return empty array
   }
-  
+
   console.log(`Filtering ${items.length} news items by biases:`, Array.from(enabledBiases));
-  
+
   const filteredItems = items.filter(item => {
     // Get the bias value from the news item
     const itemBias = item.source.bias;
     // Check if this bias is in the enabled set
     return enabledBiases.has(itemBias);
   });
-  
+
   console.log(`After filtering: ${filteredItems.length} items remain`);
   return filteredItems;
 };
 
 // Helper to filter news items to last 24 hours
-const filterLast24Hours = (items: NewsItem[]) => {
+// Helper to filter news items to last 24 hours OR Since Midnight
+const filterByTime = (items: NewsItem[], strictToday: boolean = true) => {
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  let cutoff: Date;
+
+  if (strictToday) {
+    // Midnight today
+    cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+  } else {
+    // Rolling 24h
+    cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  }
+
   return items.filter(item => {
     const published = new Date(item.publishedAt);
-    return published > cutoff && published <= now;
+    return published >= cutoff; // Include future items if any, but backend filters them usually.
   });
 };
 
@@ -69,8 +80,8 @@ interface NewsWindow {
 }
 
 const App: React.FC = () => {
-  const { 
-    enabledBiases, 
+  const {
+    enabledBiases,
     toggleBias,
     selectedCategory,
     setSelectedCategory,
@@ -98,10 +109,14 @@ const App: React.FC = () => {
   });
 
   // Add state for 24-hour filter
+  // Add state for 24-hour filter
   const [use24HourFilter, setUse24HourFilter] = useState(() => {
     const saved = localStorage.getItem('show_24hour_filter');
-    return saved ? saved === 'true' : false;
+    return saved ? saved === 'true' : true; // Default to true if not saved
   });
+
+  // Add state for "Strict Today" (Calendar Day) filter
+  const [useCalendarDayFilter, setUseCalendarDayFilter] = useState<boolean>(true); // Default to true for "Today"
 
   // Preload fonts on app initialization
   useEffect(() => {
@@ -113,10 +128,10 @@ const App: React.FC = () => {
     const handleTimeFilterChange = (event: CustomEvent) => {
       const { enabled } = event.detail;
       setUse24HourFilter(enabled);
-      
+
       // Re-filter current items based on new time filter setting
       const biasFiltered = filterNewsByBias(unfilteredNewsItems, enabledBiases);
-      const timeFiltered = enabled ? filterLast24Hours(biasFiltered) : biasFiltered;
+      const timeFiltered = enabled ? filterByTime(biasFiltered, useCalendarDayFilter) : biasFiltered;
       setNewsItems(timeFiltered);
     };
 
@@ -124,7 +139,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('time_filter_change', handleTimeFilterChange as EventListener);
     };
-  }, [unfilteredNewsItems, enabledBiases]);
+  }, [unfilteredNewsItems, enabledBiases, useCalendarDayFilter]);
 
   // Update the bias update effect to respect time filter
   useEffect(() => {
@@ -136,7 +151,7 @@ const App: React.FC = () => {
 
       const biasFilteredNews = filterNewsByBias(unfilteredNewsItems, currentEnabledBiases);
       // Apply time filter if enabled
-      const timeFiltered = use24HourFilter ? filterLast24Hours(biasFilteredNews) : biasFilteredNews;
+      const timeFiltered = use24HourFilter ? filterByTime(biasFilteredNews, useCalendarDayFilter) : biasFilteredNews;
       setNewsItems(timeFiltered);
     };
 
@@ -144,7 +159,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener(BIAS_UPDATE_EVENT, handleBiasUpdate);
     };
-  }, [unfilteredNewsItems, use24HourFilter]);
+  }, [unfilteredNewsItems, use24HourFilter, useCalendarDayFilter]);
 
   // Add effect to handle source type updates
   useEffect(() => {
@@ -200,7 +215,7 @@ const App: React.FC = () => {
 
         // Set newsItems directly - backend handles bias distribution
         setNewsItems(fetchedNews);
-        
+
       } catch (err: any) {
         console.error('Error fetching news from backend:', err);
         setError(`Failed to load news data: ${err.message}`);
@@ -217,24 +232,24 @@ const App: React.FC = () => {
   // Compute displayed words based on enabled biases, types, AND selected category
   const displayedWords = useMemo(() => {
     console.log(`Filtering ${allTagCloudWords.length} total words by biases: [${Array.from(enabledBiases).join(', ')}], types: [${Array.from(enabledTypes).join(', ')}] and category: ${selectedCategory}`);
-    
+
     let filtered = allTagCloudWords;
 
     // 1. Filter by enabled biases
     if (enabledBiases.size < Object.values(PoliticalBias).length) { // Only filter if not all biases are enabled
-        filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
+      filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
     }
-    
+
     // 2. Filter by enabled source types
     if (enabledTypes.size < Object.values(SourceType).length) { // Only filter if not all types are enabled
-        filtered = filtered.filter(word => word.types && word.types.some(t => enabledTypes.has(t)));
+      filtered = filtered.filter(word => word.types && word.types.some(t => enabledTypes.has(t)));
     }
-    
+
     // 3. Filter by selected category (if not 'all')
     if (selectedCategory && selectedCategory.toLowerCase() !== 'all') {
-        const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
-        // Check if the word's categories array includes the selected category
-        filtered = filtered.filter(word => word.categories && word.categories.includes(upperCaseCategory as NewsCategory));
+      const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
+      // Check if the word's categories array includes the selected category
+      filtered = filtered.filter(word => word.categories && word.categories.includes(upperCaseCategory as NewsCategory));
     }
 
     console.log(`Displaying ${filtered.length} words after filtering.`);
@@ -242,7 +257,7 @@ const App: React.FC = () => {
     // Ensure all filter dependencies are in the dependency array
   }, [allTagCloudWords, enabledBiases, enabledTypes, selectedCategory]);
 
-  const handleWordSelect = async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
+  const handleWordSelect = React.useCallback(async (word: TagCloudWord, clickPosition: { top: number; left: number }) => {
     if (!word || !word.text) {
       console.warn('handleWordSelect called with invalid word:', word);
       return;
@@ -251,7 +266,7 @@ const App: React.FC = () => {
     if (openNewsWindows.some(w => w.wordData.text === word.text)) {
       return;
     }
-    
+
     console.log(`Fetching related articles from backend for: "${word.text}"`);
     setError(null); // Clear previous errors
     // Optionally, set a specific loading state for this window if desired
@@ -259,9 +274,13 @@ const App: React.FC = () => {
 
     try {
       const response = await axios.get(`${API_BASE_URL}/news/by-tag`, {
-        params: { tag: word.text }
+        params: {
+          tag: word.text,
+          // Scope popup articles to the category being viewed
+          category: selectedCategory && selectedCategory !== 'all' ? selectedCategory : undefined
+        }
       });
-      
+
       const relatedNews: NewsItem[] = response.data;
       console.log(`Found ${relatedNews.length} related articles from backend for "${word.text}".`);
 
@@ -287,7 +306,7 @@ const App: React.FC = () => {
     // finally {
     //   setLoadingTagNews(false);
     // }
-  };
+  }, [openNewsWindows, selectedCategory]);
 
   const handleCloseNewsWindow = (wordText: string) => {
     setOpenNewsWindows(prev => prev.filter(w => w.wordData.text !== wordText));
@@ -349,13 +368,13 @@ const App: React.FC = () => {
     <Router>
       <div className="app">
         <LoadingBar progress={loadingProgress} visible={showLoadingBar} />
-        <Header 
-          selectedCategory={selectedCategory} 
+        <Header
+          selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
           currentCategory={selectedCategory}
         />
         <div className="top-right-controls">
-          <EditMenu onClose={() => {}} />
+          <EditMenu onClose={() => { }} />
         </div>
         {/* Re-add the vertical category list on the right */}
         <ul className="category-list-vertical-right">
@@ -383,7 +402,7 @@ const App: React.FC = () => {
                   width: '100%',
                 }}
               >
-                {category} 
+                {category}
               </button>
             </li>
           ))}
@@ -399,7 +418,7 @@ const App: React.FC = () => {
                 {!loading && displayedWords.length === 0 && !error && (
                   <div className="loading-indicator">No articles found or sources returned empty. Check API keys and source settings.</div>
                 )}
-                <TagCloud3DOptimized 
+                <TagCloud3DOptimized
                   category={selectedCategory}
                   words={displayedWords}
                   onWordSelect={handleWordSelect}

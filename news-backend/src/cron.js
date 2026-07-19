@@ -6,11 +6,19 @@ const Queue = require('better-queue');
 const { processNewsKeywords, aggregateKeywordsForCloud } = require('./services/wordProcessingService');
 const NewsItem = require('./models/NewsItem');
 
+// Global suspension flag
+let isSuspended = false;
+
 // Path to the refresh feeds script
 const REFRESH_SCRIPT_PATH = path.join(__dirname, 'miniflux/refreshFeeds.js');
 
 // Create a processing queue with concurrency control for LLM processing
 const processingQueue = new Queue(async (batch, cb) => {
+  if (isSuspended) {
+    console.log('[Cron Queue Worker] Suspended. Skipping batch.');
+    return cb(null, []);
+  }
+
   try {
     // >>> MODIFIED WORKER LOGIC <<<
     console.log(`[Cron Queue Worker DEBUG] STARTING processing for batch. Batch length: ${batch.length}.`);
@@ -23,8 +31,8 @@ const processingQueue = new Queue(async (batch, cb) => {
     for (const job of batch) {
       if (job && job.minifluxEntryId) {
         const article = await NewsItem.findOne({ minifluxEntryId: job.minifluxEntryId })
-                                      .select('title contentSnippet url minifluxEntryId llmProcessingAttempts _id source bias') // Select necessary fields
-                                      .lean();
+          .select('title contentSnippet url minifluxEntryId llmProcessingAttempts _id source bias') // Select necessary fields
+          .lean();
         if (article) {
           articlesToProcessFull.push(article);
         } else {
@@ -43,7 +51,7 @@ const processingQueue = new Queue(async (batch, cb) => {
 
     console.log(`Processing ${articlesToProcessFull.length} full articles with LLM...`);
     const batchStartTime = Date.now();
-    
+
     const results = await processNewsKeywords(articlesToProcessFull); // Pass the full article objects
     const batchEndTime = Date.now();
     console.log(`Batch LLM processing took ${(batchEndTime - batchStartTime) / 1000} seconds for ${results.length} results.`);
@@ -58,12 +66,12 @@ const processingQueue = new Queue(async (batch, cb) => {
     console.error('[Cron Queue Worker DEBUG] ERROR in batch processing. Calling error callback cb(err) now.', err);
     cb(err);
   }
-}, { 
-  concurrent: 1,     // <<<< REDUCED FROM 8 to 1
-  batchSize: 15,     
-  batchDelay: 50,    
-  maxRetries: 2,     
-  retryDelay: 500    
+}, {
+  concurrent: 4,     // <<<< INCREASED FROM 1 to 4
+  batchSize: 20,     // <<<< INCREASED FROM 15 to 20
+  batchDelay: 50,
+  maxRetries: 2,
+  retryDelay: 500
 });
 
 processingQueue.on('task_finish', async (taskId, result) => {
@@ -81,13 +89,14 @@ processingQueue.on('task_finish', async (taskId, result) => {
       const fieldsToSet = {
         keywords: sResult.keywords,
         bias: sResult.bias,
+        category: sResult.category || null,
         llmProcessed: true,
         processedAt: sResult.processedAt || new Date(),
       };
       const fieldsToIncrement = {
         llmProcessingAttempts: 1
       };
-      
+
       bulkOps.find({ minifluxEntryId: sResult.minifluxEntryId }).updateOne({
         $set: fieldsToSet,
         $inc: fieldsToIncrement
@@ -99,10 +108,10 @@ processingQueue.on('task_finish', async (taskId, result) => {
       // Reconstruct sample update log to reflect the new structure
       const sampleUpdateLog = {
         $set: {
-        keywords: firstSR.keywords,
-        bias: firstSR.bias,
-        llmProcessed: true,
-        processedAt: firstSR.processedAt || new Date(),
+          keywords: firstSR.keywords,
+          bias: firstSR.bias,
+          llmProcessed: true,
+          processedAt: firstSR.processedAt || new Date(),
         },
         $inc: { llmProcessingAttempts: 1 }
       };
@@ -135,6 +144,10 @@ processingQueue.on('error', (err) => {
 });
 
 const fetchAllSources = async () => {
+  if (isSuspended) {
+    console.log('[Cron Job] fetchAllSources skipped because system is suspended.');
+    return;
+  }
   console.log('\n--------------------\nCron Job: Starting Miniflux entry processing task...');
   const startTime = Date.now();
   try {
@@ -149,6 +162,10 @@ const fetchAllSources = async () => {
 };
 
 const processQueuedArticles = async () => {
+  if (isSuspended) {
+    console.log('[Cron Job] processQueuedArticles skipped because system is suspended.');
+    return;
+  }
   console.log(`\n~~~~~~~~~~~~~~~~~~~~
 Cron Job: Starting LLM processing queue task...`);
   const queueStartTime = Date.now();
@@ -159,9 +176,9 @@ Cron Job: Starting LLM processing queue task...`);
       { llmProcessed: false },
       'minifluxEntryId' // <<< ONLY FETCH minifluxEntryId HERE
     )
-    .limit(MAX_ARTICLES_TO_QUEUE)
-    .lean()
-    .exec();
+      .limit(MAX_ARTICLES_TO_QUEUE)
+      .lean()
+      .exec();
 
     if (articlesToProcess && articlesToProcess.length > 0) {
       const articlesForQueue = articlesToProcess.map(article => {
@@ -169,7 +186,7 @@ Cron Job: Starting LLM processing queue task...`);
           console.warn(`[Cron processQueuedArticles] Skipping article with missing minifluxEntryId. Original DB _id (if fetched): ${article._id ? article._id.toString() : 'N/A'}`);
           return null;
         }
-        return { minifluxEntryId: article.minifluxEntryId.toString() }; 
+        return { minifluxEntryId: article.minifluxEntryId.toString() };
       }).filter(job => job !== null);
 
       if (articlesForQueue.length > 0) {
@@ -208,6 +225,8 @@ const scheduleCronJobs = () => {
 
   // Schedule Update aggregated keyword cache (removed setTimeout wrapper)
   cron.schedule('*/2 * * * *', async () => {
+    if (isSuspended) return; // Skip if suspended
+
     console.log(`\n+++++++++++++++\nCron Job: Starting keyword cache update task (using aggregateKeywordsForCloud)...`);
     const startTime = Date.now();
     try {
@@ -217,13 +236,13 @@ const scheduleCronJobs = () => {
           reject(new Error('Keyword cache aggregation timed out after 60 seconds'));
         }, 60000); // 60 second timeout
       });
-      
+
       // Race the normal operation against the timeout
       await Promise.race([
         aggregateKeywordsForCloud(),
         timeoutPromise
       ]);
-      
+
       const duration = (Date.now() - startTime) / 1000;
       console.log(`Cron Job: Finished keyword cache update task in ${duration.toFixed(2)} seconds.`);
     } catch (error) {
@@ -236,10 +255,20 @@ const scheduleCronJobs = () => {
   console.log('Scheduled: Update aggregated keyword cache every 2 minutes.'); // Updated log message
 
   console.log('Running initial Miniflux fetch on startup...');
-  fetchAllSources(); 
+  fetchAllSources();
 
   console.log('Running initial keyword aggregation on startup...');
   aggregateKeywordsForCloud(); // Explicit initial call for cache population
 };
 
-module.exports = { scheduleCronJobs };
+const suspendCrons = () => {
+  console.log('[System] Suspending all cron jobs.');
+  isSuspended = true;
+};
+
+const resumeCrons = () => {
+  console.log('[System] Resuming all cron jobs.');
+  isSuspended = false;
+};
+
+module.exports = { scheduleCronJobs, suspendCrons, resumeCrons };

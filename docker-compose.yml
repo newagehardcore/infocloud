@@ -81,7 +81,7 @@ services:
       - OLLAMA_API_URL=http://ollama:11434
       - PORT=5001
       - MINIFLUX_URL=http://miniflux:8080
-      - MINIFLUX_API_KEY=WXkibKnphkhdmxudLtWSJ-sG4R47X-QlKK8V5CeLEJM=
+      - MINIFLUX_API_KEY=${MINIFLUX_API_KEY:?set MINIFLUX_API_KEY in .env}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
