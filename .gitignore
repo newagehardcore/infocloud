@@ -47,3 +47,6 @@ docker-backups/
 # Times New Roman is a Monotype font copied from macOS for local dev only —
 # never publish it (public builds use Tinos, its open-license metric twin)
 public/fonts/TimesNewRoman.ttf
+
+# Pre-merge data dirs kept locally only
+docker/*.stale-backup/
