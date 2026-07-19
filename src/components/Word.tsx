@@ -4,7 +4,7 @@ import { TagCloudWord, SourceType } from '../types';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { getTagFont } from '../utils/fonts';
-import { getDominantSourceType } from '../utils/sourceTypes';
+import { getDominantSourceType } from '../utils/dominance';
 import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
 
 extend({ SphereGeometry, MeshBasicMaterial });

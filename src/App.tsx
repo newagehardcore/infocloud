@@ -8,7 +8,7 @@ import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new 
 import ResponsiveContainer from './components/ResponsiveContainer';
 import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias, SourceType } from './types';
 import { preloadFonts } from './utils/fonts';
-import { getDominantSourceType } from './utils/sourceTypes';
+import { getDominantSourceType, getDominantBias } from './utils/dominance';
 import { FilterProvider, useFilters, BIAS_UPDATE_EVENT, TYPE_UPDATE_EVENT } from './contexts/FilterContext';
 import LoadingBar from './components/LoadingBar';
 import './App.css';
@@ -178,14 +178,18 @@ const App: React.FC = () => {
 
   // Update the main news loading effect
   useEffect(() => {
-    const loadNews = async () => {
-      console.log(`Starting loadNews for category: ${selectedCategory}`);
+    const loadNews = async (isBackgroundRefresh = false) => {
+      console.log(`Starting loadNews for category: ${selectedCategory}${isBackgroundRefresh ? ' (background refresh)' : ''}`);
       console.log('Enabled biases:', Array.from(enabledBiases));
-      setLoading(true);
-      setError(null);
-      setNewsItems([]);
-      setUnfilteredNewsItems([]);
-      setAllTagCloudWords([]);
+      if (!isBackgroundRefresh) {
+        // Only blank the view on user-driven loads; background refreshes
+        // swap the data in place so the cloud updates without flashing
+        setLoading(true);
+        setError(null);
+        setNewsItems([]);
+        setUnfilteredNewsItems([]);
+        setAllTagCloudWords([]);
+      }
 
       // Construct parameters for the backend API call
       const params: Record<string, string> = {};
@@ -219,15 +223,24 @@ const App: React.FC = () => {
 
       } catch (err: any) {
         console.error('Error fetching news from backend:', err);
-        setError(`Failed to load news data: ${err.message}`);
-        setNewsItems([]);
-        setUnfilteredNewsItems([]);
+        if (!isBackgroundRefresh) {
+          // A failed background refresh keeps showing the current data
+          setError(`Failed to load news data: ${err.message}`);
+          setNewsItems([]);
+          setUnfilteredNewsItems([]);
+        }
       } finally {
-        setLoading(false);
+        if (!isBackgroundRefresh) setLoading(false);
       }
     };
 
     loadNews();
+
+    // Realtime updates: the backend keyword cache rebuilds every 2 minutes,
+    // so poll on the same cadence and let tags grow/shrink/appear in place
+    const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
+    const refreshTimer = setInterval(() => loadNews(true), REFRESH_INTERVAL_MS);
+    return () => clearInterval(refreshTimer);
   }, [selectedCategory, enabledBiases]);
 
   // Compute displayed words based on enabled biases, types, AND selected category
@@ -236,9 +249,11 @@ const App: React.FC = () => {
 
     let filtered = allTagCloudWords;
 
-    // 1. Filter by enabled biases
+    // 1. Filter by enabled biases. Like source types, a word matches by its
+    // DOMINANT bias — the one that picks its color — so soloing Left shows
+    // only blue words.
     if (enabledBiases.size < Object.values(PoliticalBias).length) { // Only filter if not all biases are enabled
-      filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
+      filtered = filtered.filter(word => enabledBiases.has(getDominantBias(word)));
     }
 
     // 2. Filter by enabled source types. A word matches by its DOMINANT type —

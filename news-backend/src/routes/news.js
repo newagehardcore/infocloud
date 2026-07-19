@@ -13,8 +13,16 @@ const TARGET_ARTICLE_COUNT = 1000;
 // Max words served for the tag cloud
 const WORD_LIMIT = 500;
 
-// The bias that appears most often in a word's biases array
+// The bias with the highest recency-weighted mention total; falls back to
+// most-frequent in the biases array when weights are absent
 function dominantBias(word) {
+  if (word.biasWeights && Object.keys(word.biasWeights).length > 0) {
+    let best = 'Unknown', bestW = -Infinity;
+    Object.entries(word.biasWeights).forEach(([b, w]) => {
+      if (w > bestW) { best = b; bestW = w; }
+    });
+    return best;
+  }
   if (!word.biases || word.biases.length === 0) return 'Unknown';
   const counts = {};
   let best = word.biases[0], bestN = 0;
@@ -173,6 +181,7 @@ router.get('/', async (req, res) => {
         // a burst of fresh coverage outranks an old story with more total articles
         value: keywordData.weight != null ? keywordData.weight : keywordData.count,
         biases: keywordData.biases || [],
+        biasWeights: keywordData.biasWeights || {}, // Recency-weighted per-bias totals for dominance
         categories: keywordData.categories || [], // Ensure categories array is present
         categoryCounts: keywordData.categoryCounts || {},
         categoryWeights: keywordData.categoryWeights || {},

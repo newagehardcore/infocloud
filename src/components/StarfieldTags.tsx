@@ -1,6 +1,7 @@
 import React from 'react';
 import { TagCloudWord, PoliticalBias } from '../types';
 import { Word } from './Word';
+import { getDominantBias } from '../utils/dominance';
 import * as THREE from 'three';
 
 // Re-add constant definition here as it's used for fallback
@@ -38,7 +39,7 @@ const StarfieldTags: React.FC<{
           word={word}
           position={validPositions[i]}
           fontSize={fontSizes.get(word.text) ?? MIN_FONT_SIZE}
-          color={getBiasColor(word.biases && word.biases.length > 0 ? word.biases[0] : PoliticalBias.Unknown)}
+          color={getBiasColor(getDominantBias(word))}
           onClick={onWordClick}
           isSelected={selectedWord === word.text}
           isNew={newWords.has(word.text)}

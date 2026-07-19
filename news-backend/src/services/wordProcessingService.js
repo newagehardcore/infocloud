@@ -388,7 +388,11 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
         existingEntry.count += 1;
         existingEntry.weight = (existingEntry.weight || existingEntry.count - 1) + mentionWeight;
         existingEntry.items.add(itemId);
-        if (itemBias) existingEntry.biases.push(itemBias);
+        if (itemBias) {
+          existingEntry.biases.push(itemBias);
+          existingEntry.biasWeights = existingEntry.biasWeights || {};
+          existingEntry.biasWeights[itemBias] = (existingEntry.biasWeights[itemBias] || 0) + mentionWeight;
+        }
         // Add category to the set, then convert set to array for storage
         const categorySet = new Set(existingEntry.categories || []);
         categorySet.add(itemCategory);
@@ -409,6 +413,7 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
           count: 1,
           weight: mentionWeight,
           biases: itemBias ? [itemBias] : [],
+          biasWeights: itemBias ? { [itemBias]: mentionWeight } : {},
           categories: itemCategory ? [itemCategory] : [], // Initialize categories as an array
           categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
           categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},
@@ -616,7 +621,10 @@ async function aggregateKeywordsForCloud() {
                 entry.count += 1;
                 entry.weight += mentionWeight;
                 entry.items.add(itemId);
-                if (itemBias) entry.biases.add(itemBias);
+                if (itemBias) {
+                  entry.biases.add(itemBias);
+                  entry.biasWeights[itemBias] = (entry.biasWeights[itemBias] || 0) + mentionWeight;
+                }
                 if (itemCategory) {
                   entry.categories.add(itemCategory);
                   entry.categoryCounts[itemCategory] = (entry.categoryCounts[itemCategory] || 0) + 1;
@@ -631,6 +639,7 @@ async function aggregateKeywordsForCloud() {
                   count: 1,
                   weight: mentionWeight,
                   biases: itemBias ? new Set([itemBias]) : new Set(),
+                  biasWeights: itemBias ? { [itemBias]: mentionWeight } : {},
                   categories: itemCategory ? new Set([itemCategory]) : new Set(),
                   categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
                   categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},

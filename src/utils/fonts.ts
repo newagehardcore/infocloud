@@ -25,7 +25,9 @@ export const getSourceTypeFont = (type?: SourceType): string => {
 export const getTagFont = (type?: SourceType): string => {
   switch (type) {
     case SourceType.Independent:
-      return '/fonts/Tinos-Regular.ttf'; // Times New Roman-style serif (metric twin, open license)
+      // Real Times New Roman (copied from macOS). Monotype font — not licensed
+      // for web redistribution; swap back to Tinos-Regular.ttf before public launch.
+      return '/fonts/TimesNewRoman.ttf';
     case SourceType.Corporate:
       return '/fonts/helvetica.ttf'; // Helvetica
     case SourceType.State:
@@ -55,7 +57,7 @@ export const preloadFonts = (): void => {
       /* Web fonts for source-type styling (same files troika uses in the cloud) */
       @font-face {
         font-family: 'Tinos';
-        src: url('/fonts/Tinos-Regular.ttf') format('truetype');
+        src: url('/fonts/TimesNewRoman.ttf') format('truetype');
         font-display: swap;
       }
       @font-face {
