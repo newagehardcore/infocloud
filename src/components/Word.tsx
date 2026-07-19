@@ -4,6 +4,7 @@ import { TagCloudWord, SourceType } from '../types';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { getTagFont } from '../utils/fonts';
+import { getDominantSourceType } from '../utils/sourceTypes';
 import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
 
 extend({ SphereGeometry, MeshBasicMaterial });
@@ -18,30 +19,6 @@ declare global {
     }
   }
 }
-
-// Function to determine the dominant source type from the word's types array
-const getDominantSourceType = (types: SourceType[] = []): SourceType => {
-  if (!types || types.length === 0) return SourceType.Unknown;
-  
-  // Count occurrences of each type
-  const typeCounts = types.reduce((acc, type) => {
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Find the most frequent type
-  let maxCount = 0;
-  let dominantType = SourceType.Unknown;
-  
-  Object.entries(typeCounts).forEach(([type, count]) => {
-    if (count > maxCount) {
-      maxCount = count;
-      dominantType = type as SourceType;
-    }
-  });
-  
-  return dominantType;
-};
 
 // Optimized Word component for the 3D tag cloud
 export const Word = ({ 
@@ -70,7 +47,7 @@ export const Word = ({
   const { camera, size } = useThree();
   
   // Determine the dominant source type for this word
-  const dominantSourceType = useMemo(() => getDominantSourceType(word.types), [word.types]);
+  const dominantSourceType = useMemo(() => getDominantSourceType(word), [word]);
   
   // Store the initial position
   const initialPosition = useMemo((): [number, number, number] => {

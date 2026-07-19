@@ -8,6 +8,7 @@ import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new 
 import ResponsiveContainer from './components/ResponsiveContainer';
 import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias, SourceType } from './types';
 import { preloadFonts } from './utils/fonts';
+import { getDominantSourceType } from './utils/sourceTypes';
 import { FilterProvider, useFilters, BIAS_UPDATE_EVENT, TYPE_UPDATE_EVENT } from './contexts/FilterContext';
 import LoadingBar from './components/LoadingBar';
 import './App.css';
@@ -240,9 +241,11 @@ const App: React.FC = () => {
       filtered = filtered.filter(word => word.biases && word.biases.some(b => enabledBiases.has(b)));
     }
 
-    // 2. Filter by enabled source types
+    // 2. Filter by enabled source types. A word matches by its DOMINANT type —
+    // the same one that picks its font — so soloing State shows only the
+    // words rendered in the State font, not everything BBC happens to mention.
     if (enabledTypes.size < Object.values(SourceType).length) { // Only filter if not all types are enabled
-      filtered = filtered.filter(word => word.types && word.types.some(t => enabledTypes.has(t)));
+      filtered = filtered.filter(word => enabledTypes.has(getDominantSourceType(word)));
     }
 
     // 3. Filter by selected category (if not 'all')

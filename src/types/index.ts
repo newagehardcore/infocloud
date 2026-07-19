@@ -56,6 +56,7 @@ export interface TagCloudWord {
   value: number; // frequency/importance
   biases: PoliticalBias[];
   types: SourceType[];
+  typeWeights?: { [type: string]: number }; // recency-weighted mentions per source type
   newsIds: string[]; // IDs of news items containing this word
   categories: NewsCategory[];
   variants?: Set<string>; // Optional set of variant forms of this word

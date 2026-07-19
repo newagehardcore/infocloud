@@ -402,6 +402,8 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
         const typeSet = new Set(existingEntry.types || []);
         typeSet.add(itemType);
         existingEntry.types = Array.from(typeSet);
+        existingEntry.typeWeights = existingEntry.typeWeights || {};
+        existingEntry.typeWeights[itemType] = (existingEntry.typeWeights[itemType] || 0) + mentionWeight;
       } else {
         keywordCache.data.set(validatedKeyword, {
           count: 1,
@@ -411,6 +413,7 @@ function updateGlobalCacheWithSingleItem(processedNewsItem) {
           categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
           categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},
           types: itemType ? [itemType] : [], // Initialize types as an array
+          typeWeights: itemType ? { [itemType]: mentionWeight } : {},
           items: new Set([itemId])
         });
       }
@@ -619,7 +622,10 @@ async function aggregateKeywordsForCloud() {
                   entry.categoryCounts[itemCategory] = (entry.categoryCounts[itemCategory] || 0) + 1;
                   entry.categoryWeights[itemCategory] = (entry.categoryWeights[itemCategory] || 0) + mentionWeight;
                 }
-                if (itemType) entry.types.add(itemType);
+                if (itemType) {
+                  entry.types.add(itemType);
+                  entry.typeWeights[itemType] = (entry.typeWeights[itemType] || 0) + mentionWeight;
+                }
               } else {
                 tempKeywordMap.set(validatedKeyword, {
                   count: 1,
@@ -629,6 +635,7 @@ async function aggregateKeywordsForCloud() {
                   categoryCounts: itemCategory ? { [itemCategory]: 1 } : {},
                   categoryWeights: itemCategory ? { [itemCategory]: mentionWeight } : {},
                   types: itemType ? new Set([itemType]) : new Set(),
+                  typeWeights: itemType ? { [itemType]: mentionWeight } : {},
                   items: new Set([itemId])
                 });
               }

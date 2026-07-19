@@ -176,7 +176,8 @@ router.get('/', async (req, res) => {
         categories: keywordData.categories || [], // Ensure categories array is present
         categoryCounts: keywordData.categoryCounts || {},
         categoryWeights: keywordData.categoryWeights || {},
-        types: keywordData.types || [] // Add types array for font differentiation
+        types: keywordData.types || [], // Add types array for font differentiation
+        typeWeights: keywordData.typeWeights || {} // Recency-weighted per-type totals for dominance
       }));
 
       wordsForCloud.sort((a, b) => b.value - a.value);
