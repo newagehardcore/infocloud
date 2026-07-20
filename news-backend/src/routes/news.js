@@ -108,7 +108,17 @@ const ALL_BIAS_VALUES = Object.values(PoliticalBias);
 // @query   timeFilter?: string - [DEPRECATED - Prioritization replaces this]
 router.get('/', async (req, res) => {
   try {
-    // --- Determine Filters --- 
+    // --- Determine Filters ---
+    // Reject non-string query values explicitly (Express parses bracket-syntax
+    // query strings like ?category[$ne]=null into objects) rather than relying
+    // on them happening to throw before reaching the Mongo filter below.
+    if (req.query.category !== undefined && typeof req.query.category !== 'string') {
+      return res.status(400).json({ msg: 'Invalid category parameter' });
+    }
+    if (req.query.bias !== undefined && typeof req.query.bias !== 'string') {
+      return res.status(400).json({ msg: 'Invalid bias parameter' });
+    }
+
     const categoryFilter = (req.query.category && req.query.category.toLowerCase() !== 'all')
       ? req.query.category // Keep original case for comparison with enum potentially
       : null;
@@ -249,8 +259,15 @@ router.get('/by-tag', async (req, res) => {
   try {
     const { tag, category } = req.query;
 
-    if (!tag) {
+    // Reject non-string values outright. Express parses bracket-syntax query
+    // strings (e.g. ?tag[$ne]=null) into objects, which would otherwise flow
+    // straight into a Mongo filter below (keywords: tag) as an injected
+    // operator instead of a literal match.
+    if (!tag || typeof tag !== 'string') {
       return res.status(400).json({ msg: 'Tag query parameter is required' });
+    }
+    if (category !== undefined && typeof category !== 'string') {
+      return res.status(400).json({ msg: 'Invalid category parameter' });
     }
 
     const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
