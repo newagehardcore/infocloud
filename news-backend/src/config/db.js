@@ -24,7 +24,10 @@ const connectDB = async () => {
       dbName: process.env.DB_NAME || 'news_aggregator' // Ensure DB name is specified if not in URI
     };
 
-    console.log(`Connecting to MongoDB with Mongoose at ${MONGODB_URI} with options:`, options);
+    // Redact credentials before logging — this line gets broadcast to the
+    // (auth-gated) admin log stream, and connection strings carry the DB password.
+    const redactedUri = MONGODB_URI.replace(/\/\/[^@]+@/, '//***:***@');
+    console.log(`Connecting to MongoDB with Mongoose at ${redactedUri} with options:`, options);
     await mongoose.connect(MONGODB_URI, options);
     
     console.log('Mongoose MongoDB Connected...');

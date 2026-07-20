@@ -6,7 +6,7 @@ const WebSocket = require('ws'); // 2. Import ws module
 const { connectDB } = require('./config/db');
 const newsRoutes = require('./routes/news');
 const statusRoutes = require('./routes/statusRoutes');
-const { requireAdminForWrites } = require('./middleware/adminAuth');
+const { requireAdminForWrites, requireAdminAlways, isValidAdminToken } = require('./middleware/adminAuth');
 const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
 // Import the whole module
 const cronService = require('./cron'); 
@@ -16,7 +16,19 @@ const app = express();
 
 // --- WebSocket Server Setup ---
 const server = http.createServer(app); // 3. Create HTTP server from Express app
-const wss = new WebSocket.Server({ server, path: '/ws/logs' }); // 4. Create WebSocket server
+const wss = new WebSocket.Server({
+  server,
+  path: '/ws/logs',
+  // This stream broadcasts every server log line (including, historically,
+  // things like DB connection details) to whoever is connected — gate it
+  // the same as the rest of the admin surface, not just the API routes.
+  verifyClient: (info, done) => {
+    const url = new URL(info.req.url, 'http://localhost');
+    const token = info.req.headers['x-admin-token'] || url.searchParams.get('token');
+    if (isValidAdminToken(token)) return done(true);
+    done(false, 401, 'Admin token required');
+  }
+}); // 4. Create WebSocket server
 
 const activeClients = new Set();
 
@@ -129,7 +141,7 @@ app.get('/', (req, res) => res.send('News Backend Running'));
 
 // Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
 app.use('/api/news', requireAdminForWrites, newsRoutes);
-app.use('/api/status', requireAdminForWrites, statusRoutes); // Mount status routes under /api/status
+app.use('/api/status', requireAdminAlways, statusRoutes); // Admin-only: not called by the public frontend
 // --- DEBUGGING --- //
 if (statusRoutes.stack) {
   console.log("--- STATUS ROUTES STACK ---");
@@ -143,13 +155,13 @@ if (statusRoutes.stack) {
   console.log("--- DEBUG: statusRoutes.stack is undefined ---");
 }
 // --- END DEBUGGING --- //
-app.use('/api/sources', requireAdminForWrites, sourceRoutes); // Mount the source routes
+app.use('/api/sources', requireAdminAlways, sourceRoutes); // Admin-only: not called by the public frontend
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '../public')));
+// public/ contains only the admin panel — gate the whole static mount
+app.use(requireAdminAlways, express.static(path.join(__dirname, '../public')));
 
 // Serve the admin.html at the /admin route
-app.get('/admin', (req, res) => {
+app.get('/admin', requireAdminAlways, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 

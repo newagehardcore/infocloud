@@ -656,27 +656,40 @@
     <div id="toast-notification">Toast message</div>
 
     <script>
+        // The whole admin surface (this page, /api/status, /api/sources, the
+        // log WebSocket) requires the admin token now, not just writes — so
+        // this page itself must be loaded as /admin?token=... the first time.
+        // Capture that into localStorage and scrub it from the visible URL/
+        // browser history so it doesn't linger there.
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('token');
+            if (urlToken) {
+                localStorage.setItem('admin_token', urlToken);
+                params.delete('token');
+                const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', clean);
+            }
+        })();
+
         // Attach the admin token (if one is configured server-side) to every
-        // mutating request. Token is remembered in localStorage; a 401 clears
-        // it and prompts again on the next action.
+        // request this page makes. Token is remembered in localStorage; a 401
+        // clears it and prompts for it again on the next request.
         (function () {
             const realFetch = window.fetch.bind(window);
             window.fetch = async function (input, init = {}) {
-                const method = (init.method || 'GET').toUpperCase();
-                if (method !== 'GET' && method !== 'HEAD') {
-                    let token = localStorage.getItem('admin_token');
-                    if (!token) {
-                        token = prompt('Admin token (ADMIN_TOKEN from the server .env — leave blank if none is set):') || '';
-                        localStorage.setItem('admin_token', token);
-                    }
-                    if (token) {
-                        init.headers = Object.assign({}, init.headers, { 'X-Admin-Token': token });
-                    }
+                let token = localStorage.getItem('admin_token');
+                if (!token) {
+                    token = prompt('Admin token (ADMIN_TOKEN from the server .env — leave blank if none is set):') || '';
+                    localStorage.setItem('admin_token', token);
+                }
+                if (token) {
+                    init = Object.assign({}, init, { headers: Object.assign({}, init.headers, { 'X-Admin-Token': token }) });
                 }
                 const response = await realFetch(input, init);
                 if (response.status === 401) {
                     localStorage.removeItem('admin_token');
-                    alert('Admin token rejected — you will be prompted again on the next action.');
+                    alert('Admin token rejected — you will be prompted again on the next request.');
                 }
                 return response;
             };
@@ -767,7 +780,8 @@
             // you might need to adjust wsHost. If admin.html is served by the backend on 5001, window.location.host should be correct.
             const wsHost = window.location.host; 
             // const wsHost = window.location.hostname + ':5001'; // Alternative if backend is on a fixed port like 5001
-            const wsUrl = `${wsProtocol}//${wsHost}/ws/logs`;
+            const wsToken = localStorage.getItem('admin_token') || '';
+            const wsUrl = `${wsProtocol}//${wsHost}/ws/logs?token=${encodeURIComponent(wsToken)}`;
 
             if (logStreamDiv.textContent.includes("Connecting to log stream...") || logStreamDiv.childNodes.length === 0) {
                  logStreamDiv.innerHTML = ''; // Clear initial static message
