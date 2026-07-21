@@ -2,7 +2,7 @@ const natural = require('natural');
 const nlp = require('compromise');
 const { PoliticalBias, NewsCategory } = require('../types');
 const { processArticleWithRetry } = require('./llmService');
-const NewsItem = require('../models/NewsItem');
+const newsItemRepo = require('../db/newsItemRepo');
 const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils');
 // const { getSourcesConfiguration } = require('../config/config'); // Keep if used by other functions not shown here
 
@@ -559,10 +559,7 @@ async function aggregateKeywordsForCloud() {
       const cutoffDate = new Date(Date.now() - CACHE_WINDOW_HOURS * 3600 * 1000);
       console.log(`[Cache Aggregation] Filtering for articles published after: ${cutoffDate.toISOString()} (${CACHE_WINDOW_HOURS}h window)`);
 
-      const allNewsItems = await NewsItem.find({
-        llmProcessed: true,
-        publishedAt: { $gte: cutoffDate }
-      }).lean().exec();
+      const allNewsItems = await newsItemRepo.findRecentProcessedItems(cutoffDate);
       console.log(`[Cache Aggregation] Found ${allNewsItems.length} items with llmProcessed:true AND published within last 24h.`);
 
       if (!allNewsItems || allNewsItems.length === 0) {

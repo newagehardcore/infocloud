@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { ObjectId } = require('mongodb'); // May still be needed if manipulating _id directly elsewhere, but likely not for queries now.
 const {
   getKeywordCache
 } = require('../services/wordProcessingService');
 const { PoliticalBias } = require('../types');
-const NewsItem = require('../models/NewsItem'); // Import the Mongoose model
+const newsItemRepo = require('../db/newsItemRepo');
 
 // Target number of articles to return
 const TARGET_ARTICLE_COUNT = 1000;
@@ -144,30 +143,15 @@ router.get('/', async (req, res) => {
     cutoffDate.setDate(cutoffDate.getDate() - 1);
     console.log(`[GET /api/news] Enforcing strict 24h filter (cutoff: ${cutoffDate.toISOString()})`);
 
-    // --- Querying News Items (Parallel Queries per Bias) --- 
-    const queryPromises = selectedBiases.map(bias => {
-      const filter = {
-        llmProcessed: true,
-        publishedAt: { $gte: cutoffDate } // SAFETY NET: Only recent items
-      };
-
-      if (categoryFilter) {
-        // Effective category: per-article (LLM) category when present,
-        // otherwise the source's category.
-        const cat = categoryFilter.toUpperCase();
-        filter.$or = [
-          { category: cat },
-          { category: null, 'source.category': cat } // null matches missing too
-        ];
-      }
-      filter.bias = bias; // Filter by the LLM-determined bias
-
-      return NewsItem
-        .find(filter)
-        .sort({ publishedAt: -1 })
-        .limit(limitPerBias)
-        .exec();
-    });
+    // --- Querying News Items (Parallel Queries per Bias) ---
+    const queryPromises = selectedBiases.map(bias =>
+      newsItemRepo.findByBiasAndCategory(
+        bias,
+        categoryFilter ? categoryFilter.toUpperCase() : null,
+        cutoffDate,
+        limitPerBias
+      )
+    );
 
     const resultsByBias = await Promise.all(queryPromises);
     let combinedNews = resultsByBias.flat(); // Combine results from all queries
@@ -270,34 +254,13 @@ router.get('/by-tag', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid category parameter' });
     }
 
-    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     // Effective-category filter (per-article LLM category, source fallback)
     const cat = (category && category.toLowerCase() !== 'all') ? category.toUpperCase() : null;
-    const catFilter = cat
-      ? { $or: [{ category: cat }, { category: null, 'source.category': cat }] }
-      : {};
 
-    const fetch = (query) => NewsItem.find(query).sort({ publishedAt: -1 }).limit(100).exec();
-
-    // Layered fallbacks so a tag shown in the cloud always resolves to articles:
-    // 1. exact keyword within the category
-    let newsItems = await fetch({ keywords: tag, llmProcessed: true, ...catFilter });
-    // 2. case-insensitive keyword within the category
-    if (newsItems.length === 0) {
-      newsItems = await fetch({ keywords: { $regex: `^${escapeRegex(tag)}$`, $options: 'i' }, llmProcessed: true, ...catFilter });
-    }
-    // 3. tag text appearing in the title, within the category
-    if (newsItems.length === 0) {
-      newsItems = await fetch({ title: { $regex: escapeRegex(tag), $options: 'i' }, ...catFilter });
-    }
-    // 4. last resort: same lookups without the category restriction
-    if (newsItems.length === 0 && cat) {
-      newsItems = await fetch({ keywords: { $regex: `^${escapeRegex(tag)}$`, $options: 'i' }, llmProcessed: true });
-      if (newsItems.length === 0) {
-        newsItems = await fetch({ title: { $regex: escapeRegex(tag), $options: 'i' } });
-      }
-    }
+    // newsItemRepo.findByTag runs the same layered fallback cascade that used
+    // to live here: exact keyword+category -> case-insensitive keyword+category
+    // -> title match+category -> same without the category restriction.
+    const newsItems = await newsItemRepo.findByTag({ tag, category: cat, requireProcessed: true, limit: 100 });
 
     if (!newsItems || newsItems.length === 0) {
       return res.json([]);
@@ -327,65 +290,44 @@ router.get('/by-tag', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    // Use Mongoose Model findOne() - assuming 'id' is a field in your schema, not MongoDB's _id
-    // If :id refers to the MongoDB _id, use findById(req.params.id) instead.
-    const newsItem = await NewsItem.findOne({ id: req.params.id }).exec(); // Use the unique 'id' field
-
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(404).json({ msg: 'News item not found' });
+    }
+    const newsItem = await newsItemRepo.findById(id);
     if (!newsItem) {
       return res.status(404).json({ msg: 'News item not found' });
     }
     res.json(newsItem);
   } catch (err) {
     console.error('Error fetching news item by ID:', err.message);
-    // Handle potential errors like invalid ID format if using ObjectId later
-    // if (err.kind === 'ObjectId') {
-    //    return res.status(404).json({ msg: 'News item not found (invalid ID format)' });
-    // }
     res.status(500).send('Server Error');
   }
 });
 
 // @route   POST api/news/refresh-feeds
-// @desc    Refresh feeds in Miniflux
-// @access  Public
+// @desc    Poll all enabled RSS sources immediately (manual admin trigger)
+// @access  Admin (gated by requireAdminForWrites at the router mount)
 router.post('/refresh-feeds', async (req, res) => {
   try {
-    console.log('[News Route] Triggering Miniflux feed refresh...');
-
-    // Execute the refresh script using child_process
-    const { exec } = require('child_process');
-    const path = require('path');
-    const REFRESH_SCRIPT_PATH = path.join(__dirname, '../miniflux/refreshFeeds.js');
-
-    exec(`node ${REFRESH_SCRIPT_PATH}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error refreshing feeds: ${error.message}`);
-        return res.status(500).json({ success: false, error: error.message });
-      }
-      if (stderr) {
-        console.error(`Refresh stderr: ${stderr}`);
-      }
-      console.log(stdout);
-      res.json({ success: true, message: 'Feed refresh triggered successfully' });
-    });
+    const rssService = require('../services/rssService');
+    const result = await rssService.forceRefreshAllFeeds();
+    res.json({ success: true, message: 'Feed refresh complete', ...result });
   } catch (err) {
-    console.error('[News Route] Error refreshing Miniflux feeds:', err.message);
-    res.status(500).send('Server Error');
+    console.error('[News Route] Error refreshing feeds:', err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // @route   POST /api/purge-database
 // @desc    Delete all news items from the database
-// @access  Public (Caution: No auth! Use with care)
+// @access  Admin (gated by requireAdminForWrites at the router mount)
 router.post('/purge-database', async (req, res) => {
   console.warn('Received request to PURGE database...');
   try {
-    // Use Mongoose Model deleteMany()
-    const deleteResult = await NewsItem.deleteMany({});
-
-    console.log(`Database purge complete. Deleted ${deleteResult.deletedCount} items.`);
-    res.json({ success: true, deletedCount: deleteResult.deletedCount });
-
+    const deletedCount = await newsItemRepo.deleteAllNewsItems();
+    console.log(`Database purge complete. Deleted ${deletedCount} items.`);
+    res.json({ success: true, deletedCount });
   } catch (err) {
     console.error('Error purging database:', err.message);
     res.status(500).json({ success: false, message: 'Server Error during purge.' });

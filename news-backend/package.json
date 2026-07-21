@@ -1,20 +1,15 @@
 {
   "name": "news-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/app.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node src/scripts/startup.js",
-    "dev": "OLLAMA_API_URL=http://localhost:11434 nodemon src/scripts/start-dev.js",
-    "dev:simple": "node clear-db.js && nodemon src/app.js",
-    "services:start": "node src/scripts/startup.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate:sources": "node src/scripts/migrate-sources-to-db.js",
-    "sync:sources": "node src/scripts/run-sync.js",
-    "find:missing": "node src/scripts/find-missing-sources.js",
-    "add:missing": "node src/scripts/add-missing-sources.js",
-    "import:missing": "node src/scripts/import-missing-sources-directly.js",
-    "ensure-persistence": "node src/scripts/ensure-persistence.js",
-    "check-persistence": "node src/scripts/check-persistence.js"
+    "start": "node src/app.js",
+    "build": "echo \"no build step required - plain Express app\"",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -22,21 +17,17 @@
   "description": "",
   "dependencies": {
     "axios": "^1.9.0",
-    "better-queue": "^3.8.12",
     "compromise": "^14.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "fs": "^0.0.1-security",
     "he": "^1.2.0",
     "lru-cache": "^10.4.3",
-    "mongodb": "^6.15.0",
-    "mongoose": "^8.14.1",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.23.1",
     "natural": "^6.10.0",
-    "node-cron": "^3.0.3",
-    "path": "^0.12.7",
     "rss-parser": "^3.13.0",
+    "uuid": "^8.3.2",
     "ws": "^8.18.2"
   },
   "devDependencies": {

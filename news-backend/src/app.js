@@ -3,14 +3,13 @@ require('dotenv').config(); // Ensure env vars are loaded
 const cors = require('cors'); // Add CORS
 const http = require('http'); // 1. Import http module
 const WebSocket = require('ws'); // 2. Import ws module
-const { connectDB } = require('./config/db');
+const { connectDB } = require('./db/mysql');
 const newsRoutes = require('./routes/news');
 const statusRoutes = require('./routes/statusRoutes');
 const { requireAdminForWrites, requireAdminAlways, isValidAdminToken } = require('./middleware/adminAuth');
 const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
-// Import the whole module
-const cronService = require('./cron'); 
-const path = require('path'); 
+const { runTick } = require('./tick');
+const path = require('path');
 
 const app = express();
 
@@ -117,20 +116,21 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'] // Allow these headers
 }));
 
-// Connect to Database
-const PORT = process.env.PORT || 5001; // Use port from env or default to 5001
+// Per the GoDaddy Node.js hosting deploy contract: listen on process.env.PORT
+// with a local-dev fallback, bound to 0.0.0.0 rather than localhost.
+const PORT = process.env.PORT || 3000;
 
 // Connect to Database and Start Server
 console.log('Attempting to connect to database...');
 connectDB().then(() => {
   console.log('Database connection successful. Starting server with WebSocket support...');
-  // 5. Use server.listen instead of app.listen
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
       originalConsoleLog(`Server started on port ${PORT} with WebSocket support for /ws/logs`);
       // Note: Using originalConsoleLog here to avoid an immediate broadcast loop if console.log is used inside this callback before wss is fully ready.
   });
-  // Start the cron job scheduler using the imported module
-  cronService.scheduleCronJobs(); // Corrected function name
+  // No in-process cron here - GoDaddy Node hosting doesn't document
+  // background-job support, so an external service hits POST
+  // /api/internal/tick on a schedule instead (see routes/statusRoutes.js).
 }).catch(err => {
   console.error('Failed to connect to database. Server not started.', err);
   process.exit(1);
@@ -142,20 +142,25 @@ app.get('/', (req, res) => res.send('News Backend Running'));
 // Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
 app.use('/api/news', requireAdminForWrites, newsRoutes);
 app.use('/api/status', requireAdminAlways, statusRoutes); // Admin-only: not called by the public frontend
-// --- DEBUGGING --- //
-if (statusRoutes.stack) {
-  console.log("--- STATUS ROUTES STACK ---");
-  statusRoutes.stack.forEach(function(r){
-    if (r.route && r.route.path){
-      console.log("Registered route in statusRoutes:", r.route.path, Object.keys(r.route.methods).join(', ').toUpperCase());
-    }
-  });
-  console.log("-------------------------");
-} else {
-  console.log("--- DEBUG: statusRoutes.stack is undefined ---");
-}
-// --- END DEBUGGING --- //
 app.use('/api/sources', requireAdminAlways, sourceRoutes); // Admin-only: not called by the public frontend
+
+// Hit by an external scheduler (e.g. cron-job.org) every ~2 minutes, since
+// this platform has no documented in-process background-job support. Guarded
+// by its own secret (CRON_SECRET) rather than ADMIN_TOKEN, so a leaked
+// scheduler URL can't be used to reach the destructive admin endpoints.
+app.post('/api/internal/tick', async (req, res) => {
+  const provided = req.get('X-Cron-Secret') || req.query.secret;
+  if (!process.env.CRON_SECRET || provided !== process.env.CRON_SECRET) {
+    return res.status(401).json({ message: 'Invalid or missing cron secret.' });
+  }
+  try {
+    const result = await runTick();
+    res.json(result);
+  } catch (error) {
+    console.error('[Tick] Unhandled error:', error);
+    res.status(500).json({ message: 'Tick failed', error: error.message });
+  }
+});
 
 // public/ contains only the admin panel — gate the whole static mount
 app.use(requireAdminAlways, express.static(path.join(__dirname, '../public')));

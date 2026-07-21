@@ -14,6 +14,17 @@ const path = require('path');
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
 console.log(`[LLM Service] Using Ollama API URL: ${OLLAMA_API_URL}`);
 
+// Provider switch: 'ollama' (local dev, full control) or 'groq' (hosted
+// environments with no local GPU and/or restricted outbound egress - Groq's
+// API is plain HTTPS on 443, which fits GoDaddy Node hosting's network policy).
+const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'ollama').toLowerCase();
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+if (LLM_PROVIDER === 'groq') {
+  console.log(`[LLM Service] Using Groq API with model: ${GROQ_MODEL}`);
+}
+
 // <<< Read LLM config >>>
 let activeModel = 'llama3:8b'; // Default fallback
 const configPath = path.join(__dirname, '..', '..', 'config', 'llmConfig.json');
@@ -58,6 +69,49 @@ function setActiveModel(newModelName) {
   }
   console.warn(`[LLM Service] Invalid model name provided to setActiveModel: ${newModelName}`);
   return false;
+}
+
+/**
+ * Send a prompt to whichever provider is configured and return the raw text
+ * response (JSON extraction/parsing happens in the caller, same for both
+ * providers). Errors propagate with the same axios error shape (error.code,
+ * error.response) that the retry/fallback logic below already handles.
+ */
+async function callLLM(promptText) {
+  if (LLM_PROVIDER === 'groq') {
+    if (!GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY is not set but LLM_PROVIDER=groq');
+    }
+    const response = await axios.post(GROQ_API_URL, {
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: promptText }],
+      temperature: 0.2,
+      top_p: 0.7,
+      response_format: { type: 'json_object' }
+    }, {
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 20000
+    });
+    return response.data.choices[0].message.content;
+  }
+
+  const response = await axios.post(`${OLLAMA_API_URL}/api/generate`, {
+    model: activeModel,
+    format: 'json',
+    prompt: promptText,
+    stream: false,
+    options: {
+      num_ctx: 4096,
+      temperature: 0.2,
+      top_k: 20,
+      top_p: 0.7,
+      seed: 42
+    }
+  });
+  return response.data.response;
 }
 
 /**
@@ -118,25 +172,14 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
   const jsonFields = `{\n  "bias": "<Left, Liberal, Centrist, Conservative, Right, or Unknown>",\n  "category": "<one of: ${categoryList}>",\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"]\n}`;
   const jsonStructureExample = `Example for a headline "New telescope spots distant galaxy": { "bias": "Unknown", "category": "SPACE", "keywords": ["new telescope", "distant galaxy"] }`;
 
+  const fullPrompt = `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\nRespond ONLY with valid JSON. For example: ${jsonStructureExample}`;
+
   try {
-    const response = await axios.post(`${OLLAMA_API_URL}/api/generate`, {
-      model: activeModel,
-      format: "json", // Enforce JSON output format
-      prompt: `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\nRespond ONLY with valid JSON. For example: ${jsonStructureExample}`,
-      stream: false,
-      options: {
-        num_ctx: 4096, // Increased context window
-        temperature: 0.2, // Lower temperature for more deterministic output
-        top_k: 20, // Consider top_k for focused sampling
-        top_p: 0.7, // Consider top_p for focused sampling
-        seed: 42 // For reproducibility if needed during debugging
-      }
-    });
+    const responseText = await callLLM(fullPrompt);
 
     let resultJson;
     try {
       // Extract JSON from response if it contains extra text
-      const responseText = response.data.response;
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       const jsonString = jsonMatch ? jsonMatch[0] : responseText;
 
@@ -181,7 +224,7 @@ async function processArticle(title, firstSentence = '', existingBias = Politica
       cache.set(cacheKey, processedResult);
       return processedResult;
     } catch (e) {
-      console.error(`[LLM Service] Failed to parse LLM JSON response for article "${title}". Response: ${response.data.response}. Error:`, e);
+      console.error(`[LLM Service] Failed to parse LLM JSON response for article "${title}". Response: ${responseText}. Error:`, e);
       // Fallback: return existingBias and no keywords if JSON parsing fails.
       const fallbackResult = {
         bias: existingBias,

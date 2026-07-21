@@ -1,20 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer'); // Import multer
-const { 
-    getAllSources, 
-    addSource, 
-    updateSource, 
+const {
+    getAllSources,
+    addSource,
+    updateSource,
     deleteSource,
     getUniqueSourceCategories,
-    getMinifluxFeeds,
     exportAllSources,
     importSources,
     purgeAllSources
-} = require('../services/sourceManagementService'); 
+} = require('../services/sourceManagementService');
 const { BIAS_CATEGORIES, SOURCE_TYPES } = require('../utils/constants'); // Import defined categories
 const { aggregateKeywordsForCloud } = require('../services/wordProcessingService'); // Added for cache rebuild
-const mongoose = require('mongoose'); // Need mongoose for connection.db
 
 // Configure multer for memory storage (to read file content as buffer/string)
 // And a filter to only accept JSON files.
@@ -247,77 +245,19 @@ router.put('/:id', async (req, res) => {
             return res.status(404).json({ message: "Source not found" });
         }
 
-        let changesPropagated = false;
-
-        // If bias was updated, propagate this change to related NewsItems
-        if (updatedSource && updates.bias && updatedSource.minifluxFeedId) {
-            const newBias = updates.bias;
-            const feedId = updatedSource.minifluxFeedId;
-            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) bias updated to ${newBias}. Propagating to NewsItems.`);
-            try {
-                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
-                    { 'source.minifluxFeedId': feedId },
-                    { 
-                        $set: { 
-                            'source.bias': newBias,
-                            'bias': newBias
-                        } 
-                    }
-                );
-                console.log(`[sourceRoutes] NewsItem bias update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
-                changesPropagated = true;
-            } catch (newsItemUpdateError) {
-                console.error(`[sourceRoutes] Error updating NewsItem bias for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
-            }
-        }
-
-        // If type was updated, propagate this change to related NewsItems
-        if (updatedSource && updates.type && updatedSource.minifluxFeedId) {
-            const newType = updates.type;
-            const feedId = updatedSource.minifluxFeedId;
-            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) type updated to ${newType}. Propagating to NewsItems.`);
-            try {
-                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
-                    { 'source.minifluxFeedId': feedId },
-                    { 
-                        $set: { 'source.type': newType } 
-                    }
-                );
-                console.log(`[sourceRoutes] NewsItem type update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
-                changesPropagated = true;
-            } catch (newsItemUpdateError) {
-                console.error(`[sourceRoutes] Error updating NewsItem type for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
-            }
-        }
-
-        // If category was updated, propagate this change to related NewsItems
-        if (updatedSource && updates.category && updatedSource.minifluxFeedId) {
-            const newCategory = updates.category;
-            const feedId = updatedSource.minifluxFeedId;
-            console.log(`[sourceRoutes] Source ${updatedSource.name} (feedId: ${feedId}) category updated to ${newCategory}. Propagating to NewsItems.`);
-            try {
-                const newsItemUpdateResult = await mongoose.connection.db.collection('newsitems').updateMany(
-                    { 'source.minifluxFeedId': feedId },
-                    { 
-                        $set: { 'source.category': newCategory } 
-                    }
-                );
-                console.log(`[sourceRoutes] NewsItem category update: Matched: ${newsItemUpdateResult.matchedCount}, Modified: ${newsItemUpdateResult.modifiedCount} for feedId ${feedId}.`);
-                changesPropagated = true;
-            } catch (newsItemUpdateError) {
-                console.error(`[sourceRoutes] Error updating NewsItem category for feedId ${feedId} (source ${updatedSource.name}):`, newsItemUpdateError);
-            }
-        }
-
-        // If any relevant changes were propagated, rebuild keyword cache
-        if (changesPropagated) {
+        // sourceManagementService.updateSource already propagates bias/category
+        // changes onto the source's existing news_items (they're denormalized
+        // columns for query performance); type isn't denormalized, so a type
+        // change applies instantly via the live JOIN with no propagation step.
+        // Rebuild the keyword cache whenever a propagating field changed.
+        if (updates.bias || updates.category) {
             aggregateKeywordsForCloud().then(() => {
                 console.log(`[sourceRoutes] Keyword cache rebuild triggered successfully after source ${updatedSource.name} update.`);
             }).catch(cacheError => {
                 console.error(`[sourceRoutes] Error triggering keyword cache rebuild for source ${updatedSource.name}:`, cacheError);
             });
         }
-        
+
         res.json(updatedSource);
     } catch (error) {
         console.error(`Error updating source ${req.params.id}:`, error);

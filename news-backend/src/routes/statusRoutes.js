@@ -1,71 +1,54 @@
 const express = require('express');
-const { exec } = require('child_process');
-const mongoose = require('mongoose');
 const axios = require('axios');
 const { getLlmFallbackCount, clearKeywordCache } = require('../services/wordProcessingService');
 const { getCurrentModelName, setActiveModel } = require('../services/llmService');
 const { forceRefreshAllFeeds } = require('../services/rssService');
-const { suspendCrons, resumeCrons } = require('../cron'); // Import suspension control
-const NewsItem = require('../models/NewsItem');
+const { suspendTicks, resumeTicks } = require('../tick');
+const newsItemRepo = require('../db/newsItemRepo');
+const { getPool } = require('../db/mysql');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises; // Use fs.promises
 
 // --- Service health checks for the admin status panel ---
 
-const execPromise = (cmd) => new Promise((resolve) => {
-  exec(cmd, { timeout: 5000 }, (error) => resolve(!error));
-});
-
-async function checkDocker() {
-  const ok = await execPromise('docker info');
-  return { status: ok ? 'good' : 'bad', message: ok ? 'Docker: running' : 'Docker: not running' };
-}
-
-function checkMongoDB() {
-  const ok = mongoose.connection.readyState === 1;
-  return { status: ok ? 'good' : 'bad', message: ok ? 'MongoDB: connected' : 'MongoDB: disconnected' };
-}
-
-async function checkMiniflux() {
+async function checkMySQL() {
   try {
-    await axios.get(`${process.env.MINIFLUX_URL || 'http://localhost:8080'}/healthcheck`, { timeout: 5000 });
-    return { status: 'good', message: 'Miniflux: healthy' };
+    await getPool().query('SELECT 1');
+    return { status: 'good', message: 'MySQL: connected' };
   } catch (e) {
-    return { status: 'bad', message: 'Miniflux: unreachable' };
+    return { status: 'bad', message: 'MySQL: disconnected' };
   }
 }
 
-async function checkOllama() {
-  try {
-    const resp = await axios.get(`${process.env.OLLAMA_API_URL || 'http://localhost:11434'}/api/version`, { timeout: 5000 });
-    return { status: 'good', message: `Ollama: v${resp.data.version}` };
-  } catch (e) {
-    return { status: 'bad', message: 'Ollama: unreachable' };
+async function checkGroq() {
+  if ((process.env.LLM_PROVIDER || 'ollama').toLowerCase() !== 'groq') {
+    return { status: 'good', message: 'LLM: using Ollama (local)' };
   }
+  if (!process.env.GROQ_API_KEY) {
+    return { status: 'bad', message: 'Groq: GROQ_API_KEY not set' };
+  }
+  return { status: 'good', message: `Groq: configured (${process.env.GROQ_MODEL || 'llama-3.1-8b-instant'})` };
 }
 
 // Route for overall system status (consumed by admin.html status panel)
 router.get('/', async (req, res) => {
   try {
-    const [docker, miniflux, ollama, articlesInDB, llmProcessed] = await Promise.all([
-      checkDocker(),
-      checkMiniflux(),
-      checkOllama(),
-      NewsItem.countDocuments({}),
-      NewsItem.countDocuments({ llmProcessed: true })
+    const [mysql, groq, articlesInDB, llmProcessed] = await Promise.all([
+      checkMySQL(),
+      checkGroq(),
+      newsItemRepo.countAll(),
+      newsItemRepo.countProcessed()
     ]);
 
     const memMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
     const fallbackCount = getLlmFallbackCount();
 
     res.json({
-      docker,
-      mongodb: checkMongoDB(),
-      miniflux,
-      ollama,
+      mysql,
+      groq,
       llmModel: { status: 'good', message: `${getCurrentModelName()}` },
-      rssFeed: { status: 'good', message: 'RSS Feed: cron every 5 min' },
+      rssFeed: { status: 'good', message: 'RSS Feed: external tick, ~every 2 min' },
       llmQueue: { status: 'good', message: `LLM Queue: ${articlesInDB - llmProcessed} pending` },
       fallbackCount: { status: fallbackCount > 0 ? 'warning' : 'good', message: `Fallback Count: ${fallbackCount}` },
       articlesInDB: { status: 'good', message: `Articles in DB: ${articlesInDB}` },
@@ -83,26 +66,23 @@ router.get('/', async (req, res) => {
 router.post('/admin/purge-db', async (req, res) => {
   console.log("Received request to purge database...");
   try {
-    // Suspend background jobs to prevent immediate repopulation
-    suspendCrons();
+    // Suspend the external tick's work so it doesn't immediately repopulate
+    suspendTicks();
 
-    const result = await NewsItem.deleteMany({});
-
-    // Explicitly verify emptiness
-    const remainingCount = await NewsItem.countDocuments({});
+    const deletedCount = await newsItemRepo.deleteAllNewsItems();
+    const remainingCount = await newsItemRepo.countAll();
 
     // Clear the in-memory keyword cache to prevent ghost tags
     clearKeywordCache();
 
-    console.log(`Purge database result: Deleted ${result.deletedCount}, Remaining: ${remainingCount}`);
-
+    console.log(`Purge database result: Deleted ${deletedCount}, Remaining: ${remainingCount}`);
     if (remainingCount > 0) {
-      console.warn(`[Purge] WARNING: ${remainingCount} items still remain after deleteMany!`);
+      console.warn(`[Purge] WARNING: ${remainingCount} items still remain after delete!`);
     }
 
     res.json({
-      message: 'Database purged successfully. Background jobs suspended. Use "Force Refresh" to restart.',
-      deletedCount: result.deletedCount,
+      message: 'Database purged successfully. Ticks suspended. Use "Force Refresh" to restart.',
+      deletedCount,
       remainingCount
     });
   } catch (error) {
@@ -115,17 +95,17 @@ router.post('/admin/purge-db', async (req, res) => {
 router.post('/admin/force-refresh', async (req, res) => {
   console.log("Received request to force refresh data...");
   try {
-    // Resume background jobs
-    resumeCrons();
+    // Resume the external tick's work
+    resumeTicks();
 
     forceRefreshAllFeeds()
       .then(result => {
-        console.log(`Force refresh background process completed: Processed ${result.processedCount}, Errors ${result.errorCount}`);
+        console.log(`Force refresh background process completed: ${JSON.stringify(result)}`);
       })
       .catch(err => {
         console.error('Error during force refresh background process:', err);
       });
-    res.status(202).json({ message: 'Force refresh process started successfully. Background jobs resumed.' });
+    res.status(202).json({ message: 'Force refresh process started successfully. Ticks resumed.' });
   } catch (error) {
     console.error('Error starting force refresh process:', error);
     res.status(500).json({ error: 'Failed to start force refresh process', details: error.message });
@@ -133,63 +113,34 @@ router.post('/admin/force-refresh', async (req, res) => {
 });
 
 // Route to get statistics
+// (rewritten to tally in JS instead of a Mongo $unwind/$group pipeline -
+// data volume here is modest, a few thousand rows, so this stays simple)
 router.get('/stats', async (req, res) => {
   console.log("Received request for tag statistics...");
   try {
-    const stats = await NewsItem.aggregate([
-      {
-        $match: { llmProcessed: true, keywords: { $exists: true, $ne: [] } } // Only processed items with keywords
-      },
-      {
-        $unwind: "$keywords" // One document per keyword
-      },
-      {
-        $group: {
-          _id: {
-            // Use sourceCategory or a default if missing
-            category: { $ifNull: ["$sourceCategory", "Unknown Category"] },
-            // Use llmBias or a default if missing
-            bias: { $ifNull: ["$llmBias", "Unknown Bias"] }
-          },
-          count: { $sum: 1 } // Count keywords per category/bias group
-        }
-      },
-      {
-        $group: {
-          _id: "$_id.category", // Group again by category
-          biases: {
-            $push: { // Create an array of bias objects
-              bias: "$_id.bias",
-              count: "$count"
-            }
-          },
-          totalKeywords: { $sum: "$count" } // Sum counts for the category total
-        }
-      },
-      {
-        $project: { // Reshape the output
-          _id: 0,
-          category: "$_id",
-          biases: { // Sort the biases within each category for consistency
-            $sortArray: {
-              input: "$biases",
-              sortBy: { bias: 1 } // Sort by bias name ascending
-            }
-          },
-          totalKeywords: 1
-        }
-      },
-      {
-        $sort: { category: 1 } // Sort categories alphabetically
-      }
-    ]);
+    const items = await newsItemRepo.findAllProcessedWithKeywords();
+    const byCategoryBias = new Map(); // category -> Map(bias -> count)
+    for (const item of items) {
+      const category = item.category || 'Unknown Category';
+      const bias = item.bias || 'Unknown Bias';
+      if (!byCategoryBias.has(category)) byCategoryBias.set(category, new Map());
+      const biasMap = byCategoryBias.get(category);
+      biasMap.set(bias, (biasMap.get(bias) || 0) + item.keywords.length);
+    }
 
-    // Calculate overall total
+    const stats = Array.from(byCategoryBias.entries())
+      .map(([category, biasMap]) => {
+        const biases = Array.from(biasMap.entries())
+          .map(([bias, count]) => ({ bias, count }))
+          .sort((a, b) => a.bias.localeCompare(b.bias));
+        const totalKeywords = biases.reduce((sum, b) => sum + b.count, 0);
+        return { category, biases, totalKeywords };
+      })
+      .sort((a, b) => a.category.localeCompare(b.category));
+
     const overallTotal = stats.reduce((sum, categoryStat) => sum + categoryStat.totalKeywords, 0);
-
     console.log(`Tag statistics generated. Categories: ${stats.length}, Total Keywords: ${overallTotal}`);
     res.json({ stats, overallTotal });
-
   } catch (error) {
     console.error('Error fetching tag statistics:', error);
     res.status(500).json({ error: 'Failed to fetch tag statistics', details: error.message });
@@ -200,93 +151,31 @@ router.get('/stats', async (req, res) => {
 router.get('/admin/tag-stats', async (req, res) => {
   console.log("Received request for ADMIN tag statistics...");
   try {
-    const results = await NewsItem.aggregate([
-      // 1. Filter for processed items with keywords
-      { $match: { llmProcessed: true, keywords: { $exists: true, $ne: [] } } },
-      // 2. Unwind keywords
-      { $unwind: "$keywords" },
-      // 3. Filter out empty keywords
-      { $match: { keywords: { $ne: "" } } },
-      // 4. Group by keyword to get unique tags and their associated data
-      {
-        $group: {
-          _id: "$keywords",
-          // Use $ifNull to ensure we never add null or undefined values to the set
-          categories: {
-            $addToSet: {
-              $ifNull: [
-                { $ifNull: ["$source.category", "Unknown"] },
-                "Unknown"
-              ]
-            }
-          },
-          biases: {
-            $addToSet: {
-              $ifNull: ["$bias", "Unknown"]
-            }
-          }
-        }
-      },
-      // 5. Use $facet to calculate multiple stats in parallel
-      {
-        $facet: {
-          "totalTags": [
-            { $count: "count" } // Total unique tags
-          ],
-          "byCategory": [
-            { $unwind: "$categories" }, // Unwind the categories array for each tag
-            { $group: { _id: "$categories", count: { $sum: 1 } } }, // Group by category and count tags
-            { $sort: { _id: 1 } } // Sort categories alphabetically
-          ],
-          "byBias": [
-            { $unwind: "$biases" }, // Unwind the biases array for each tag
-            { $group: { _id: "$biases", count: { $sum: 1 } } }, // Group by bias and count tags
-            { $sort: { _id: 1 } } // Sort biases alphabetically
-          ]
-        }
-      },
-      // 6. Project to reshape the output
-      {
-        $project: {
-          _id: 0,
-          totalUniqueTags: { $arrayElemAt: ["$totalTags.count", 0] }, // Extract total count
-          byCategory: { // Convert array [{_id: CAT, count: N}, ...] to object { CAT: N, ... }
-            $arrayToObject: {
-              $map: {
-                input: "$byCategory",
-                as: "catStat",
-                in: {
-                  k: { $toString: { $ifNull: ["$$catStat._id", "Unknown"] } },
-                  v: "$$catStat.count"
-                }
-              }
-            }
-          },
-          byBias: { // Convert array [{_id: BIAS, count: N}, ...] to object { BIAS: N, ... }
-            $arrayToObject: {
-              $map: {
-                input: "$byBias",
-                as: "biasStat",
-                in: {
-                  k: { $toString: { $ifNull: ["$$biasStat._id", "Unknown"] } },
-                  v: "$$biasStat.count"
-                }
-              }
-            }
-          }
-        }
+    const items = await newsItemRepo.findAllProcessedWithKeywords();
+    const tagCategories = new Map(); // keyword -> Set(category)
+    const tagBiases = new Map(); // keyword -> Set(bias)
+    for (const item of items) {
+      const category = item.category || 'Unknown';
+      const bias = item.bias || 'Unknown';
+      for (const kw of item.keywords) {
+        if (!kw) continue;
+        if (!tagCategories.has(kw)) tagCategories.set(kw, new Set());
+        if (!tagBiases.has(kw)) tagBiases.set(kw, new Set());
+        tagCategories.get(kw).add(category);
+        tagBiases.get(kw).add(bias);
       }
-    ]);
-
-    // Aggregation with $facet always returns an array with one document (even if empty)
-    const finalStats = results[0] || { totalUniqueTags: 0, byCategory: {}, byBias: {} };
-    // Add default 0 if totalUniqueTags is missing (no tags found)
-    if (finalStats.totalUniqueTags === undefined) {
-      finalStats.totalUniqueTags = 0;
     }
 
-    res.json(finalStats);
+    const byCategory = {};
+    for (const categories of tagCategories.values()) {
+      for (const cat of categories) byCategory[cat] = (byCategory[cat] || 0) + 1;
+    }
+    const byBias = {};
+    for (const biases of tagBiases.values()) {
+      for (const bias of biases) byBias[bias] = (byBias[bias] || 0) + 1;
+    }
 
+    res.json({ totalUniqueTags: tagCategories.size, byCategory, byBias });
   } catch (error) {
     console.error('Error fetching admin tag statistics:', error);
     res.status(500).json({ error: 'Failed to fetch tag statistics', details: error.message });
