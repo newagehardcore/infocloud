@@ -116,16 +116,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'] // Allow these headers
 }));
 
-// Per the GoDaddy Node.js hosting deploy contract: listen on process.env.PORT
-// with a local-dev fallback, bound to 0.0.0.0 rather than localhost.
-const PORT = process.env.PORT || 3000;
-
 // Connect to Database and Start Server
 console.log('Attempting to connect to database...');
 connectDB().then(() => {
   console.log('Database connection successful. Starting server with WebSocket support...');
-  server.listen(PORT, '0.0.0.0', () => {
-      originalConsoleLog(`Server started on port ${PORT} with WebSocket support for /ws/logs`);
+  // Per the GoDaddy Node.js hosting deploy contract: listen on process.env.PORT
+  // (inlined here, not a separate constant, so static port-binding scanners
+  // reliably see it) with a local-dev fallback, bound to 0.0.0.0 rather than
+  // localhost. server.listen (not app.listen) because the WebSocket upgrade
+  // handling above needs the raw http.Server, not just the Express app.
+  server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+      originalConsoleLog(`Server started on port ${process.env.PORT || 3000} with WebSocket support for /ws/logs`);
       // Note: Using originalConsoleLog here to avoid an immediate broadcast loop if console.log is used inside this callback before wss is fully ready.
   });
   // No in-process cron here - GoDaddy Node hosting doesn't document
