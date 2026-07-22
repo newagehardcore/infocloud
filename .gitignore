@@ -3,6 +3,11 @@ node_modules/
 /.pnp
 .pnp.js
 
+# Untracked on this branch specifically: GoDaddy's build sandbox regenerates
+# this on every deploy, and a tracked-but-locally-modified lockfile blocks
+# `git pull` on their end with "local changes would be overwritten by merge"
+package-lock.json
+
 # testing
 /coverage
 
