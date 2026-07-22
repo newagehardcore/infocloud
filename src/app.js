@@ -119,6 +119,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'] // Allow these headers
 }));
 
+// TEMP diagnostic: not sensitive (ALLOWED_ORIGINS is a public URL, not a
+// secret) — confirms exactly what the live process sees, since env values
+// can silently diverge from what was entered in the GoDaddy Secrets UI.
+app.get('/api/internal/cors-check', (req, res) => {
+  res.json({
+    rawEnv: process.env.ALLOWED_ORIGINS ?? null,
+    parsedOrigins: allowedOrigins,
+    receivedOriginHeader: req.get('origin') ?? null,
+  });
+});
+
 // Connect to Database and Start Server
 console.log('Attempting to connect to database...');
 connectDB().then(() => {
