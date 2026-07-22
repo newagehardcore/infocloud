@@ -1,35 +1,25 @@
 # Use Node.js LTS version
-FROM node:20-alpine as build
+FROM node:20-alpine
+
+# Install Docker CLI and curl
+RUN apk add --no-cache docker-cli curl
 
 # Set working directory
 WORKDIR /app
 
-# Set environment variable for API base URL - using localhost for browser access
-ENV REACT_APP_API_BASE_URL=http://localhost:5001
-
-# Copy package files
+# Copy package files and install dependencies
+# This layer is cached if package files don't change
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
 # Copy the rest of the application code
+# This will be overwritten by the volume mount in compose, but good practice
 COPY . .
 
-# Build the application
-RUN npm run build
+# Expose the port the app runs on (ensure it matches PORT env var)
+EXPOSE 5001
 
-# Production stage
-FROM nginx:alpine
-
-# Copy the build output from the build stage
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 3000
-EXPOSE 3000
-
-# Start the application
-CMD ["nginx", "-g", "daemon off;"] 
+# Default command (can be overridden by compose)
+# We use 'npm run dev' in compose, so this isn't strictly needed there,
+# but good for building standalone.
+CMD ["node", "src/app.js"] 
