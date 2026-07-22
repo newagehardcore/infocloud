@@ -123,6 +123,9 @@ app.use(cors({
 // secret) — confirms exactly what the live process sees, since env values
 // can silently diverge from what was entered in the GoDaddy Secrets UI.
 app.get('/api/internal/cors-check', (req, res) => {
+  // Manually set, bypassing the cors package entirely, to isolate whether
+  // a proxy in front of the app is stripping this header in transit.
+  res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
   res.json({
     rawEnv: process.env.ALLOWED_ORIGINS ?? null,
     parsedOrigins: allowedOrigins,
