@@ -1,5 +1,12 @@
 const express = require('express');
-require('dotenv').config(); // Ensure env vars are loaded
+const path = require('path');
+const fs = require('fs');
+// Explicit path, not the default cwd-relative lookup: if this platform's
+// Secrets feature injects values via a generated .env file rather than true
+// OS-level env vars (unlike the auto-provisioned database credentials, which
+// work regardless), a working-directory mismatch would make the implicit
+// default silently fail to find it.
+const dotenvResult = require('dotenv').config({ path: path.join(__dirname, '.env') });
 const cors = require('cors'); // Add CORS
 const http = require('http'); // 1. Import http module
 const WebSocket = require('ws'); // 2. Import ws module
@@ -9,7 +16,6 @@ const statusRoutes = require('./routes/statusRoutes');
 const { requireAdminForWrites, requireAdminAlways, isValidAdminToken } = require('./middleware/adminAuth');
 const sourceRoutes = require('./routes/sourceRoutes'); // Import the new source routes
 const { runTick } = require('./tick');
-const path = require('path');
 
 const app = express();
 
@@ -149,6 +155,20 @@ app.get('/api/internal/debug-env', (req, res) => {
     const val = process.env[key];
     report[key] = val ? { present: true, length: val.length } : { present: false };
   });
+
+  const candidatePaths = [
+    path.join(__dirname, '.env'),
+    path.join(process.cwd(), '.env'),
+    path.join(__dirname, '..', '.env')
+  ];
+  report._diagnostics = {
+    cwd: process.cwd(),
+    dirname: __dirname,
+    dotenvLoadError: dotenvResult.error ? dotenvResult.error.message : null,
+    dotenvParsedKeys: dotenvResult.parsed ? Object.keys(dotenvResult.parsed) : null,
+    envFileCandidates: candidatePaths.map(p => ({ path: p, exists: fs.existsSync(p) }))
+  };
+
   res.json(report);
 });
 
