@@ -1,12 +1,9 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-// Explicit path, not the default cwd-relative lookup: if this platform's
-// Secrets feature injects values via a generated .env file rather than true
-// OS-level env vars (unlike the auto-provisioned database credentials, which
-// work regardless), a working-directory mismatch would make the implicit
-// default silently fail to find it.
-const dotenvResult = require('dotenv').config({ path: path.join(__dirname, '.env') });
+// Explicit path (not the default cwd-relative lookup) for local dev, where
+// this loads the repo-root .env; harmless in production, where secrets come
+// from real environment variables and no .env file exists at all.
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const cors = require('cors'); // Add CORS
 const http = require('http'); // 1. Import http module
 const WebSocket = require('ws'); // 2. Import ws module
@@ -145,32 +142,6 @@ connectDB().then(() => {
 
 // Define Routes
 app.get('/', (req, res) => res.send('News Backend Running'));
-
-// TEMPORARY diagnostic - reports whether expected env vars actually reached
-// this process, without exposing their values. Remove once secrets are
-// confirmed working (tracked as a known temporary addition, not a real route).
-app.get('/api/internal/debug-env', (req, res) => {
-  const report = {};
-  ['ADMIN_TOKEN', 'CRON_SECRET', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'GROQ_API_KEY', 'LLM_PROVIDER', 'ALLOWED_ORIGINS', 'NODE_ENV', 'PORT'].forEach(key => {
-    const val = process.env[key];
-    report[key] = val ? { present: true, length: val.length } : { present: false };
-  });
-
-  const candidatePaths = [
-    path.join(__dirname, '.env'),
-    path.join(process.cwd(), '.env'),
-    path.join(__dirname, '..', '.env')
-  ];
-  report._diagnostics = {
-    cwd: process.cwd(),
-    dirname: __dirname,
-    dotenvLoadError: dotenvResult.error ? dotenvResult.error.message : null,
-    dotenvParsedKeys: dotenvResult.parsed ? Object.keys(dotenvResult.parsed) : null,
-    envFileCandidates: candidatePaths.map(p => ({ path: p, exists: fs.existsSync(p) }))
-  };
-
-  res.json(report);
-});
 
 // Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
 app.use('/api/news', requireAdminForWrites, newsRoutes);
