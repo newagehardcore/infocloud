@@ -140,6 +140,18 @@ connectDB().then(() => {
 // Define Routes
 app.get('/', (req, res) => res.send('News Backend Running'));
 
+// TEMPORARY diagnostic - reports whether expected env vars actually reached
+// this process, without exposing their values. Remove once secrets are
+// confirmed working (tracked as a known temporary addition, not a real route).
+app.get('/api/internal/debug-env', (req, res) => {
+  const report = {};
+  ['ADMIN_TOKEN', 'CRON_SECRET', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'GROQ_API_KEY', 'LLM_PROVIDER', 'ALLOWED_ORIGINS', 'NODE_ENV', 'PORT'].forEach(key => {
+    const val = process.env[key];
+    report[key] = val ? { present: true, length: val.length } : { present: false };
+  });
+  res.json(report);
+});
+
 // Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
 app.use('/api/news', requireAdminForWrites, newsRoutes);
 app.use('/api/status', requireAdminAlways, statusRoutes); // Admin-only: not called by the public frontend
