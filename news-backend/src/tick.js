@@ -17,7 +17,14 @@ const { processArticleWithRetry } = require('./services/llmService');
 const { processNewsKeywords, aggregateKeywordsForCloud } = require('./services/wordProcessingService');
 
 const SOURCES_PER_TICK = parseInt(process.env.SOURCES_PER_TICK || '30', 10);
-const ARTICLES_PER_TICK = parseInt(process.env.ARTICLES_PER_TICK || '40', 10);
+// Groq's free tier for llama-3.1-8b-instant caps at 6000 tokens/minute, and a
+// single labeling call runs ~700-800 tokens - measured against the real API,
+// only about 7-8 calls/minute fit before 429s start. Articles that don't get
+// labeled this tick fall back to keyword-extraction (see wordProcessingService)
+// and stay llmProcessed:false, so they're retried on the next tick rather than
+// lost - keeping this low just means proper LLM labeling catches up over a
+// few tick cycles instead of wasting most calls on rate-limit errors.
+const ARTICLES_PER_TICK = parseInt(process.env.ARTICLES_PER_TICK || '8', 10);
 const MAX_AGE_DAYS = parseInt(process.env.NEWS_ITEM_MAX_AGE_DAYS || '14', 10);
 
 let suspended = false;
