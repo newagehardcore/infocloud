@@ -10,13 +10,15 @@ import StarfieldTags from './StarfieldTags';
 // Define min/max size constants
 const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
 const MAX_FONT_SIZE = 4.5;
-// Fixed anchors for an ABSOLUTE value -> size mapping. A word's size must
-// depend only on its own value, never on the current rank among its
-// siblings - otherwise one word's value changing shifts every other word's
-// size too, which reads as the whole cloud "jumping" on every refresh.
-const VALUE_SCALE_MIN = 0.5; // at/below this value, a word renders at MIN_FONT_SIZE
-const VALUE_SCALE_MAX = 65; // at/above this value, a word renders at MAX_FONT_SIZE
-const VALUE_SCALE_EXPONENT = 7; // steep: only a handful of hero words stand out, the long tail collapses fast
+// Size is normalized against the LOCAL max value of the currently displayed
+// set (i.e. within whatever category/bias/type filter is active), not a
+// fixed global anchor - so filtering into a thin category still shows a
+// clear "biggest word" instead of everything looking uniformly small. This
+// is deliberately NOT rank-based though: it compares each word's actual
+// value to the local max, so two nearly-tied words still render at nearly
+// the same size, rather than the old rank scheme where tiny reorderings of
+// near-ties produced big, arbitrary size swings.
+const VALUE_SCALE_EXPONENT = 2; // >1 keeps the "few big hero words" look
 
 // Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
 // mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
@@ -88,22 +90,22 @@ const TagCloud3D: React.FC<{
     }
   }, []);
   
-  // Calculate all font sizes from each word's OWN value on a fixed log
-  // scale, synchronously with the words. (useMemo, not effect state:
+  // Calculate all font sizes from each word's value relative to the local
+  // max, synchronously with the words. (useMemo, not effect state:
   // positions/sizes must never lag one render behind `words`, or a large
   // word briefly renders at another word's near-camera slot — the "white
-  // flash" on category switch.) Deliberately NOT rank-based: a word's size
-  // must only change when its own value changes, not whenever some other
-  // word's value shuffles the rank order.
+  // flash" on category switch.) The resulting number is consumed as a scale
+  // multiplier, not a literal glyph fontSize (see Word.tsx) - actual size
+  // changes are animated smoothly there instead of snapping instantly.
   const fontSizes = React.useMemo(() => {
     const newFontSizes = new Map<string, number>();
-    const logMin = Math.log(VALUE_SCALE_MIN);
-    const logMax = Math.log(VALUE_SCALE_MAX);
+    if (words.length === 0) return newFontSizes;
+
+    const localMax = Math.max(...words.map(w => w.value), 1e-6);
 
     words.forEach(word => {
-      const clampedValue = Math.max(VALUE_SCALE_MIN, word.value);
-      const t = Math.min(1, Math.max(0, (Math.log(clampedValue) - logMin) / (logMax - logMin)));
-      const fontSize = MIN_FONT_SIZE + Math.pow(t, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
+      const ratio = Math.min(1, Math.max(0, word.value / localMax));
+      const fontSize = MIN_FONT_SIZE + Math.pow(ratio, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
       newFontSizes.set(word.text, fontSize);
     });
     return newFontSizes;

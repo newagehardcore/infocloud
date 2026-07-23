@@ -9,6 +9,17 @@ import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
 
 extend({ SphereGeometry, MeshBasicMaterial });
 
+// The Text glyph geometry is generated once at this fixed size; the actual
+// on-screen size (which now depends on the current category/bias/type
+// filter, and can shift as coverage evolves) is represented purely via the
+// group's `scale` transform below, which is already smoothly lerped every
+// frame. Changing `fontSize` directly would force drei to regenerate glyph
+// geometry - expensive, and the sudden re-layout is what read as a "pop" or
+// contributed to frame hitches when many words resized at once. Routing
+// size through scale means a resize is just a transform update: cheap,
+// smooth, and never touches geometry after the word first mounts.
+const BASE_TEXT_SIZE = 1;
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -69,21 +80,19 @@ export const Word = ({
     
     // Always face the camera (billboarding) with upright orientation
     ref.current.quaternion.copy(camera.quaternion);
-    
-    // Grow animation for new words
-    if (isNew && ref.current.scale.x < 1) {
-      const grow = Math.min(1 - ref.current.scale.x, delta * 2 * animationSpeed);
-      ref.current.scale.x += grow;
-      ref.current.scale.y += grow;
-      ref.current.scale.z += grow;
-    }
 
-    // Hover and selection effects
+    // Target scale combines the word's current desired size (which can
+    // change as the category/bias/type filter changes, or as coverage
+    // grows/shrinks) with the hover/selection pulse. A brand new word starts
+    // from scale 0 (set in the mount effect below) and grows into this same
+    // target via the lerp just like any other size change - no separate
+    // growth branch needed.
     // IMPORTANT: clamp the lerp factor to 1 — a janky frame (delta > 0.2s,
     // common on initial load while text glyphs generate) would otherwise make
     // lerp extrapolate past the target and diverge exponentially (scales in
     // the billions → black screen / one giant glyph filling the viewport).
-    const targetScale = (hovered || isSelected) ? 1.2 : 1;
+    const hoverMultiplier = (hovered || isSelected) ? 1.2 : 1;
+    const targetScale = fontSize * hoverMultiplier;
     const t = Math.min(1, delta * 5 * animationSpeed);
     ref.current.scale.x = THREE.MathUtils.lerp(ref.current.scale.x, targetScale, t);
     ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, t);
@@ -125,7 +134,7 @@ export const Word = ({
       position={initialPosition}
     >
       <Text
-        fontSize={fontSize}
+        fontSize={BASE_TEXT_SIZE}
         color={color}
         font={getTagFont(dominantSourceType)}
         anchorX="center"
@@ -143,7 +152,11 @@ export const Word = ({
       </Text>
       {isNew && !useSimpleRendering && (
         <mesh>
-          <sphereGeometry args={[fontSize * 0.6, useSimpleRendering ? 8 : 16, useSimpleRendering ? 8 : 16]} />
+          {/* Fixed base radius: this mesh is a child of the group, so it's
+              already scaled by the same fontSize-driven transform as the
+              Text above - a fontSize-dependent radius here would double up
+              and grow quadratically instead of matching the text size. */}
+          <sphereGeometry args={[BASE_TEXT_SIZE * 0.6, useSimpleRendering ? 8 : 16, useSimpleRendering ? 8 : 16]} />
           <meshBasicMaterial color={color} transparent opacity={0.1} />
         </mesh>
       )}
