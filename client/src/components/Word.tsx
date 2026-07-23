@@ -66,6 +66,30 @@ export const Word = ({
       ? [position[0], position[1], position[2]]
       : [0, 0, 0];
   }, [position]);
+
+  // Deterministic per-word phase/frequency for the floating animation below.
+  // Every word previously floated with the exact same sine phase, so the
+  // whole field moved as one rigid body - visually indistinguishable from
+  // not drifting at all, since every tag's position relative to its
+  // neighbors stayed constant. Deriving unique-but-stable values per word
+  // (same hashing approach as the position generator) makes each tag drift
+  // independently instead.
+  const floatParams = useMemo(() => {
+    let hash = 5381;
+    for (let i = 0; i < word.text.length; i++) {
+      hash = ((hash << 5) + hash) + word.text.charCodeAt(i);
+    }
+    hash = Math.abs(hash);
+    const rand = (bitShift: number) => ((hash >>> bitShift) % 1000) / 1000;
+    return {
+      phaseX: rand(0) * Math.PI * 2,
+      phaseY: rand(3) * Math.PI * 2,
+      phaseZ: rand(6) * Math.PI * 2,
+      freqX: 0.15 + rand(9) * 0.1,
+      freqY: 0.20 + rand(12) * 0.1,
+      freqZ: 0.25 + rand(15) * 0.1
+    };
+  }, [word.text]);
   
   // Animation for new words
   useEffect(() => {
@@ -98,15 +122,16 @@ export const Word = ({
     ref.current.scale.y = THREE.MathUtils.lerp(ref.current.scale.y, targetScale, t);
     ref.current.scale.z = THREE.MathUtils.lerp(ref.current.scale.z, targetScale, t);
     
-    // Apply gentle floating movement
+    // Apply gentle floating movement - each word uses its own phase/frequency
+    // (floatParams) so tags drift independently rather than as one rigid field.
     const time = state.clock.getElapsedTime();
     const floatAmount = 0.15; // Reduced float amount for subtler movement
-    
+
     // Use the stored initial position for the floating animation
     ref.current.position.set(
-      initialPosition[0] + Math.sin(time * 0.2 + 0) * floatAmount,
-      initialPosition[1] + Math.cos(time * 0.25 + 0) * floatAmount,
-      initialPosition[2] + Math.sin(time * 0.3 + 0) * floatAmount
+      initialPosition[0] + Math.sin(time * floatParams.freqX + floatParams.phaseX) * floatAmount,
+      initialPosition[1] + Math.cos(time * floatParams.freqY + floatParams.phaseY) * floatAmount,
+      initialPosition[2] + Math.sin(time * floatParams.freqZ + floatParams.phaseZ) * floatAmount
     );
   });
 
@@ -157,7 +182,11 @@ export const Word = ({
               Text above - a fontSize-dependent radius here would double up
               and grow quadratically instead of matching the text size. */}
           <sphereGeometry args={[BASE_TEXT_SIZE * 0.6, useSimpleRendering ? 8 : 16, useSimpleRendering ? 8 : 16]} />
-          <meshBasicMaterial color={color} transparent opacity={0.1} />
+          {/* depthWrite=false: a transparent mesh still writes full depth by
+              default, so even at 10% opacity it was fully occluding tags
+              behind it once the depth test ran - a low-opacity glow should
+              never be able to cut into what's behind it. */}
+          <meshBasicMaterial color={color} transparent opacity={0.1} depthWrite={false} />
         </mesh>
       )}
     </group>
