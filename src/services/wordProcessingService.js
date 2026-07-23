@@ -10,12 +10,23 @@ const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils')
 const MIN_KEYWORD_LENGTH = 3;
 const MAX_KEYWORD_LENGTH = 50;
 
-// How far back the keyword cache looks for articles. Wider than 24h so
-// low-volume categories (WORLD, US, SPACE, ...) still have enough tags.
-const CACHE_WINDOW_HOURS = parseInt(process.env.CACHE_WINDOW_HOURS || '72', 10);
-// Recency half-life: each mention's weight halves every N hours, so tag sizes
-// track what's big *right now* while the wider window keeps thin categories fed.
-const RECENCY_HALF_LIFE_HOURS = parseFloat(process.env.RECENCY_HALF_LIFE_HOURS || '12');
+// How far back the keyword cache looks for articles. Wide enough (up to
+// most of NEWS_ITEM_MAX_AGE_DAYS' retention window) that low-volume
+// categories (FASHION, SPACE, MUSIC, ...) have enough source material to
+// fill in with, rather than sitting empty once the last few hours' worth
+// of niche coverage ages out.
+const CACHE_WINDOW_HOURS = parseInt(process.env.CACHE_WINDOW_HOURS || '240', 10);
+// Recency half-life: each mention's weight halves every N hours, so tag
+// sizes track what's big *right now* while the wider window keeps thin
+// categories fed. Scaled up alongside CACHE_WINDOW_HOURS - a short half-life
+// paired with a wide window would technically include older articles (so
+// they'd still count toward a thin category's filter) but decay their
+// weight to practically invisible specks, defeating the point of widening
+// the window at all.
+const RECENCY_HALF_LIFE_HOURS = parseFloat(process.env.RECENCY_HALF_LIFE_HOURS || '36');
+// Per-category cap on the final word list (see the aggregation cap below for
+// why this is per-category rather than one global top-N).
+const MAX_WORDS_PER_CATEGORY = parseInt(process.env.MAX_WORDS_PER_CATEGORY || '150', 10);
 
 /**
  * Weight of a single article mention, decayed by age.
@@ -662,7 +673,7 @@ async function aggregateKeywordsForCloud() {
       }
 
       // Convert sets to arrays for the final cache structure
-      const newCacheData = new Map();
+      let newCacheData = new Map();
       tempKeywordMap.forEach((value, key) => {
         try {
           newCacheData.set(key, {
@@ -676,6 +687,30 @@ async function aggregateKeywordsForCloud() {
           // Skip this keyword rather than failing the entire process
         }
       });
+
+      // Cap per-category rather than globally: a flat top-N-by-weight cap
+      // would be dominated almost entirely by high-volume categories like
+      // POLITICS, crowding out thin categories even further. Instead, keep
+      // each category's own top MAX_WORDS_PER_CATEGORY words (by that
+      // category's weight) and union the keep-lists - a word already
+      // spanning multiple categories just gets kept once.
+      if (newCacheData.size > MAX_WORDS_PER_CATEGORY) {
+        const keysToKeep = new Set();
+        for (const cat of Object.values(NewsCategory)) {
+          const inCategory = [];
+          newCacheData.forEach((value, key) => {
+            if (value.categories.includes(cat)) {
+              inCategory.push([key, value.categoryWeights[cat] || 0]);
+            }
+          });
+          inCategory.sort((a, b) => b[1] - a[1]);
+          inCategory.slice(0, MAX_WORDS_PER_CATEGORY).forEach(([key]) => keysToKeep.add(key));
+        }
+        const cappedData = new Map();
+        keysToKeep.forEach(key => cappedData.set(key, newCacheData.get(key)));
+        console.log(`[Cache Aggregation] Capped ${newCacheData.size} words down to ${cappedData.size} (top ${MAX_WORDS_PER_CATEGORY} per category, unioned).`);
+        newCacheData = cappedData;
+      }
 
       // Only update the main cache if we have data
       if (newCacheData.size > 0) {
