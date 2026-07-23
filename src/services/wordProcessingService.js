@@ -42,6 +42,21 @@ function recencyWeight(publishedAt) {
   return Math.pow(0.5, ageHours / RECENCY_HALF_LIFE_HOURS);
 }
 
+/**
+ * Diminishing-returns factor for the Nth mention of a keyword from the SAME
+ * source (0-indexed prior count from this source). Applied uniformly to
+ * every keyword/source pair - not a special case for any one source/category.
+ * A story covered by many DIFFERENT outlets still accumulates full weight
+ * per outlet (genuine cross-media importance), but one prolific outlet
+ * publishing many similar articles about its own beat (e.g. a sports wire
+ * running a dozen game recaps) can't single-handedly inflate a keyword's
+ * weight past what broader, multi-source coverage would produce - the 2nd
+ * mention from the same source counts ~71%, the 4th ~50%, the 10th ~32%, etc.
+ */
+function sourceDiminishingFactor(priorMentionsFromThisSource) {
+  return 1 / Math.sqrt(priorMentionsFromThisSource + 1);
+}
+
 // --- NEW Single Keyword Cache (Map-based) ---
 let keywordCache = {
   data: new Map(), // Map<string, { count: number, biases: PoliticalBias[], categories: NewsCategory[], items: Set<string> }>
@@ -617,6 +632,7 @@ async function aggregateKeywordsForCloud() {
           const itemType = (item.source && item.source.type)
             ? item.source.type
             : 'UNKNOWN';
+          const itemSourceId = item.source_id != null ? item.source_id : 'unknown';
 
           // Process keywords for this item
           if (!item.keywords || !Array.isArray(item.keywords)) {
@@ -631,9 +647,13 @@ async function aggregateKeywordsForCloud() {
 
               console.log(`[Cache Aggregation Item ${itemId}] Processing keyword: "${validatedKeyword}" (Source llmProcessed: ${item.llmProcessed})`);
 
-              const mentionWeight = recencyWeight(item.publishedAt || item.createdAt);
+              const rawMentionWeight = recencyWeight(item.publishedAt || item.createdAt);
               if (tempKeywordMap.has(validatedKeyword)) {
                 const entry = tempKeywordMap.get(validatedKeyword);
+                const priorFromThisSource = entry.sourceMentionCounts.get(itemSourceId) || 0;
+                const mentionWeight = rawMentionWeight * sourceDiminishingFactor(priorFromThisSource);
+                entry.sourceMentionCounts.set(itemSourceId, priorFromThisSource + 1);
+
                 entry.count += 1;
                 entry.weight += mentionWeight;
                 entry.items.add(itemId);
@@ -651,9 +671,12 @@ async function aggregateKeywordsForCloud() {
                   entry.typeWeights[itemType] = (entry.typeWeights[itemType] || 0) + mentionWeight;
                 }
               } else {
+                // First mention from any source always counts at full weight.
+                const mentionWeight = rawMentionWeight;
                 tempKeywordMap.set(validatedKeyword, {
                   count: 1,
                   weight: mentionWeight,
+                  sourceMentionCounts: new Map([[itemSourceId, 1]]),
                   biases: itemBias ? new Set([itemBias]) : new Set(),
                   biasWeights: itemBias ? { [itemBias]: mentionWeight } : {},
                   categories: itemCategory ? new Set([itemCategory]) : new Set(),
@@ -679,8 +702,9 @@ async function aggregateKeywordsForCloud() {
       let newCacheData = new Map();
       tempKeywordMap.forEach((value, key) => {
         try {
+          const { sourceMentionCounts, ...rest } = value; // internal bookkeeping only, drop before exposing
           newCacheData.set(key, {
-            ...value,
+            ...rest,
             biases: Array.from(value.biases),
             categories: Array.from(value.categories),
             types: Array.from(value.types)
