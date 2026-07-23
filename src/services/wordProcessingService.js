@@ -10,12 +10,15 @@ const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils')
 const MIN_KEYWORD_LENGTH = 3;
 const MAX_KEYWORD_LENGTH = 50;
 
-// How far back the keyword cache looks for articles. Wide enough (up to
-// most of NEWS_ITEM_MAX_AGE_DAYS' retention window) that low-volume
-// categories (FASHION, SPACE, MUSIC, ...) have enough source material to
-// fill in with, rather than sitting empty once the last few hours' worth
-// of niche coverage ages out.
-const CACHE_WINDOW_HOURS = parseInt(process.env.CACHE_WINDOW_HOURS || '240', 10);
+// How far back the keyword cache looks for articles. Wider than a single
+// day so low-volume categories (FASHION, SPACE, MUSIC, ...) have enough
+// source material to fill in with, rather than sitting empty once the last
+// few hours' worth of niche coverage ages out - but the per-category cap
+// above is what actually keeps things fresh: newer, higher-weight articles
+// push older ones out of a category's top-N as soon as there's enough new
+// content, so this window is a ceiling on how stale a tag can get, not a
+// guarantee that it will.
+const CACHE_WINDOW_HOURS = parseInt(process.env.CACHE_WINDOW_HOURS || '98', 10);
 // Recency half-life: each mention's weight halves every N hours, so tag
 // sizes track what's big *right now* while the wider window keeps thin
 // categories fed. Scaled up alongside CACHE_WINDOW_HOURS - a short half-life
