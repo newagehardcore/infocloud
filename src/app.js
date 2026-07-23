@@ -119,28 +119,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token'] // Allow these headers
 }));
 
-// TEMP diagnostic: not sensitive (ALLOWED_ORIGINS is a public URL, not a
-// secret) — confirms exactly what the live process sees, since env values
-// can silently diverge from what was entered in the GoDaddy Secrets UI.
-app.get('/api/internal/cors-check', (req, res) => {
-  // Manually set, bypassing the cors package entirely, to isolate whether
-  // a proxy in front of the app is stripping this header in transit.
-  res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
-  res.json({
-    rawEnv: process.env.ALLOWED_ORIGINS ?? null,
-    parsedOrigins: allowedOrigins,
-    receivedOriginHeader: req.get('origin') ?? null,
-  });
-});
-
-// TEMP: does a literal static wildcard survive when a dynamic echoed-origin
-// value doesn't? Narrows down what exactly the edge is stripping.
-app.get('/api/internal/cors-check-wildcard', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('X-Test-Marker', 'wildcard-variant');
-  res.json({ ok: true });
-});
-
 // Connect to Database and Start Server
 console.log('Attempting to connect to database...');
 connectDB().then(() => {
@@ -161,9 +139,6 @@ connectDB().then(() => {
   console.error('Failed to connect to database. Server not started.', err);
   process.exit(1);
 });
-
-// Define Routes
-app.get('/', (req, res) => res.send('News Backend Running'));
 
 // Mount API routes (non-GET requests require the admin token; see middleware/adminAuth)
 app.use('/api/news', requireAdminForWrites, newsRoutes);
@@ -188,12 +163,23 @@ app.post('/api/internal/tick', async (req, res) => {
   }
 });
 
-// public/ contains only the admin panel — gate the whole static mount
-app.use(requireAdminAlways, express.static(path.join(__dirname, '../public')));
-
-// Serve the admin.html at the /admin route
+// Serve the admin.html at the /admin route (public/ contains only this one
+// self-contained file — no separate assets to gate behind a static mount)
 app.get('/admin', requireAdminAlways, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// Serve the built frontend (client/) from the same origin as the API, so the
+// browser never needs CORS at all for the public-facing app.
+const clientBuildDir = path.join(__dirname, '../client/build');
+app.use(express.static(clientBuildDir));
+
+// React Router client-side routes: fall back to index.html for any GET that
+// didn't match an API route or a static asset above. Express 5's path-to-regexp
+// requires a named wildcard; bare '*' throws at registration, and '/*splat'
+// (without the braces) fails to match the bare '/' root path.
+app.get('/{*splat}', (req, res) => {
+  res.sendFile(path.join(clientBuildDir, 'index.html'));
 });
 
 // Basic Error Handling Middleware

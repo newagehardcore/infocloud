@@ -1,0 +1,150 @@
+.time-controls {
+  background-color: #1e1e1e;
+  padding: 15px 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.time-controls.time-machine-active {
+  background-color: #2d1e2e;
+  border: 1px solid #5a3d59;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+}
+
+.current-time {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+.time-value {
+  margin-left: 5px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.loading-indicator {
+  color: #ff9900;
+  font-style: italic;
+}
+
+.time-machine-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.time-machine-toggle {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.time-machine-toggle:hover {
+  background-color: #444;
+}
+
+.time-machine-toggle.active {
+  background-color: #5a3d59;
+}
+
+.time-slider-container {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.time-slider {
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 5px;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.time-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.timeline-label {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.timeline-points {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 5px 0;
+}
+
+.timeline-point {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #555;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.timeline-point:hover {
+  background-color: #777;
+}
+
+.timeline-point.active {
+  background-color: #6495ED;
+}
+
+.future-features {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.coming-soon {
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.feature-button {
+  background-color: #333;
+  color: #777;
+  border: 1px dashed #555;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .time-controls {
+    padding: 10px;
+  }
+  
+  .time-machine-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .time-slider-container {
+    width: 100%;
+  }
+}

@@ -1,0 +1,126 @@
+.tag-cloud-3d-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #111;
+}
+
+.tag-cloud-3d {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background: #111;
+  color: #888;
+  font-size: 1rem;
+}
+
+/* Font styling for 3D text */
+.drei-html {
+  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.05em !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-transform: lowercase !important;
+}
+
+/* Ensure Helvetica is applied to Three.js text */
+.tag-cloud-3d canvas text,
+.tag-cloud-3d .drei-html {
+  font-family: 'Helvetica Neue Local', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+.historical-indicator {
+  color: #888;
+  font-size: 0.75rem;
+}
+
+.related-news-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 300px;
+  max-height: calc(100% - 20px);
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 15px;
+  overflow-y: auto;
+  color: white;
+  z-index: 100;
+}
+
+.related-news-panel h3 {
+  margin-top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 10px;
+}
+
+.related-news-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.related-news-item {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.related-news-item:last-child {
+  border-bottom: none;
+}
+
+.news-link {
+  text-decoration: none;
+  color: white;
+  display: block;
+}
+
+.news-link h4 {
+  margin: 0 0 5px 0;
+  font-size: 0.9rem;
+}
+
+.news-source {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.source-bias {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 5px;
+}
+
+.close-panel-button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-top: 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-panel-button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
