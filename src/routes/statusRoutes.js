@@ -112,6 +112,25 @@ router.post('/admin/force-refresh', async (req, res) => {
   }
 });
 
+// One-off: after a labeling-logic fix, put already-labeled items back in
+// the queue so they get relabeled under the corrected logic instead of
+// waiting up to CACHE_WINDOW_HOURS to age out on their own. Also clears the
+// keyword cache so stale (pre-fix) aggregated words don't linger visibly
+// until the next scheduled rebuild.
+router.post('/admin/reprocess-all', async (req, res) => {
+  try {
+    const resetCount = await newsItemRepo.resetProcessedFlags();
+    clearKeywordCache();
+    res.json({
+      message: 'Reset llm_processed on existing items; they will be relabeled (from cache where possible) over the next several ticks.',
+      resetCount
+    });
+  } catch (error) {
+    console.error('Error reprocessing existing items:', error);
+    res.status(500).json({ message: 'Failed to reset processed flags', error: error.message });
+  }
+});
+
 // Route to get statistics
 // (rewritten to tally in JS instead of a Mongo $unwind/$group pipeline -
 // data volume here is modest, a few thousand rows, so this stays simple)

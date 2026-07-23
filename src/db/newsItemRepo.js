@@ -218,6 +218,19 @@ async function cleanupOldItems(maxAgeDays) {
   return result.affectedRows;
 }
 
+// Puts already-labeled items back in the queue without touching anything
+// else (source bias/category, keywords already extracted, etc.) - for
+// re-running them through processing after a labeling-logic fix. Cheap in
+// practice: llmService's per-article cache is keyed by content hash, so
+// anything processed within its 24h TTL is relabeled from cache, not a
+// fresh LLM call.
+async function resetProcessedFlags() {
+  const [result] = await getPool().query(
+    'UPDATE news_items SET llm_processed = 0 WHERE llm_processed = 1'
+  );
+  return result.affectedRows;
+}
+
 // Raw rows for the admin stats endpoints, which tally in JS (data volume is
 // modest - a few thousand rows - so this is simpler and safer than trying to
 // replicate Mongo's $unwind/$facet aggregation pipeline in SQL).
@@ -272,6 +285,7 @@ module.exports = {
   countProcessed,
   deleteAllNewsItems,
   cleanupOldItems,
+  resetProcessedFlags,
   biasStats,
   categoryStats,
   propagateSourceFieldChange

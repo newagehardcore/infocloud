@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NewsItem, TagCloudWord, PoliticalBias } from '../types'; // Assuming types are correctly imported
+import { getSourceTypeFont } from '../utils/fonts';
 import './FloatingNewsWindow.css';
 
 // --- Logic copied/adapted from RelatedNewsPanel ---
@@ -236,7 +237,12 @@ const FloatingNewsWindow: React.FC<FloatingNewsWindowProps> = ({ data, position,
                                     <span>{item.title}</span>
                                   </span>
                                   <div className="news-meta">
-                                    <span className="source-name" style={{ color: getBiasColor(item.bias) }}>{item.source.name}</span>
+                                    <span
+                                      className="source-name"
+                                      style={{ color: getBiasColor(item.bias), fontFamily: getSourceTypeFont(item.source.type) }}
+                                    >
+                                      {item.source.name}
+                                    </span>
                                     <span className="publish-date">{new Date(item.publishedAt).toLocaleDateString()}</span>
                                   </div>
                                 </a>
