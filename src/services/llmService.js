@@ -123,176 +123,136 @@ function createHash(text) {
   return crypto.createHash('md5').update(normalizedText).digest('hex');
 }
 
+// Compact category hints (short parenthetical cues, not full sentences) -
+// keeps the one shared instruction block cheap since it's paid once per
+// batch rather than once per article.
+const CATEGORY_HINTS = 'POLITICS (govt/elections), WORLD (international), US (domestic non-political), ' +
+  'ECONOMICS (business/markets), TECH (software/gadgets), AI, SCIENCE (research), ' +
+  'SPACE (astronomy/spaceflight), HEALTH (medicine), ENVIRONMENT (climate/energy), SPORTS, ' +
+  'ENTERTAINMENT (film/TV/celebs), MUSIC, ARTS (visual/theater/lit), FASHION, LAW (courts/trials), ' +
+  'NEWS (only if nothing else fits)';
+
+function buildBatchPrompt(articles) {
+  const list = articles
+    .map((a, i) => `${i + 1}. ${a.title}${a.firstSentence ? ' | ' + a.firstSentence : ''}`)
+    .join('\n');
+  return `For each numbered news item below, judge bias from ITS OWN wording (not the source), pick one category, and extract keywords.
+Bias: Left, Liberal, Centrist, Conservative, Right, or Unknown - judge only from partisan language actually present; neutral/factual or non-political text is Centrist or Unknown.
+Category (one): ${CATEGORY_HINTS}.
+Keywords: 1-3 short specific entities/topics from the text, most central first; skip generic words (news, update, says, latest, report) and source names.
+
+Items:
+${list}
+
+Respond ONLY with JSON: {"results":[{"bias":"..","category":"..","keywords":["..",".."]}]} - exactly ${articles.length} objects, same order as the items.`;
+}
+
+// Shared per-field cleanup, used whether a result came from the LLM just now
+// or was already sitting in the cache.
+function normalizeResult(raw) {
+  const llmBias = raw && raw.bias ? mapToPoliticalBias(raw.bias) : PoliticalBias.Unknown;
+  const rawCategory = raw && typeof raw.category === 'string' ? raw.category.trim().toUpperCase() : null;
+  const category = rawCategory && Object.values(NewsCategory).includes(rawCategory) ? rawCategory : null;
+  const keywords = raw && Array.isArray(raw.keywords)
+    ? raw.keywords
+      .map(k => (typeof k === 'string' ? k.trim() : ''))
+      .filter(k => k.length > 0)
+      .map(k => lemmatizeWord(k))
+      .filter(k => {
+        const words = k.split(' ');
+        return words.length >= 1 && words.length <= 4 &&
+          !['news', 'update', 'read more', 'latest', 'breaking'].includes(k) &&
+          !(words.length === 1 && ['a', 'an', 'and', 'the', 'of', 'to', 'in', 'for', 'with', 'on', 'by', 'at'].includes(k));
+      })
+      .filter((value, index, self) => self.indexOf(value) === index)
+    : [];
+  return { llmBias, category, keywords };
+}
+
+const FALLBACK_RESULT = { llmBias: PoliticalBias.Unknown, category: null, keywords: [] };
+
 /**
- * Process an article headline and first sentence with LLM
- * Uses a single API call to improve efficiency
- * 
- * @param {string} title - The article title
- * @param {string} firstSentence - The first sentence of the article description (optional)
- * @param {string} existingBias - The existing bias for the article
- * @returns {Promise<Object>} - Object with bias and keywords
+ * Label a batch of articles (title + optional first sentence) in as few LLM
+ * calls as possible: cached articles are resolved instantly, and every
+ * uncached article is sent as one combined call rather than one call each -
+ * the fixed instruction block above is the dominant cost per call, so
+ * batching directly multiplies how many articles fit in a rate-limited
+ * provider's per-minute token budget.
+ *
+ * @param {Array<{title: string, firstSentence?: string}>} articles
+ * @returns {Promise<Array<{llmBias: string, category: string|null, keywords: string[]}>>}
+ *   Same length and order as the input.
  */
-async function processArticle(title, firstSentence = '', existingBias = PoliticalBias.Unknown) { // Accept title, firstSentence, and existingBias
-  // Skip empty title
-  if (!title || title.trim().length === 0) {
-    return {
-      bias: existingBias, // Return existing or Unknown if title is empty
-      llmBias: PoliticalBias.Unknown,
-      category: null,
-      keywords: []
-    };
-  }
+async function processArticlesBatch(articles) {
+  const results = new Array(articles.length);
+  const toFetch = []; // { index, title, firstSentence, cacheKey }
 
-  // Combine title and sentence for processing and caching
-  const inputText = `${title}${firstSentence ? '. ' + firstSentence : ''}`;
-  const cacheKey = `article-v3-${createHash(inputText)}`;
+  articles.forEach((article, index) => {
+    const title = article.title || '';
+    if (!title.trim()) {
+      results[index] = FALLBACK_RESULT;
+      return;
+    }
+    const inputText = `${title}${article.firstSentence ? '. ' + article.firstSentence : ''}`;
+    const cacheKey = `article-v4-${createHash(inputText)}`;
+    if (cache.has(cacheKey)) {
+      results[index] = cache.get(cacheKey);
+      return;
+    }
+    toFetch.push({ index, title, firstSentence: article.firstSentence || '', cacheKey });
+  });
 
-  if (cache.has(cacheKey)) return cache.get(cacheKey);
+  if (toFetch.length === 0) return results;
 
-  const categoryList = Object.values(NewsCategory).filter(c => c !== NewsCategory.UNKNOWN).join(', ');
-  const categoryGuide = `Category definitions — pick the ONE that best matches the subject matter:
-- POLITICS: government, elections, legislation, political figures and parties
-- WORLD: international affairs, foreign countries, diplomacy, conflicts, global events (use this for foreign-country stories that aren't a specialty topic below)
-- US: American domestic general news — crime, weather, local events, society (not primarily political)
-- ECONOMICS: business, markets, finance, trade, jobs, companies' financial news
-- TECH: consumer technology, software, gadgets, internet companies and products
-- AI: artificial intelligence, machine learning
-- SCIENCE: research, discoveries, physics/biology/chemistry
-- SPACE: astronomy, spaceflight, NASA/rockets/satellites
-- HEALTH: medicine, disease, healthcare, wellness
-- ENVIRONMENT: climate, energy, nature, conservation
-- SPORTS: athletic events, teams, athletes (even international ones)
-- ENTERTAINMENT: film, TV, celebrities, gaming
-- MUSIC: musicians, albums, concerts, the music industry
-- ARTS: visual art, museums, literature, theater, architecture
-- FASHION: clothing, designers, style, modeling
-- LAW: courts, trials, rulings, the legal profession
-- NEWS: only if nothing above fits`;
-  const promptInstruction = `You are a highly efficient news headline analyst. Your task is to extract three things from the article text itself: (1) the political bias OF THE ARTICLE'S FRAMING AND LANGUAGE (one of: Left, Liberal, Centrist, Conservative, Right, Unknown). Judge bias ONLY from loaded/partisan language actually present in the text — a neutral factual headline is Centrist, and non-political content (sports, product news, entertainment, science) is Unknown. (2) The single best topical category (one of: ${categoryList}).\n${categoryGuide}\n(3) Up to 3 relevant keywords (entities, topics). Prioritize the most central subject as the first keyword. The field values must come from your analysis of THIS text — never reuse values you saw in an example.`;
-  const jsonFields = `{\n  "bias": "<Left, Liberal, Centrist, Conservative, Right, or Unknown>",\n  "category": "<one of: ${categoryList}>",\n  "keywords": ["<Primary Keyword/Entity>", "<Secondary Keyword 1 (optional)>", "<Secondary Keyword 2 (optional)>"]\n}`;
-  const jsonStructureExample = `Example for a headline "New telescope spots distant galaxy": { "bias": "Unknown", "category": "SPACE", "keywords": ["new telescope", "distant galaxy"] }`;
+  // Network/server errors propagate to processArticlesBatchWithRetry below,
+  // which decides whether to retry the whole call - only a malformed-but-
+  // received response (bad JSON from the model itself) is handled here as a
+  // per-batch fallback, since retrying won't fix that.
+  const responseText = await callLLM(buildBatchPrompt(toFetch));
 
-  const fullPrompt = `${promptInstruction}\n\nAnalyze this input:\nHeadline: ${title}\nFirst Sentence: ${firstSentence}\n\nRespond ONLY with valid JSON containing these fields:\n\n${jsonFields} adhering to these guidelines:\n\n**IMPORTANT KEYWORD GUIDELINES (Updated):**\n1.  **Primary Topic/Entity First:** Identify the SINGLE most central subject, event, or named entity (person, place, organization). This should be the FIRST keyword in the array.\n2.  **Secondary Keywords:** Add 1-2 additional distinct keywords or entities that provide essential context or detail related to the primary topic.\n3.  **Total Count:** Aim for 2 keywords total, up to a maximum of 3 if absolutely necessary for clarity.\n4.  **Direct Extraction:** Extract keywords DIRECTLY from the headline/sentence text.\n5.  **Specificity:** Focus on specific proper nouns, core actions, or defining topics. Avoid generic words.\n6.  **Brevity & Clarity:** Prefer concise terms but use multi-word phrases if needed to capture a specific concept accurately.\n7.  **Original Case:** Maintain original capitalization where possible (post-processing might normalize).\n\n**AVOID:**\n*   More than 3 keywords total.\n*   Redundant keywords (synonyms or minor variations of the primary topic).\n*   Generic/uninformative words (e.g., "report", "update", "says", "issue", "statement").\n*   Adding concepts not explicitly mentioned or paraphrasing.\n*   News source names (unless they are the subject).\n*   HTML code/entities, dates/times (unless central).\n\nRespond ONLY with valid JSON. For example: ${jsonStructureExample}`;
-
+  let parsedResults = [];
   try {
-    const responseText = await callLLM(fullPrompt);
-
-    let resultJson;
-    try {
-      // Extract JSON from response if it contains extra text
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : responseText;
-
-      resultJson = JSON.parse(jsonString);
-
-      // Raw LLM content-bias — blended with the source bias downstream
-      // (wordProcessingService). Kept separate so the source bias still guides.
-      const llmBias = resultJson.bias ? mapToPoliticalBias(resultJson.bias) : PoliticalBias.Unknown;
-
-      // Validate the LLM's category against the enum; null if invalid/missing
-      const rawCategory = typeof resultJson.category === 'string' ? resultJson.category.trim().toUpperCase() : null;
-      const llmCategory = rawCategory && Object.values(NewsCategory).includes(rawCategory) ? rawCategory : null;
-
-      // Legacy behavior for `bias`: existing bias wins unless Unknown
-      let finalBiasToReturn = existingBias;
-      if ((!existingBias || existingBias === PoliticalBias.Unknown || existingBias === 'Unknown') && resultJson.bias) {
-        finalBiasToReturn = llmBias;
-      }
-
-      const processedResult = {
-        bias: finalBiasToReturn,
-        llmBias,
-        category: llmCategory,
-        keywords: Array.isArray(resultJson.keywords) ?
-          resultJson.keywords
-            .map(k => k.trim()) // Trim whitespace first
-            .filter(k => k.length > 0) // Filter empty strings after trimming
-            .map(k => lemmatizeWord(k)) // Lemmatize each non-empty keyword
-            .filter(k => { // Apply existing filtering logic *after* lemmatization
-              const words = k.split(' ');
-              // Accept 1-4 word phrases (post-lemmatization)
-              return k.length > 0 && words.length >= 1 && words.length <= 4 &&
-                // Filter out common generic phrases (already lowercase due to lemmatizer)
-                !['news', 'update', 'read more', 'latest', 'breaking'].includes(k) &&
-                // Filter out single prepositions or articles (already lowercase)
-                !(words.length === 1 && ['a', 'an', 'and', 'the', 'of', 'to', 'in', 'for', 'with', 'on', 'by', 'at'].includes(k));
-            })
-            // Add a final uniqueness filter after lemmatization and filtering
-            .filter((value, index, self) => self.indexOf(value) === index)
-          : []
-      };
-      cache.set(cacheKey, processedResult);
-      return processedResult;
-    } catch (e) {
-      console.error(`[LLM Service] Failed to parse LLM JSON response for article "${title}". Response: ${responseText}. Error:`, e);
-      // Fallback: return existingBias and no keywords if JSON parsing fails.
-      const fallbackResult = {
-        bias: existingBias,
-        llmBias: PoliticalBias.Unknown,
-        category: null,
-        keywords: []
-      };
-      cache.set(cacheKey, fallbackResult); // Cache fallback to prevent re-processing bad response
-      return fallbackResult;
-    }
-  } catch (error) {
-    const errorMessage = error.code === 'ECONNREFUSED'
-      ? `LLM connection failed for article "${title}": Ollama service not available (ECONNREFUSED)`
-      : `LLM processing error for article "${title}" (First sentence: "${firstSentence ? firstSentence.substring(0, 50) + '...' : 'N/A'}"): ${error.response ? error.response.status + ' ' + error.response.statusText : error.message || error}`;
-
-    console.error(errorMessage);
-    // Log the actual error object if it's not a connection refusal, for more details on 500s etc.
-    if (error.code !== 'ECONNREFUSED' && error.response) {
-      console.error('[LLM Service] Ollama Error Response Data:', error.response.data);
-    }
-
-    return {
-      bias: existingBias, // On error, retain existing bias or Unknown
-      llmBias: PoliticalBias.Unknown,
-      category: null,
-      keywords: []
-    };
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+    parsedResults = Array.isArray(parsed.results) ? parsed.results : [];
+  } catch (e) {
+    console.error(`[LLM Service] Failed to parse batch JSON response (${toFetch.length} articles). Response: ${responseText}. Error:`, e);
   }
+
+  toFetch.forEach((item, i) => {
+    const normalized = parsedResults[i] ? normalizeResult(parsedResults[i]) : FALLBACK_RESULT;
+    // Cache fallbacks too, so a malformed response for one article doesn't
+    // get retried at full cost within the same 24h cache window.
+    cache.set(item.cacheKey, normalized);
+    results[item.index] = normalized;
+  });
+
+  return results;
 }
 
 /**
- * Process article with retry mechanism
- * 
- * @param {string} title - The article title to analyze
- * @param {string} firstSentence - The first sentence of the article description (optional)
- * @param {string} existingBias - The existing bias for the article
- * @param {number} retries - Number of retry attempts
- * @returns {Promise<Object>} - Object with bias and keywords
+ * Batch version with retry: on a network/server error the WHOLE call is
+ * retried (not per-article), since the failure isn't specific to any one
+ * article in the batch.
  */
-async function processArticleWithRetry(title, firstSentence = '', existingBias = PoliticalBias.Unknown, retries = 2) {
+async function processArticlesBatchWithRetry(articles, retries = 2) {
   try {
-    return await processArticle(title, firstSentence, existingBias);
+    return await processArticlesBatch(articles);
   } catch (error) {
-    // Broaden retry conditions
     const isNetworkError = error.code === 'ECONNREFUSED' ||
       error.code === 'ECONNRESET' ||
       (error.message && error.message.toLowerCase().includes('socket hang up')) ||
-      (error.message && error.message.toLowerCase().includes('timeout')); // Catch axios timeout
+      (error.message && error.message.toLowerCase().includes('timeout'));
     const isServerError = error.response && (error.response.status === 500 || error.response.status === 503 || error.response.status === 504);
 
-    const shouldRetry = (isNetworkError || isServerError);
-
-    if (shouldRetry && retries > 0) {
-      console.warn(`[LLM Service] Retrying for "${title}" due to ${error.message}. Retries left: ${retries}`);
-      await new Promise(resolve => setTimeout(resolve, 1500 + ((2 - retries) * 1000))); // Wait 1.5s, 2.5s, 3.5s
-      return processArticleWithRetry(title, firstSentence, existingBias, retries - 1);
+    if ((isNetworkError || isServerError) && retries > 0) {
+      console.warn(`[LLM Service] Retrying batch of ${articles.length} due to ${error.message}. Retries left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, 1500 + ((2 - retries) * 1000)));
+      return processArticlesBatchWithRetry(articles, retries - 1);
     }
 
-    console.error(`[LLM Service] Final failure for "${title}" after retries or unretryable error: ${error.message}`);
-    if (error.response && error.response.data) {
-      console.error("[LLM Service] Ollama Error Response Data on final failure:", error.response.data);
-    }
-    return {
-      bias: existingBias,
-      llmBias: PoliticalBias.Unknown,
-      category: null,
-      keywords: []
-    };
+    console.error(`[LLM Service] Final failure for batch of ${articles.length} after retries or unretryable error: ${error.message}`);
+    return articles.map(() => FALLBACK_RESULT);
   }
 }
 
@@ -330,8 +290,7 @@ function getCurrentModelName() {
 }
 
 module.exports = {
-  processArticle,
-  processArticleWithRetry,
+  processArticlesBatchWithRetry,
   getCurrentModelName,
   setActiveModel
 };

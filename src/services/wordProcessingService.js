@@ -1,7 +1,7 @@
 const natural = require('natural');
 const nlp = require('compromise');
 const { PoliticalBias, NewsCategory } = require('../types');
-const { processArticleWithRetry } = require('./llmService');
+const { processArticlesBatchWithRetry } = require('./llmService');
 const newsItemRepo = require('../db/newsItemRepo');
 const { lemmatizeWord, stripHtml, isProperNoun } = require('../utils/textUtils');
 // const { getSourcesConfiguration } = require('../config/config'); // Keep if used by other functions not shown here
@@ -458,48 +458,38 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
   const processedResults = [];
   let llmFallbackCountForBatch = 0;
 
+  // Split out invalid items up front, then label every valid item's article
+  // in a single combined LLM call instead of one call per item - see
+  // llmService.processArticlesBatchWithRetry for why batching matters here.
+  const validItems = [];
   for (const item of newsItemsFromDB) {
     if (!item || !item.title || !item.contentSnippet || !item._id) {
       console.warn('[Word Processing] Skipping invalid item in batch:', item ? item._id : 'undefined item');
       processedResults.push({ ...item, keywords: item.keywords || [], llmProcessed: item.llmProcessed || false, llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1, processedAt: new Date() });
       continue;
     }
+    validItems.push({
+      item,
+      title: stripHtml(item.title),
+      firstSentence: stripHtml(item.contentSnippet.split('.')[0] || ''),
+      itemSourceBias: (item.source && item.source.bias) ? item.source.bias : PoliticalBias.Unknown
+    });
+  }
 
-    const title = stripHtml(item.title);
-    const firstSentence = stripHtml(item.contentSnippet.split('.')[0] || '');
-    let llmResult = null;
-    // Initialize itemBias STRICTLY from item.source.bias or default to Unknown
-    // This will be passed to the LLM as a hint, but LLM's bias output will not override this.
-    const itemSourceBias = (item.source && item.source.bias) ? item.source.bias : PoliticalBias.Unknown;
+  const llmResults = validItems.length > 0
+    ? await processArticlesBatchWithRetry(validItems.map(v => ({ title: v.title, firstSentence: v.firstSentence })))
+    : [];
+
+  validItems.forEach(({ item, title, firstSentence, itemSourceBias }, i) => {
+    const llmResult = llmResults[i];
     let keywordsToUse = item.keywords || [];
     let llmSuccess = false;
 
-    try {
-      // Pass the itemSourceBias to LLM. Its keywords will be used, but its bias suggestion will be ignored.
-      llmResult = await processArticleWithRetry(title, firstSentence, itemSourceBias);
-
-      if (llmResult && llmResult.keywords && llmResult.keywords.length > 0) {
-        keywordsToUse = llmResult.keywords;
-        // DO NOT update itemSourceBias with llmResult.bias. The source's bias is king.
-        llmSuccess = true;
-      } else if (llmResult && (!llmResult.keywords || llmResult.keywords.length === 0)) {
-        llmFallbackCountForBatch++;
-        const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
-          .map(p => p.text)
-          .filter(k => shouldKeepWord(k, config));
-        keywordsToUse = traditionalKeywords.slice(0, 10);
-        llmSuccess = false; // Explicitly false, even if traditional keywords found
-      } else {
-        // LLM call failed or returned null/undefined
-        llmFallbackCountForBatch++;
-        const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
-          .map(p => p.text)
-          .filter(k => shouldKeepWord(k, config));
-        keywordsToUse = traditionalKeywords.slice(0, 10);
-        llmSuccess = false;
-      }
-    } catch (error) {
-      console.error(`Error processing article ${item._id} with LLM:`, error.message);
+    if (llmResult && llmResult.keywords && llmResult.keywords.length > 0) {
+      keywordsToUse = llmResult.keywords;
+      // DO NOT update itemSourceBias with llmResult.bias. The source's bias is king.
+      llmSuccess = true;
+    } else {
       llmFallbackCountForBatch++;
       const traditionalKeywords = extractMeaningfulPhrases(title + " " + firstSentence)
         .map(p => p.text)
@@ -532,7 +522,7 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
 
     updateGlobalCacheWithSingleItem(processedItem);
     processedResults.push(processedItem);
-  }
+  });
 
   if (llmFallbackCountForBatch > 0) {
     console.log(`[Word Processing Service] LLM fallback used for ${llmFallbackCountForBatch} items in this batch.`);

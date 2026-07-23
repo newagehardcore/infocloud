@@ -13,18 +13,19 @@
  */
 const rssService = require('./services/rssService');
 const newsItemRepo = require('./db/newsItemRepo');
-const { processArticleWithRetry } = require('./services/llmService');
 const { processNewsKeywords, aggregateKeywordsForCloud } = require('./services/wordProcessingService');
 
 const SOURCES_PER_TICK = parseInt(process.env.SOURCES_PER_TICK || '30', 10);
-// Groq's free tier for llama-3.1-8b-instant caps at 6000 tokens/minute, and a
-// single labeling call runs ~700-800 tokens - measured against the real API,
-// only about 7-8 calls/minute fit before 429s start. Articles that don't get
-// labeled this tick fall back to keyword-extraction (see wordProcessingService)
-// and stay llmProcessed:false, so they're retried on the next tick rather than
-// lost - keeping this low just means proper LLM labeling catches up over a
-// few tick cycles instead of wasting most calls on rate-limit errors.
-const ARTICLES_PER_TICK = parseInt(process.env.ARTICLES_PER_TICK || '8', 10);
+// Groq's free tier for llama-3.1-8b-instant caps at 6000 tokens/minute. All
+// of a tick's articles are now labeled in ONE batched LLM call (see
+// llmService.processArticlesBatchWithRetry) instead of one call per article,
+// so the ~600-token instruction block is paid once per tick rather than once
+// per article, and marginal cost per article is just its own title/sentence
+// + short JSON output (roughly 50-80 tokens). That puts the safe ceiling
+// around 40-80 articles/tick rather than the previous 8; started at 40 to
+// leave headroom until confirmed against real usage - watch summary.llm in
+// the tick response for errors (esp. 429s) before raising further.
+const ARTICLES_PER_TICK = parseInt(process.env.ARTICLES_PER_TICK || '40', 10);
 const MAX_AGE_DAYS = parseInt(process.env.NEWS_ITEM_MAX_AGE_DAYS || '14', 10);
 
 let suspended = false;
