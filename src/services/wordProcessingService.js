@@ -438,17 +438,31 @@ const BIAS_SCALE = {
 };
 const SCALE_TO_BIAS = [PoliticalBias.Left, PoliticalBias.Liberal, PoliticalBias.Centrist, PoliticalBias.Conservative, PoliticalBias.Right];
 
+// sources.bias is stored/validated all-uppercase ('LIBERAL'), but PoliticalBias
+// (and BIAS_SCALE's keys) use mixed case ('Liberal') to match the frontend
+// enum. Without this, BIAS_SCALE[sourceBias] was undefined for every source
+// on every article - silently disabling the source side of the blend
+// entirely and leaving bias as pure per-headline LLM noise.
+function normalizeToPoliticalBias(rawBias) {
+  if (!rawBias) return undefined;
+  return Object.values(PoliticalBias).find(b => b.toUpperCase() === rawBias.toUpperCase());
+}
+
 /**
  * Blend the source's editorial bias with the LLM's content-bias score.
  * The source guides (60%) and the article's own framing adjusts (40%).
  * If either side is Unknown, the other side wins outright.
  */
 function blendBias(sourceBias, llmBias) {
-  const s = BIAS_SCALE[sourceBias];
-  const l = BIAS_SCALE[llmBias];
+  const normalizedSource = normalizeToPoliticalBias(sourceBias);
+  const normalizedLlm = normalizeToPoliticalBias(llmBias);
+  const s = BIAS_SCALE[normalizedSource];
+  const l = BIAS_SCALE[normalizedLlm];
   if (s === undefined && l === undefined) return PoliticalBias.Unknown;
-  if (s === undefined) return llmBias;
-  if (l === undefined) return sourceBias;
+  // Return the normalized (mixed-case) value, not the raw input, which for
+  // sourceBias is the all-uppercase string as stored in the sources table.
+  if (s === undefined) return normalizedLlm;
+  if (l === undefined) return normalizedSource;
   const blended = Math.round(s * 0.6 + l * 0.4);
   return SCALE_TO_BIAS[blended + 2];
 }
@@ -514,6 +528,7 @@ async function processNewsKeywords(newsItemsFromDB, config = DEFAULT_CONFIG) {
       contentSnippet: item.contentSnippet, // ensure original snippet is preserved
       keywords: finalKeywords,
       bias: finalBias,
+      llmBias, // was never attached here before - llm_bias stayed NULL in the DB forever
       category: finalCategory,
       llmProcessed: llmSuccess,
       llmProcessingAttempts: (item.llmProcessingAttempts || 0) + 1,
