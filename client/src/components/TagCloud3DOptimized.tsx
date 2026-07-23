@@ -24,16 +24,25 @@ const FrameloopWatchdog: React.FC = () => {
     // invalidates again. Nudge it whenever the clock stops advancing.
     // invalidate() alone is not always enough (it no-ops while the store is
     // inactive, which happens in production builds), so if the clock is STILL
-    // stuck on the next check, fake a window resize — r3f's measure/resize
+    // stuck after a long stretch, fake a window resize — r3f's measure/resize
     // path unconditionally restarts the loop.
+    //
+    // The escalation threshold used to be 1s (2 checks), which was far too
+    // eager: forcing a resize makes the browser reallocate the WebGL drawing
+    // buffer, and that reallocation is exactly what shows up as a visible
+    // "THREE.WebGLRenderer: Context Lost" / "Context Restored" flash. Normal,
+    // brief main-thread busy periods (e.g. the news popup's mount animation)
+    // were enough to trip a 1s threshold, causing a self-inflicted flicker on
+    // essentially every tag click. 10s only fires for a genuinely stuck loop.
     let lastElapsed = -1;
     let stuckChecks = 0;
     const id = setInterval(() => {
       if (clock.elapsedTime === lastElapsed) {
         stuckChecks += 1;
         invalidate();
-        if (stuckChecks >= 2) {
+        if (stuckChecks >= 20) {
           window.dispatchEvent(new Event('resize'));
+          stuckChecks = 0;
         }
       } else {
         stuckChecks = 0;
