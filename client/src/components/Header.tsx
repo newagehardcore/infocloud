@@ -29,13 +29,16 @@ const Header: React.FC<HeaderProps> = ({ selectedCategory, onSelectCategory }) =
     }
   };
   
+  // Unknown bias has no visible toggle: real word data virtually never
+  // resolves to it (a word only lands there if BOTH the source's bias and
+  // the LLM's per-article guess are missing), so the button was effectively
+  // inert - toggling it never visibly changed anything.
   const biasOrder = [
     PoliticalBias.Left,
     PoliticalBias.Liberal,
     PoliticalBias.Centrist,
     PoliticalBias.Conservative,
     PoliticalBias.Right,
-    PoliticalBias.Unknown,
   ];
 
   const getBiasColor = (bias: PoliticalBias): string => {

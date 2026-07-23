@@ -4,13 +4,15 @@ import { useFilters } from '../contexts/FilterContext';
 import { getSourceTypeFont } from '../utils/fonts';
 import './MobileControls.css';
 
+// Unknown bias has no visible toggle - see the matching comment in
+// Header.tsx: real word data virtually never resolves to it, so the button
+// was effectively inert.
 const biasOrder = [
   PoliticalBias.Left,
   PoliticalBias.Liberal,
   PoliticalBias.Centrist,
   PoliticalBias.Conservative,
-  PoliticalBias.Right,
-  PoliticalBias.Unknown
+  PoliticalBias.Right
 ];
 
 const typeOrder = [SourceType.Independent, SourceType.Corporate, SourceType.State];

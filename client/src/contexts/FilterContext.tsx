@@ -5,14 +5,22 @@ import { PoliticalBias, NewsCategory, SourceType } from '../types';
 export const BIAS_UPDATE_EVENT = 'bias-update';
 export const TYPE_UPDATE_EVENT = 'type-update';
 
-// SourceType.Unknown has no visible toggle button anywhere in the UI (see
-// Header.tsx / MobileControls.tsx), so it doesn't count as a real "one
-// left" for the last-enabled guard below - otherwise a user could disable
-// Independent, Corporate, and State one at a time (each individually valid,
-// since Unknown was always still silently in the set) and end up with only
+// SourceType.Unknown and PoliticalBias.Unknown have no visible toggle button
+// anywhere in the UI (see Header.tsx / MobileControls.tsx - real word data
+// virtually never resolves to either), so neither counts as a real "one
+// left" for the last-enabled guards below - otherwise a user could disable
+// every visible option one at a time (each individually valid, since the
+// Unknown value was always still silently in the set) and end up with only
 // the invisible Unknown active, which filters out nearly everything just as
 // badly as a true empty set.
 const USER_TOGGLEABLE_TYPES = [SourceType.Independent, SourceType.Corporate, SourceType.State];
+const USER_TOGGLEABLE_BIASES = [
+  PoliticalBias.Left,
+  PoliticalBias.Liberal,
+  PoliticalBias.Centrist,
+  PoliticalBias.Conservative,
+  PoliticalBias.Right
+];
 
 interface ApiSource {
   name: string;
@@ -242,11 +250,17 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     } 
     // Normal toggle
     else {
-      // Refuse to disable the last enabled bias: with no keyboard modifier
-      // available on touch devices, this was the only way to reach it, and
-      // it's a dead end there's no mobile escape hatch from - the cloud
-      // filters to nothing and that empty set persists across refreshes.
-      if (enabledBiases.size === 1 && enabledBiases.has(bias)) {
+      // Refuse to disable the last enabled user-facing bias: with no
+      // keyboard modifier available on touch devices, this was the only way
+      // to reach it, and it's a dead end there's no mobile escape hatch from
+      // - the cloud filters to nothing and that empty set persists across
+      // refreshes. PoliticalBias.Unknown has no visible button, so it
+      // doesn't count as a legitimate "last one remaining" either.
+      if (
+        USER_TOGGLEABLE_BIASES.includes(bias) &&
+        enabledBiases.has(bias) &&
+        USER_TOGGLEABLE_BIASES.filter(b => b !== bias && enabledBiases.has(b)).length === 0
+      ) {
         console.log(`Refusing to disable the last enabled bias: ${bias}`);
         return;
       }
