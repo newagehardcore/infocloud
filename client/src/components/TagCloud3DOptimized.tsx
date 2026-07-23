@@ -15,8 +15,8 @@ const MAX_FONT_SIZE = 4.5;
 // siblings - otherwise one word's value changing shifts every other word's
 // size too, which reads as the whole cloud "jumping" on every refresh.
 const VALUE_SCALE_MIN = 0.5; // at/below this value, a word renders at MIN_FONT_SIZE
-const VALUE_SCALE_MAX = 80; // at/above this value, a word renders at MAX_FONT_SIZE
-const VALUE_SCALE_EXPONENT = 2.2; // >1 keeps the "few big hero words" look
+const VALUE_SCALE_MAX = 65; // at/above this value, a word renders at MAX_FONT_SIZE
+const VALUE_SCALE_EXPONENT = 7; // steep: only a handful of hero words stand out, the long tail collapses fast
 
 // Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
 // mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
