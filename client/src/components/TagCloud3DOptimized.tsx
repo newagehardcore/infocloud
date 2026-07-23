@@ -10,34 +10,15 @@ import StarfieldTags from './StarfieldTags';
 // Define min/max size constants
 const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
 const MAX_FONT_SIZE = 4.5;
-// Size is normalized against the LOCAL min/max of the currently displayed
+// Size is normalized against the LOCAL max value of the currently displayed
 // set (i.e. within whatever category/bias/type filter is active), not a
 // fixed global anchor - so filtering into a thin category still shows a
 // clear "biggest word" instead of everything looking uniformly small. This
 // is deliberately NOT rank-based though: it compares each word's actual
-// value to the local range, so two nearly-tied words still render at nearly
+// value to the local max, so two nearly-tied words still render at nearly
 // the same size, rather than the old rank scheme where tiny reorderings of
 // near-ties produced big, arbitrary size swings.
-//
-// The interpolation is done in LOG space, not linear. Word values are
-// heavily power-law distributed - e.g. on the "all" view one story can sit
-// at 2x the runner-up and 100x the tail. A linear ratio-to-the-Nth-power
-// crushes that: the runner-up's ratio is already small, and raising a small
-// number to a power crushes it further, so everything except the #1 word
-// collapses into a flat floor.
-//
-// The exponent applied on top of the log-normalized t is a tradeoff between
-// two failure modes seen in practice:
-//   - too high (was 7 at one point) crushes almost everything toward the
-//     floor except the single #1 word - "one giant word, flat sea of tiny
-//     ones".
-//   - too low (was 1.3) barely bends the curve at all, so most of the
-//     upper/mid tail lands within a hair of MAX_FONT_SIZE - "everything
-//     looks like a hero word, no medium tier".
-// 2.5 is the middle ground: #1 stays clearly biggest, the runner-up(s) read
-// as clearly-large-but-smaller, and the long tail falls off through
-// medium/small/tiny rather than either collapsing or bunching at the top.
-const VALUE_SCALE_EXPONENT = 2.5; // >1 keeps the "a couple hero words" look without flattening the rest
+const VALUE_SCALE_EXPONENT = 2; // >1 keeps the "few big hero words" look
 
 // Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
 // mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
@@ -120,20 +101,11 @@ const TagCloud3D: React.FC<{
     const newFontSizes = new Map<string, number>();
     if (words.length === 0) return newFontSizes;
 
-    const values = words.map(w => Math.max(w.value, 1e-6));
-    const localMax = Math.max(...values);
-    const localMin = Math.min(...values);
-    const logMax = Math.log(localMax);
-    const logMin = Math.log(localMin);
-    const logRange = logMax - logMin;
+    const localMax = Math.max(...words.map(w => w.value), 1e-6);
 
     words.forEach(word => {
-      const value = Math.max(word.value, 1e-6);
-      // logRange can be 0 when every visible word has the same value (or
-      // there's only one word) - fall back to the max size rather than
-      // dividing by zero.
-      const t = logRange > 0 ? Math.min(1, Math.max(0, (Math.log(value) - logMin) / logRange)) : 1;
-      const fontSize = MIN_FONT_SIZE + Math.pow(t, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
+      const ratio = Math.min(1, Math.max(0, word.value / localMax));
+      const fontSize = MIN_FONT_SIZE + Math.pow(ratio, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
       newFontSizes.set(word.text, fontSize);
     });
     return newFontSizes;
