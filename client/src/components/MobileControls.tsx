@@ -59,7 +59,7 @@ const MobileControls: React.FC = () => {
           {biasOrder.map(bias => (
             <button
               key={bias}
-              className={`mobile-filter-button ${enabledBiases.has(bias) ? 'active' : ''}`}
+              className={`category-button mobile-filter-button ${enabledBiases.has(bias) ? 'active' : ''}`}
               onClick={() => toggleBias(bias)}
               style={{
                 color: enabledBiases.has(bias) ? '#000' : getBiasColor(bias),
@@ -69,12 +69,11 @@ const MobileControls: React.FC = () => {
               {bias}
             </button>
           ))}
-        </div>
-        <div className="mobile-filter-row">
+          <div className="mobile-row-divider" />
           {typeOrder.map(type => (
             <button
               key={type}
-              className={`mobile-filter-button ${enabledTypes.has(type) ? 'active' : ''}`}
+              className={`category-button mobile-filter-button ${enabledTypes.has(type) ? 'active' : ''}`}
               onClick={() => toggleType(type)}
               style={{
                 fontFamily: getSourceTypeFont(type),
@@ -92,7 +91,7 @@ const MobileControls: React.FC = () => {
       <div className="mobile-category-bar">
         <div className="mobile-filter-row">
           <button
-            className={`mobile-filter-button ${selectedCategory === 'all' ? 'active' : ''}`}
+            className={`category-button mobile-filter-button ${selectedCategory === 'all' ? 'active' : ''}`}
             onClick={() => setSelectedCategory('all')}
           >
             ALL
@@ -100,7 +99,7 @@ const MobileControls: React.FC = () => {
           {categories.map(category => (
             <button
               key={category}
-              className={`mobile-filter-button ${selectedCategory === category ? 'active' : ''}`}
+              className={`category-button mobile-filter-button ${selectedCategory === category ? 'active' : ''}`}
               onClick={() => setSelectedCategory(category)}
             >
               {category}

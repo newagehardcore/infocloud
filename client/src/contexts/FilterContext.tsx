@@ -5,6 +5,15 @@ import { PoliticalBias, NewsCategory, SourceType } from '../types';
 export const BIAS_UPDATE_EVENT = 'bias-update';
 export const TYPE_UPDATE_EVENT = 'type-update';
 
+// SourceType.Unknown has no visible toggle button anywhere in the UI (see
+// Header.tsx / MobileControls.tsx), so it doesn't count as a real "one
+// left" for the last-enabled guard below - otherwise a user could disable
+// Independent, Corporate, and State one at a time (each individually valid,
+// since Unknown was always still silently in the set) and end up with only
+// the invisible Unknown active, which filters out nearly everything just as
+// badly as a true empty set.
+const USER_TOGGLEABLE_TYPES = [SourceType.Independent, SourceType.Corporate, SourceType.State];
+
 interface ApiSource {
   name: string;
   enabled: boolean;
@@ -233,6 +242,14 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     } 
     // Normal toggle
     else {
+      // Refuse to disable the last enabled bias: with no keyboard modifier
+      // available on touch devices, this was the only way to reach it, and
+      // it's a dead end there's no mobile escape hatch from - the cloud
+      // filters to nothing and that empty set persists across refreshes.
+      if (enabledBiases.size === 1 && enabledBiases.has(bias)) {
+        console.log(`Refusing to disable the last enabled bias: ${bias}`);
+        return;
+      }
       console.log(`Toggling bias: ${bias}, current status: ${enabledBiases.has(bias) ? 'enabled' : 'disabled'}`);
       newEnabledBiases = new Set(enabledBiases);
       if (newEnabledBiases.has(bias)) {
@@ -308,6 +325,17 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     } 
     // Normal toggle
     else {
+      // Refuse to disable the last user-facing enabled type - see the
+      // matching guard in toggleBias for why (no keyboard modifier on touch
+      // devices means no way back from a persisted, effectively-empty set).
+      if (
+        USER_TOGGLEABLE_TYPES.includes(type) &&
+        enabledTypes.has(type) &&
+        USER_TOGGLEABLE_TYPES.filter(t => t !== type && enabledTypes.has(t)).length === 0
+      ) {
+        console.log(`Refusing to disable the last enabled type: ${type}`);
+        return;
+      }
       console.log(`Toggling type: ${type}, current status: ${enabledTypes.has(type) ? 'enabled' : 'disabled'}`);
       newEnabledTypes = new Set(enabledTypes);
       if (newEnabledTypes.has(type)) {
