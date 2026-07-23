@@ -133,6 +133,14 @@ app.get('/api/internal/cors-check', (req, res) => {
   });
 });
 
+// TEMP: does a literal static wildcard survive when a dynamic echoed-origin
+// value doesn't? Narrows down what exactly the edge is stripping.
+app.get('/api/internal/cors-check-wildcard', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Test-Marker', 'wildcard-variant');
+  res.json({ ok: true });
+});
+
 // Connect to Database and Start Server
 console.log('Attempting to connect to database...');
 connectDB().then(() => {
