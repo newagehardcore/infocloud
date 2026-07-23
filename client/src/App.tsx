@@ -3,13 +3,14 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import axios from 'axios';
 import * as THREE from 'three'; // Import THREE for RefObject type
 import Header from './components/Header';
+import MobileControls from './components/MobileControls';
 import TagCloud3DOptimized from './components/TagCloud3DOptimized';
 import FloatingNewsWindow from './components/FloatingNewsWindow'; // Import new component
-import ResponsiveContainer from './components/ResponsiveContainer';
 import { NewsCategory, NewsItem, TagCloudWord, PoliticalBias, SourceType } from './types';
 import { preloadFonts } from './utils/fonts';
 import { getDominantSourceType, getDominantBias } from './utils/dominance';
 import { FilterProvider, useFilters, BIAS_UPDATE_EVENT, TYPE_UPDATE_EVENT } from './contexts/FilterContext';
+import { useIsMobile } from './hooks/useIsMobile';
 import LoadingBar from './components/LoadingBar';
 import './App.css';
 import './components/TagFonts.css';
@@ -92,6 +93,7 @@ const App: React.FC = () => {
     enabledTypes,
     toggleType
   } = useFilters();
+  const isMobile = useIsMobile();
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [unfilteredNewsItems, setUnfilteredNewsItems] = useState<NewsItem[]>([]);
   const [allTagCloudWords, setAllTagCloudWords] = useState<TagCloudWord[]>([]);
@@ -340,11 +342,6 @@ const App: React.FC = () => {
     ));
   };
 
-  // Simplified tag cloud for mobile devices
-  const MobileTagCloud = () => (
-    <div className="mobile-message">Tag cloud rendering optimized for desktop.</div>
-  );
-
   // Helper to start the loading bar
   const startLoadingBar = () => {
     setShowLoadingBar(true);
@@ -389,66 +386,67 @@ const App: React.FC = () => {
     <Router>
       <div className="app">
         <LoadingBar progress={loadingProgress} visible={showLoadingBar} />
-        <Header
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          currentCategory={selectedCategory}
-        />
-        {/* Re-add the vertical category list on the right */}
-        <ul className="category-list-vertical-right">
-          {/* Add 'All' button */}
-          <li>
-            <button
-              className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
-              onClick={() => setSelectedCategory('all')} // Use context setter with 'all'
-              style={{
-                margin: '2px 0',
-                width: '100%',
-              }}
-            >
-              ALL
-            </button>
-          </li>
-          {/* Existing category buttons */}
-          {categories.map(category => (
-            <li key={category}>
-              <button
-                className={`category-button ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category)} // Use context setter
-                style={{
-                  margin: '2px 0',
-                  width: '100%',
-                }}
-              >
-                {category}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isMobile ? (
+          <MobileControls />
+        ) : (
+          <>
+            <Header
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              currentCategory={selectedCategory}
+            />
+            {/* Re-add the vertical category list on the right */}
+            <ul className="category-list-vertical-right">
+              {/* Add 'All' button */}
+              <li>
+                <button
+                  className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory('all')} // Use context setter with 'all'
+                  style={{
+                    margin: '2px 0',
+                    width: '100%',
+                  }}
+                >
+                  ALL
+                </button>
+              </li>
+              {/* Existing category buttons */}
+              {categories.map(category => (
+                <li key={category}>
+                  <button
+                    className={`category-button ${selectedCategory === category ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(category)} // Use context setter
+                    style={{
+                      margin: '2px 0',
+                      width: '100%',
+                    }}
+                  >
+                    {category}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         {/* Wrapper for the main content area */}
         <div className="main-content-wrapper">
-          <ResponsiveContainer
-            mobileComponent={<MobileTagCloud />}
-            desktopComponent={
-              <div style={{ width: '100%', height: '100%' }}>
-                {loading && <div className="loading-indicator">Loading News...</div>}
-                {error && <div className="error-message">Error: {error}</div>}
-                {!loading && displayedWords.length === 0 && !error && (
-                  allTagCloudWords.length > 0 ? (
-                    <div className="loading-indicator">No tags match your current Bias/Type/Category filters.</div>
-                  ) : (
-                    <div className="loading-indicator">No articles found or sources returned empty. Check API keys and source settings.</div>
-                  )
-                )}
-                <TagCloud3DOptimized
-                  category={selectedCategory}
-                  words={displayedWords}
-                  onWordSelect={handleWordSelect}
-                  selectedWord={selectedWord}
-                />
-              </div>
-            }
-          />
+          <div style={{ width: '100%', height: '100%' }}>
+            {loading && <div className="loading-indicator">Loading News...</div>}
+            {error && <div className="error-message">Error: {error}</div>}
+            {!loading && displayedWords.length === 0 && !error && (
+              allTagCloudWords.length > 0 ? (
+                <div className="loading-indicator">No tags match your current Bias/Type/Category filters.</div>
+              ) : (
+                <div className="loading-indicator">No articles found or sources returned empty. Check API keys and source settings.</div>
+              )
+            )}
+            <TagCloud3DOptimized
+              category={selectedCategory}
+              words={displayedWords}
+              onWordSelect={handleWordSelect}
+              selectedWord={selectedWord}
+            />
+          </div>
           {openNewsWindows.map(win => (
             <FloatingNewsWindow
               key={win.wordData.text}
