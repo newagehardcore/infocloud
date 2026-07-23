@@ -36,7 +36,7 @@ interface FilterContextType {
   enabledTypes: Set<SourceType>;
   toggleType: (type: SourceType, event?: React.MouseEvent<HTMLButtonElement>) => void;
   isTypeEnabled: (type: SourceType) => boolean;
-  
+
   // Category filter (NEW)
   selectedCategory: NewsCategory | 'all'; // Can be a specific category or 'all'
   setSelectedCategory: (category: NewsCategory | 'all') => void;

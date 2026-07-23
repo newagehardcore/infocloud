@@ -14,7 +14,6 @@ import LoadingBar from './components/LoadingBar';
 import './App.css';
 import './components/TagFonts.css';
 import TimeControls from './components/TimeControls';
-import EditMenu from './components/EditMenu';
 
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
@@ -395,9 +394,6 @@ const App: React.FC = () => {
           onSelectCategory={setSelectedCategory}
           currentCategory={selectedCategory}
         />
-        <div className="top-right-controls">
-          <EditMenu onClose={() => { }} />
-        </div>
         {/* Re-add the vertical category list on the right */}
         <ul className="category-list-vertical-right">
           {/* Add 'All' button */}
@@ -438,7 +434,11 @@ const App: React.FC = () => {
                 {loading && <div className="loading-indicator">Loading News...</div>}
                 {error && <div className="error-message">Error: {error}</div>}
                 {!loading && displayedWords.length === 0 && !error && (
-                  <div className="loading-indicator">No articles found or sources returned empty. Check API keys and source settings.</div>
+                  allTagCloudWords.length > 0 ? (
+                    <div className="loading-indicator">No tags match your current Bias/Type/Category filters.</div>
+                  ) : (
+                    <div className="loading-indicator">No articles found or sources returned empty. Check API keys and source settings.</div>
+                  )
                 )}
                 <TagCloud3DOptimized
                   category={selectedCategory}
