@@ -76,8 +76,16 @@ function setActiveModel(newModelName) {
  * response (JSON extraction/parsing happens in the caller, same for both
  * providers). Errors propagate with the same axios error shape (error.code,
  * error.response) that the retry/fallback logic below already handles.
+ *
+ * @param {string} promptText
+ * @param {number} [maxOutputTokens] - Batched calls ask for many JSON objects
+ *   in one completion; without an explicit cap, providers fall back to a
+ *   default output-token limit that can truncate a large batch before every
+ *   object is written - producing a syntactically valid but short "results"
+ *   array rather than an error (seen in practice: an unset default silently
+ *   returned well under half the requested objects for a 40-article batch).
  */
-async function callLLM(promptText) {
+async function callLLM(promptText, maxOutputTokens) {
   if (LLM_PROVIDER === 'groq') {
     if (!GROQ_API_KEY) {
       throw new Error('GROQ_API_KEY is not set but LLM_PROVIDER=groq');
@@ -87,7 +95,8 @@ async function callLLM(promptText) {
       messages: [{ role: 'user', content: promptText }],
       temperature: 0.2,
       top_p: 0.7,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {})
     }, {
       headers: {
         Authorization: `Bearer ${GROQ_API_KEY}`,
@@ -108,7 +117,8 @@ async function callLLM(promptText) {
       temperature: 0.2,
       top_k: 20,
       top_p: 0.7,
-      seed: 42
+      seed: 42,
+      ...(maxOutputTokens ? { num_predict: maxOutputTokens } : {})
     }
   });
   return response.data.response;
@@ -208,7 +218,11 @@ async function processArticlesBatch(articles) {
   // which decides whether to retry the whole call - only a malformed-but-
   // received response (bad JSON from the model itself) is handled here as a
   // per-batch fallback, since retrying won't fix that.
-  const responseText = await callLLM(buildBatchPrompt(toFetch));
+  // ~60 tokens/object is generous for a short {bias, category, keywords}
+  // result; without an explicit cap the provider's default output-token
+  // limit can silently truncate a large batch to fewer completed objects.
+  const maxOutputTokens = Math.max(512, toFetch.length * 60);
+  const responseText = await callLLM(buildBatchPrompt(toFetch), maxOutputTokens);
 
   let parsedResults = [];
   try {
