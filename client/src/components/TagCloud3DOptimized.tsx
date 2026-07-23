@@ -10,7 +10,13 @@ import StarfieldTags from './StarfieldTags';
 // Define min/max size constants
 const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
 const MAX_FONT_SIZE = 4.5;
-const RANK_SCALE_POWER = 55.0; // Power for rank-based scaling (higher = smaller words shrink faster)
+// Fixed anchors for an ABSOLUTE value -> size mapping. A word's size must
+// depend only on its own value, never on the current rank among its
+// siblings - otherwise one word's value changing shifts every other word's
+// size too, which reads as the whole cloud "jumping" on every refresh.
+const VALUE_SCALE_MIN = 0.5; // at/below this value, a word renders at MIN_FONT_SIZE
+const VALUE_SCALE_MAX = 80; // at/above this value, a word renders at MAX_FONT_SIZE
+const VALUE_SCALE_EXPONENT = 2.2; // >1 keeps the "few big hero words" look
 
 // Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
 // mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
@@ -82,21 +88,22 @@ const TagCloud3D: React.FC<{
     }
   }, []);
   
-  // Calculate all font sizes based on rank, synchronously with the words.
-  // (useMemo, not effect state: positions/sizes must never lag one render
-  // behind `words`, or a large word briefly renders at another word's
-  // near-camera slot — the "white flash" on category switch.)
+  // Calculate all font sizes from each word's OWN value on a fixed log
+  // scale, synchronously with the words. (useMemo, not effect state:
+  // positions/sizes must never lag one render behind `words`, or a large
+  // word briefly renders at another word's near-camera slot — the "white
+  // flash" on category switch.) Deliberately NOT rank-based: a word's size
+  // must only change when its own value changes, not whenever some other
+  // word's value shuffles the rank order.
   const fontSizes = React.useMemo(() => {
     const newFontSizes = new Map<string, number>();
-    if (words.length === 0) return newFontSizes;
+    const logMin = Math.log(VALUE_SCALE_MIN);
+    const logMax = Math.log(VALUE_SCALE_MAX);
 
-    const sortedWords = [...words].sort((a, b) => b.value - a.value);
-    const count = sortedWords.length;
-
-    sortedWords.forEach((word, rank) => {
-      const normalizedRank = count > 1 ? rank / (count - 1) : 0;
-      const scaledRankFactor = Math.pow(1 - normalizedRank, RANK_SCALE_POWER);
-      const fontSize = MIN_FONT_SIZE + scaledRankFactor * (MAX_FONT_SIZE - MIN_FONT_SIZE);
+    words.forEach(word => {
+      const clampedValue = Math.max(VALUE_SCALE_MIN, word.value);
+      const t = Math.min(1, Math.max(0, (Math.log(clampedValue) - logMin) / (logMax - logMin)));
+      const fontSize = MIN_FONT_SIZE + Math.pow(t, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
       newFontSizes.set(word.text, fontSize);
     });
     return newFontSizes;
@@ -111,159 +118,25 @@ const TagCloud3D: React.FC<{
     return Math.abs(hash);
   }, []);
 
+  // Positions are cached per word-text in a ref that persists across
+  // renders, and only ever gain entries for words that don't have one yet.
+  // This is what makes "adding a tag shouldn't move any other tag, and an
+  // existing tag growing shouldn't move either" actually true: a word's
+  // position is computed once, from its own hash and the state of the
+  // world at the moment it first appears, and is never recalculated just
+  // because some other word's value/rank changed on a later refresh.
+  const positionCacheRef = useRef<Map<string, [number, number, number]>>(new Map());
+
   // Generate positions with frequency-based clustering
   const generateDeterministicPositions = useCallback((words: TagCloudWord[]): [number, number, number][] => {
     const CLOUD_SIZE = 30; // Smaller base size for tighter clustering
     const DEPTH_FACTOR = 1.5; // Reduced depth range
-    
-    // Find max frequency for normalization (still needed for positioning)
-    const maxValue = Math.max(...words.map(w => w.value), 1); // Keep local max for positioning logic
-    
-    // Create a map of canonical forms to their positions
-    const canonicalPositions = new Map<string, [number, number, number]>();
+    const MAX_RADIUS = 28; // Clamp shell so no word can sit near the camera
+    const MAX_DEPTH = 20; // (camera is at z=60; an unclamped word at z~45 fills the viewport)
 
-    // Sort words by size to process largest words first
-    const sortedWords = [...words].sort((a, b) => b.value - a.value);
-    
-    // Create a map to keep track of word text to index in the original array
-    const wordToIndexMap = new Map<string, number>();
-    words.forEach((word, index) => {
-      wordToIndexMap.set(word.text, index);
-    });
-    
-    // Keep track of largest words' positions to enforce minimum distance
-    const largeWordPositions: { position: [number, number, number]; size: number; text: string }[] = [];
-    
-    // Calculate desired positions for all words
-    const positions: ([number, number, number] | null)[] = new Array(words.length).fill(null);
-    
-    // Process words in order of size (largest first)
-    for (const word of sortedWords) {
-      const index = wordToIndexMap.get(word.text)!;
-      const normalizedValue = word.value / maxValue;
-      const isLargeWord = normalizedValue > 0.5; // Consider words with >50% of max value as "large"
-      
-      // Generate the initial position
-      let position = generatePositionForWord(word);
-      
-      // For large words, ensure minimum distance from other large words
-      if (isLargeWord && largeWordPositions.length > 0) {
-        // Calculate font size for this word
-        const fontSize = fontSizes.get(word.text) || MIN_FONT_SIZE;
-        
-        // Try repositioning up to 5 times to avoid overlaps
-        for (let attempts = 0; attempts < 5; attempts++) {
-          let tooClose = false;
-          
-          // Check distance to other large words
-          for (const existingWord of largeWordPositions) {
-            const combinedSize = fontSize + existingWord.size;
-            const minDistance = combinedSize * 0.8; // Minimum distance as a factor of combined size
-            
-            const distance = Math.sqrt(
-              Math.pow(position[0] - existingWord.position[0], 2) +
-              Math.pow(position[1] - existingWord.position[1], 2) +
-              Math.pow(position[2] - existingWord.position[2], 2)
-            );
-            
-            if (distance < minDistance) {
-              tooClose = true;
-              break;
-            }
-          }
-          
-          if (!tooClose) break; // Position is good
-          
-          // If too close, adjust the position by pushing further out
-          // Get a new position with slightly larger radius
-          position = generatePositionForWord(word, 1.2 + attempts * 0.3);
-        }
-        
-        // Add this word to the large word list
-        largeWordPositions.push({
-          position,
-          size: fontSize,
-          text: word.text
-        });
-      }
-      
-      // Store the final position
-      positions[index] = position;
-    }
-    
-    // Helper function to generate position for a single word
-    function generatePositionForWord(word: TagCloudWord, radiusMultiplier: number = 1): [number, number, number] {
-      const isVariant = word.variants && word.variants.size > 0;
-      const seed = hashStringToSeed(word.text);
-      
-      // Normalize word frequency to 0-1 range (FOR POSITIONING ONLY)
-      const frequencyFactor = word.value / maxValue;
-      // Invert and dampen the frequency factor (high frequency = further from center for large words)
-      const distanceFactor = Math.pow(1 - frequencyFactor, 0.5); 
-      
-      // For higher frequency words (larger ones), push them slightly further out
-      const highFrequencyFactor = frequencyFactor > 0.5 ? 0.3 + frequencyFactor * 0.4 : 0;
-      
-      if (isVariant) {
-        if (!canonicalPositions.has(word.text)) {
-          // Calculate base position for the canonical form
-          const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
-                          CLOUD_SIZE * 
-                          (0.2 + distanceFactor * 0.8 + highFrequencyFactor) * // Scale by frequency with extra factor for large words
-                          radiusMultiplier; // Apply any radius multiplier
-          
-          const goldenRatio = 1.618033988749895;
-          const i = seed % 500;
-          
-          const theta = i * goldenRatio * Math.PI * 2;
-          const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
-          
-          const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
-          
-          const x = baseRadius * Math.sin(phi) * Math.cos(theta);
-          const y = baseRadius * Math.cos(phi);
-          const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
-          
-          canonicalPositions.set(word.text, [x, y, z]);
-        }
-        
-        // Get the canonical position and add a small offset
-        const [baseX, baseY, baseZ] = canonicalPositions.get(word.text)!;
-        const variantOffset = 2; // Small offset for variants
-        const variantAngle = (seed % 360) * Math.PI / 180;
-        
-        return [
-          baseX + Math.cos(variantAngle) * variantOffset,
-          baseY + Math.sin(variantAngle) * variantOffset,
-          baseZ + (seed % 3 - 1) * variantOffset
-        ] as [number, number, number];
-      } else {
-        // For non-variant words, use the original positioning logic
-        const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
-                        CLOUD_SIZE * 
-                        (0.2 + distanceFactor * 0.8 + highFrequencyFactor) * // Scale by frequency with extra factor for large words
-                        radiusMultiplier; // Apply any radius multiplier
-        
-        const goldenRatio = 1.618033988749895;
-        const i = seed % 500;
-        
-        const theta = i * goldenRatio * Math.PI * 2;
-        const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
-        
-        const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
-        
-        const x = baseRadius * Math.sin(phi) * Math.cos(theta);
-        const y = baseRadius * Math.cos(phi);
-        const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
-        
-        return [x, y, z] as [number, number, number];
-      }
-    }
-    
-    // Clamp positions into a bounded shell so no word can sit near the camera
-    // (camera is at z=60; an unclamped word at z~45 fills the whole viewport)
-    const MAX_RADIUS = 28;
-    const MAX_DEPTH = 20;
+    const cache = positionCacheRef.current;
+    const maxValue = Math.max(...words.map(w => w.value), 1);
+
     const clampPosition = (pos: [number, number, number]): [number, number, number] => {
       let [x, y, z] = pos;
       if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
@@ -278,8 +151,95 @@ const TagCloud3D: React.FC<{
       return [x, y, z];
     };
 
-    // Return positions array, converting any null values to default position
-    return positions.map(pos => clampPosition(pos || [0, 0, 0]));
+    function generatePositionForWord(word: TagCloudWord, radiusMultiplier: number = 1): [number, number, number] {
+      const seed = hashStringToSeed(word.text);
+
+      // Normalize word frequency to 0-1 range (FOR POSITIONING ONLY)
+      const frequencyFactor = word.value / maxValue;
+      // Invert and dampen the frequency factor (high frequency = further from center for large words)
+      const distanceFactor = Math.pow(1 - frequencyFactor, 0.5);
+
+      // For higher frequency words (larger ones), push them slightly further out
+      const highFrequencyFactor = frequencyFactor > 0.5 ? 0.3 + frequencyFactor * 0.4 : 0;
+
+      const baseRadius = (((seed % 9973) / 9973) * 0.8 + 0.2) * // Random base 0.2-1.0
+                      CLOUD_SIZE *
+                      (0.2 + distanceFactor * 0.8 + highFrequencyFactor) * // Scale by frequency with extra factor for large words
+                      radiusMultiplier; // Apply any radius multiplier
+
+      const goldenRatio = 1.618033988749895;
+      const i = seed % 500;
+
+      const theta = i * goldenRatio * Math.PI * 2;
+      const phi = Math.acos(1 - 2 * ((seed % 997) / 997));
+
+      const zNoise = ((seed >> 5) % 997) / 997 - 0.5;
+
+      const x = baseRadius * Math.sin(phi) * Math.cos(theta);
+      const y = baseRadius * Math.cos(phi);
+      const z = (baseRadius * Math.sin(phi) * Math.sin(theta) + zNoise * 5) * DEPTH_FACTOR;
+
+      return [x, y, z];
+    }
+
+    // Process largest-first so a brand new large word can check against
+    // both already-placed large words (from the cache) and newly-placed
+    // ones earlier in this same pass.
+    const sortedWords = [...words].sort((a, b) => b.value - a.value);
+
+    const largeWordPositions: { position: [number, number, number]; size: number }[] = [];
+    sortedWords.forEach(word => {
+      const cached = cache.get(word.text);
+      if (cached && word.value / maxValue > 0.5) {
+        largeWordPositions.push({ position: cached, size: fontSizes.get(word.text) || MIN_FONT_SIZE });
+      }
+    });
+
+    sortedWords.forEach(word => {
+      if (cache.has(word.text)) return; // already placed - never moves again
+
+      const isLargeWord = word.value / maxValue > 0.5;
+      let position = generatePositionForWord(word);
+
+      // For large words, ensure minimum distance from other large words
+      if (isLargeWord && largeWordPositions.length > 0) {
+        const fontSize = fontSizes.get(word.text) || MIN_FONT_SIZE;
+
+        // Try repositioning up to 5 times to avoid overlaps
+        for (let attempts = 0; attempts < 5; attempts++) {
+          let tooClose = false;
+          for (const existing of largeWordPositions) {
+            const combinedSize = fontSize + existing.size;
+            const minDistance = combinedSize * 0.8; // Minimum distance as a factor of combined size
+            const distance = Math.sqrt(
+              Math.pow(position[0] - existing.position[0], 2) +
+              Math.pow(position[1] - existing.position[1], 2) +
+              Math.pow(position[2] - existing.position[2], 2)
+            );
+            if (distance < minDistance) {
+              tooClose = true;
+              break;
+            }
+          }
+          if (!tooClose) break; // Position is good
+          position = generatePositionForWord(word, 1.2 + attempts * 0.3);
+        }
+
+        largeWordPositions.push({ position, size: fontSize });
+      }
+
+      cache.set(word.text, clampPosition(position));
+    });
+
+    // Drop cache entries for words no longer present, so a long session
+    // doesn't accumulate every tag ever seen - a word that ages out and
+    // later comes back just gets a fresh spot rather than a stale one.
+    const currentTexts = new Set(words.map(w => w.text));
+    Array.from(cache.keys()).forEach(text => {
+      if (!currentTexts.has(text)) cache.delete(text);
+    });
+
+    return words.map(word => cache.get(word.text) || [0, 0, 0]);
   }, [hashStringToSeed, fontSizes]);
 
   // Positions computed synchronously with words + fontSizes (see note above)

@@ -35,7 +35,7 @@ const StarfieldTags: React.FC<{
     <group>
       {safeWords.map((word, i) => (
         <Word
-          key={`${word.text}-${i}`}
+          key={word.text}
           word={word}
           position={validPositions[i]}
           fontSize={fontSizes.get(word.text) ?? MIN_FONT_SIZE}

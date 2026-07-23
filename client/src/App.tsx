@@ -454,7 +454,7 @@ const App: React.FC = () => {
               key={win.wordData.text}
               data={{ wordData: win.wordData, newsItems: win.newsItems }}
               position={win.position}
-              clickedWordBias={win.wordData.biases && win.wordData.biases.length > 0 ? win.wordData.biases[0] : PoliticalBias.Unknown}
+              clickedWordBias={getDominantBias(win.wordData)}
               onClose={() => handleCloseNewsWindow(win.wordData.text)}
               onMove={pos => handleMoveNewsWindow(win.wordData.text, pos)}
             />
