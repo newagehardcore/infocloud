@@ -166,8 +166,15 @@ async function insertNewItems(items) {
 }
 
 async function findUnprocessed(limit) {
+  // Newest-published first, not insertion order: with 278 sources feeding
+  // ingestion far faster than the Groq-rate-limited labeling throughput can
+  // drain, FIFO order means the labeler perpetually chases an ever-growing
+  // backlog of old articles and the visible cloud never reflects current
+  // events. Prioritizing recent articles keeps the cloud fresh even though
+  // the backlog itself keeps growing (old unprocessed items just age out via
+  // cleanupOldItems instead of ever being labeled).
   const [rows] = await getPool().query(
-    `${SELECT_WITH_SOURCE} WHERE n.llm_processed = 0 ORDER BY n.id ASC LIMIT ?`,
+    `${SELECT_WITH_SOURCE} WHERE n.llm_processed = 0 ORDER BY n.published_at DESC LIMIT ?`,
     [limit]
   );
   return rows.map(rowToItem);
