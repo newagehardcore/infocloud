@@ -19,12 +19,6 @@ import TimeControls from './components/TimeControls';
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
 
-// Per-category cap applied only to the ALL view (see displayedWords below) -
-// keeps every category's own fair share of representation instead of a flat
-// global "top N by value" cutoff letting high-value categories crowd out
-// thin ones.
-const MAX_WORDS_PER_CATEGORY_ALL = 15;
-
 // Define Backend API Base URL - use relative URL to avoid hostname resolution issues
 // Same-origin '/api' in dev (CRA proxy → localhost:5001). For static hosting
 // (GitHub Pages), set REACT_APP_API_URL to the public backend origin at build time.
@@ -279,30 +273,10 @@ const App: React.FC = () => {
       const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
       // Check if the word's categories array includes the selected category
       filtered = filtered.filter(word => word.categories && word.categories.includes(upperCaseCategory as NewsCategory));
-    } else {
-      // The backend's ALL set is a union of each category's own top-150 (by
-      // design, so a single high-volume category like POLITICS can't starve
-      // thin ones) - which means ALL ends up far denser than any single
-      // category view, and that's the crowded/messy look. A flat "top N by
-      // value globally" cap (tried first) made this worse in a different
-      // way: high-value categories like SPORTS/NEWS/POLITICS dominate raw
-      // value, so thin categories like AI/ARTS/SPACE got crushed to 1-2
-      // words instead of the ~15-40 they show on their own category view -
-      // the "ALL feels less rich than NEWS or POLITICS alone" problem.
-      // Mirror the backend's OWN fix instead: cap PER CATEGORY (top
-      // MAX_WORDS_PER_CATEGORY_ALL by value) and union the keep-lists, so
-      // every category gets its fair, undiluted share of the ALL view
-      // regardless of how its raw values compare to other categories.
-      const keepTexts = new Set<string>();
-      Object.values(NewsCategory).forEach(cat => {
-        filtered
-          .filter(word => word.categories && word.categories.includes(cat))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, MAX_WORDS_PER_CATEGORY_ALL)
-          .forEach(word => keepTexts.add(word.text));
-      });
-      filtered = filtered.filter(word => keepTexts.has(word.text));
     }
+    // ALL is intentionally left uncapped here - two different client-side
+    // caps were tried (flat top-N-by-value, then a per-category top-N) and
+    // both made ALL feel sparser/worse than showing the backend's full set.
 
     console.log(`Displaying ${filtered.length} words after filtering.`);
     return filtered;

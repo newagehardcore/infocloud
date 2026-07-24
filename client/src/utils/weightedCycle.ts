@@ -73,3 +73,40 @@ export function getWeightedCyclePosition(
 
   return { current: currentSeg.key, next: nextSeg.key, blendT };
 }
+
+// Font cycling needs a different timing shape than the color blend above:
+// a long, fixed dwell on each font with only a SHORT fade between them,
+// rather than a fade proportional to how much of the cycle that key
+// occupies (which made the dominant type's transition itself take several
+// seconds). Cycles through `keys` in the given order, equal time each,
+// holding fully opaque for `dwellSeconds` then fading to the next key over
+// `fadeSeconds`.
+export function getFixedDwellCyclePosition(
+  keys: string[],
+  time: number,
+  dwellSeconds: number,
+  fadeSeconds: number,
+  phaseOffset: number
+): WeightedCyclePosition {
+  if (keys.length === 0) {
+    return { current: '', next: '', blendT: 0 };
+  }
+  if (keys.length === 1) {
+    return { current: keys[0], next: keys[0], blendT: 0 };
+  }
+
+  const slotDuration = dwellSeconds + fadeSeconds;
+  const cycleDuration = slotDuration * keys.length;
+  const t = (((time + phaseOffset * cycleDuration) % cycleDuration) + cycleDuration) % cycleDuration;
+  const slotIndex = Math.floor(t / slotDuration);
+  const localT = t - slotIndex * slotDuration;
+
+  const current = keys[slotIndex];
+  const next = keys[(slotIndex + 1) % keys.length];
+
+  if (localT < dwellSeconds) {
+    return { current, next, blendT: 0 };
+  }
+  const blendT = Math.min(1, Math.max(0, (localT - dwellSeconds) / fadeSeconds));
+  return { current, next, blendT };
+}

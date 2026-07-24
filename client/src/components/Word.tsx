@@ -6,13 +6,17 @@ import { Text } from '@react-three/drei';
 import { getTagFont } from '../utils/fonts';
 import { getDominantSourceType, getDominantBias } from '../utils/dominance';
 import { getBiasColorHex } from '../utils/colors';
-import { getWeightedCyclePosition, hashStringToUnit } from '../utils/weightedCycle';
+import { getWeightedCyclePosition, getFixedDwellCyclePosition, hashStringToUnit } from '../utils/weightedCycle';
 import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
 
-// How long one full cycle takes for a word that spans multiple biases/types.
-// Bias color and type font use independent phase offsets (below) so they
-// don't visibly change in lockstep, even at the same cycle length.
-const CYCLE_DURATION_SECONDS = 5;
+// Bias color cycle: proportional weighted blend (see weightedCycle.ts).
+const BIAS_CYCLE_DURATION_SECONDS = 5;
+// Type font cycle: long fixed dwell per font with only a short fade between
+// - a fade proportional to segment size (like the color cycle) made the
+// dominant type's own transition take several seconds, which read as
+// sluggish/stuttery rather than a clean cut-free swap.
+const TYPE_DWELL_SECONDS = 10;
+const TYPE_FADE_SECONDS = 1.5;
 
 extend({ SphereGeometry, MeshBasicMaterial });
 
@@ -182,7 +186,7 @@ export const Word = ({
     // React `color` prop) keeps this off the render path entirely, and
     // reusing blendColorRef/nextColorRef avoids allocating new Color
     // objects every frame across potentially hundreds of words.
-    const biasPos = getWeightedCyclePosition(word.biasWeights, dominantBias, time, CYCLE_DURATION_SECONDS, biasPhaseOffset);
+    const biasPos = getWeightedCyclePosition(word.biasWeights, dominantBias, time, BIAS_CYCLE_DURATION_SECONDS, biasPhaseOffset);
     blendColorRef.current.set(getBiasColorHex(biasPos.current as PoliticalBias));
     if (biasPos.blendT > 0) {
       nextColorRef.current.set(getBiasColorHex(biasPos.next as PoliticalBias));
@@ -196,7 +200,7 @@ export const Word = ({
     // represented - opacity-only (see presentTypes above for why fonts
     // themselves are never reassigned after mount).
     if (presentTypes.length > 1) {
-      const typePos = getWeightedCyclePosition(word.typeWeights, dominantSourceType, time, CYCLE_DURATION_SECONDS, typePhaseOffset);
+      const typePos = getFixedDwellCyclePosition(presentTypes, time, TYPE_DWELL_SECONDS, TYPE_FADE_SECONDS, typePhaseOffset);
       presentTypes.forEach(type => {
         const mesh = typeMeshRefs.current.get(type);
         if (!mesh) return;
