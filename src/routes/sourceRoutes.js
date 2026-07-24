@@ -218,17 +218,21 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
 
-        // --- Validation --- 
-        const allowedFields = ['name', 'category', 'bias', 'type'];
+        // --- Validation ---
+        const allowedFields = ['name', 'category', 'bias', 'type', 'enabled'];
         const receivedFields = Object.keys(updates);
         const invalidFields = receivedFields.filter(field => !allowedFields.includes(field));
-        
+
         if (invalidFields.length > 0) {
-             return res.status(400).json({ message: `Invalid fields provided: ${invalidFields.join(', ')}. Only name, category, bias, type can be updated.` });
+             return res.status(400).json({ message: `Invalid fields provided: ${invalidFields.join(', ')}. Only name, category, bias, type, enabled can be updated.` });
         }
-        
+
         if (Object.keys(updates).length === 0) {
-            return res.status(400).json({ message: "No update fields provided (name, category, bias, or type)." });
+            return res.status(400).json({ message: "No update fields provided (name, category, bias, type, or enabled)." });
+        }
+
+        if (updates.enabled !== undefined && typeof updates.enabled !== 'boolean') {
+            return res.status(400).json({ message: "enabled must be a boolean." });
         }
 
         if (updates.bias && !BIAS_CATEGORIES.includes(updates.bias)) {

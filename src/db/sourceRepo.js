@@ -61,6 +61,7 @@ async function updateSource(uuid, updates) {
   if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category.toUpperCase()); }
   if (updates.bias !== undefined) { fields.push('bias = ?'); values.push(updates.bias.toUpperCase()); }
   if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type.toUpperCase()); }
+  if (updates.enabled !== undefined) { fields.push('enabled = ?'); values.push(updates.enabled ? 1 : 0); }
   if (fields.length === 0) return getSourceByUuid(uuid);
 
   values.push(uuid);

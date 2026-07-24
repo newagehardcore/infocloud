@@ -8,6 +8,7 @@
  * hosting platform's request-timeout behavior isn't documented.
  */
 const Parser = require('rss-parser');
+const axios = require('axios');
 const he = require('he');
 const sourceRepo = require('../db/sourceRepo');
 const newsItemRepo = require('../db/newsItemRepo');
@@ -16,12 +17,19 @@ const { PoliticalBias } = require('../types');
 const { stripHtml } = require('../utils/textUtils');
 
 const MAX_DESC_LENGTH = 500;
-const FEED_TIMEOUT_MS = 10000;
+const FEED_TIMEOUT_MS = 15000; // Washington Post's feed regularly takes ~10.3s, just over the old 10s ceiling
+const FEED_USER_AGENT = 'InfocloudBot/1.0 (+https://github.com/newagehardcore/infocloud)';
 
-const parser = new Parser({
-  timeout: FEED_TIMEOUT_MS,
-  headers: { 'User-Agent': 'InfocloudBot/1.0 (+https://github.com/newagehardcore/infocloud)' }
-});
+// rss-parser's own parseURL() fetches with raw http(s).get and never handles
+// Content-Encoding at all (node_modules/rss-parser/lib/parser.js) - a server
+// that gzips its response (some do unconditionally, ignoring Accept-Encoding)
+// hands back compressed bytes that get treated as literal XML text, failing
+// with "Non-whitespace before first tag" even though the feed is perfectly
+// valid (confirmed on Singularity Hub, Traditional Building, UN News).
+// axios decompresses gzip/deflate/br transparently, so fetch the raw text
+// ourselves and only use rss-parser for the XML -> object parsing it's
+// actually good at.
+const parser = new Parser();
 
 function cleanContent(html) {
   if (!html) return '';
@@ -55,7 +63,13 @@ function normalizeEntry(entry, source) {
 
 async function pollSource(source) {
   try {
-    const feed = await parser.parseURL(source.url);
+    const response = await axios.get(source.url, {
+      headers: { 'User-Agent': FEED_USER_AGENT },
+      timeout: FEED_TIMEOUT_MS,
+      responseType: 'text',
+      maxRedirects: 5
+    });
+    const feed = await parser.parseString(response.data);
     const items = (feed.items || [])
       .map(entry => normalizeEntry(entry, source))
       .filter(Boolean);
