@@ -4,6 +4,7 @@ import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { NewsCategory, TagCloudWord, PoliticalBias } from '../types';
 import { throttle, getAdaptiveRenderingSettings, PerformanceMonitor } from '../utils/performance';
+import { getBiasColorHex } from '../utils/colors';
 import './TagCloud3D.css';
 import StarfieldTags from './StarfieldTags';
 
@@ -79,25 +80,10 @@ const TagCloud3D: React.FC<{
   newWords: Set<string>;
 }> = ({ words, onWordClick, selectedWord, newWords }) => {
   const [renderSettings, setRenderSettings] = useState(getAdaptiveRenderingSettings());
-  
-  // Get color based on political bias
-  const getBiasColor = useCallback((bias: PoliticalBias): string => {
-    switch (bias) {
-      case PoliticalBias.Left:
-        return '#0000FF'; // Bright blue
-      case PoliticalBias.Liberal:
-        return '#6495ED'; // Light blue
-      case PoliticalBias.Centrist:
-        return '#800080'; // Purple
-      case PoliticalBias.Conservative:
-        return '#FFB6C1'; // Light red
-      case PoliticalBias.Right:
-        return '#FF0000'; // Bright red
-      case PoliticalBias.Unknown:
-      default:
-        return '#808080'; // Grey
-    }
-  }, []);
+
+  // Shared with Word.tsx, which also uses it per-frame to cycle a word's
+  // color across every bias it's actually represented in.
+  const getBiasColor = useCallback((bias: PoliticalBias): string => getBiasColorHex(bias), []);
   
   // Calculate all font sizes from each word's value relative to the local
   // max, synchronously with the words. (useMemo, not effect state:

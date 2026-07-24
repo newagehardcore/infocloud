@@ -1,11 +1,18 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree, ThreeEvent, extend } from '@react-three/fiber';
-import { TagCloudWord, SourceType } from '../types';
+import { TagCloudWord, SourceType, PoliticalBias } from '../types';
 import * as THREE from 'three';
 import { Text } from '@react-three/drei';
 import { getTagFont } from '../utils/fonts';
-import { getDominantSourceType } from '../utils/dominance';
+import { getDominantSourceType, getDominantBias } from '../utils/dominance';
+import { getBiasColorHex } from '../utils/colors';
+import { getWeightedCyclePosition, hashStringToUnit } from '../utils/weightedCycle';
 import { Group, Mesh, SphereGeometry, MeshBasicMaterial } from 'three';
+
+// How long one full cycle takes for a word that spans multiple biases/types.
+// Bias color and type font use independent phase offsets (below) so they
+// don't visibly change in lockstep, even at the same cycle length.
+const CYCLE_DURATION_SECONDS = 5;
 
 extend({ SphereGeometry, MeshBasicMaterial });
 
@@ -90,7 +97,32 @@ export const Word = ({
       freqZ: 0.25 + rand(15) * 0.1
     };
   }, [word.text]);
-  
+
+  // Fallback bias/type when a word predates biasWeights/typeWeights (older
+  // cache entries), and the phase offsets that keep this word's cycles from
+  // moving in lockstep with every other word's.
+  const dominantBias = useMemo(() => getDominantBias(word), [word]);
+  const biasPhaseOffset = useMemo(() => hashStringToUnit(word.text, 17), [word.text]);
+  const typePhaseOffset = useMemo(() => hashStringToUnit(word.text, 53), [word.text]);
+
+  // Only worth the cost of a second overlapping Text mesh (see render below)
+  // when there's actually more than one type to crossfade between.
+  const hasMultipleTypes = useMemo(() => {
+    const present = word.typeWeights
+      ? Object.values(word.typeWeights).filter(w => w > 0).length
+      : (word.types ? word.types.length : 0);
+    return present > 1;
+  }, [word.typeWeights, word.types]);
+
+  // The two fonts currently being crossfaded (or just one, repeated, when
+  // there's nothing to blend). Changing drei's `font` prop reloads glyph
+  // geometry, so this is plain React state updated only when the active
+  // segment pair actually changes (see useFrame below) - not every frame.
+  const [typeFontPair, setTypeFontPair] = useState<[SourceType, SourceType]>([dominantSourceType, dominantSourceType]);
+  const primaryTextRef = useRef<any>(null);
+  const secondaryTextRef = useRef<any>(null);
+  const lastTypePairRef = useRef<[SourceType, SourceType]>([dominantSourceType, dominantSourceType]);
+
   // Animation for new words
   useEffect(() => {
     if (ref.current && isNew) {
@@ -133,6 +165,38 @@ export const Word = ({
       initialPosition[1] + Math.cos(time * floatParams.freqY + floatParams.phaseY) * floatAmount,
       initialPosition[2] + Math.sin(time * floatParams.freqZ + floatParams.phaseZ) * floatAmount
     );
+
+    // Continuous bias-color cycling: blend across every bias this word is
+    // actually represented in, weighted so the most heavily-covered one
+    // dominates the cycle. Mutating troika's `.color` directly (not the
+    // React `color` prop) keeps this off the render path entirely.
+    const biasPos = getWeightedCyclePosition(word.biasWeights, dominantBias, time, CYCLE_DURATION_SECONDS, biasPhaseOffset);
+    const currentBiasHex = getBiasColorHex(biasPos.current as PoliticalBias);
+    const blendedBiasColor = biasPos.blendT === 0
+      ? currentBiasHex
+      : new THREE.Color(currentBiasHex).lerp(
+          new THREE.Color(getBiasColorHex(biasPos.next as PoliticalBias)), biasPos.blendT
+        );
+    if (primaryTextRef.current) primaryTextRef.current.color = blendedBiasColor;
+    if (secondaryTextRef.current) secondaryTextRef.current.color = blendedBiasColor;
+
+    // Font crossfade between source types, only when more than one is
+    // represented. `fillOpacity` is a cheap per-frame uniform (unlike the
+    // `font` prop, which reloads glyph geometry) - so this drives the
+    // dissolve, while the actual font ASSIGNED to each of the two meshes
+    // only updates (via React state) when the active segment pair changes.
+    if (hasMultipleTypes) {
+      const typePos = getWeightedCyclePosition(word.typeWeights, dominantSourceType, time, CYCLE_DURATION_SECONDS, typePhaseOffset);
+      const pairKey = lastTypePairRef.current;
+      if (pairKey[0] !== typePos.current || pairKey[1] !== typePos.next) {
+        lastTypePairRef.current = [typePos.current as SourceType, typePos.next as SourceType];
+        setTypeFontPair([typePos.current as SourceType, typePos.next as SourceType]);
+      }
+      if (primaryTextRef.current) primaryTextRef.current.fillOpacity = 1 - typePos.blendT;
+      if (secondaryTextRef.current) secondaryTextRef.current.fillOpacity = typePos.blendT;
+    } else if (primaryTextRef.current) {
+      primaryTextRef.current.fillOpacity = 1;
+    }
   });
 
   const handleClick = (e: ThreeEvent<PointerEvent>) => {
@@ -159,9 +223,10 @@ export const Word = ({
       position={initialPosition}
     >
       <Text
+        ref={primaryTextRef}
         fontSize={BASE_TEXT_SIZE}
         color={color}
-        font={getTagFont(dominantSourceType)}
+        font={getTagFont(typeFontPair[0])}
         anchorX="center"
         anchorY="middle"
         outlineWidth={isSelected ? 0.02 : 0}
@@ -175,6 +240,28 @@ export const Word = ({
       >
         {word.text}
       </Text>
+      {/* Only mounted while this word actually spans >1 source type - the
+          crossfade partner mesh. raycast disabled so it never steals clicks
+          from the primary mesh while both are partially visible mid-fade. */}
+      {hasMultipleTypes && (
+        <Text
+          ref={secondaryTextRef}
+          fontSize={BASE_TEXT_SIZE}
+          color={color}
+          font={getTagFont(typeFontPair[1])}
+          fillOpacity={0}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={isSelected ? 0.02 : 0}
+          outlineColor="#fff"
+          letterSpacing={-0.03}
+          fontWeight={600}
+          raycast={() => null}
+          characters="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?&@#$%()[]{}"
+        >
+          {word.text}
+        </Text>
+      )}
       {isNew && !useSimpleRendering && (
         <mesh>
           {/* Fixed base radius: this mesh is a child of the group, so it's
