@@ -38,7 +38,9 @@ function getTitleCaseBias(uppercaseBias) {
 }
 
 function normalizeEntry(entry, source) {
-  const url = entry.link;
+  // Some Atom feeds (e.g. Jacobin) only carry <id>, no per-entry <link> -
+  // when the id itself is a URL it's the article link in practice.
+  const url = entry.link || (/^https?:\/\//.test(entry.id || '') ? entry.id : null);
   if (!url || !entry.title) return null;
   const publishedAt = entry.isoDate ? new Date(entry.isoDate) : (entry.pubDate ? new Date(entry.pubDate) : new Date());
   return {
