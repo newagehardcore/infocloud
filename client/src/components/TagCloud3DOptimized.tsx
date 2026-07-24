@@ -10,15 +10,24 @@ import StarfieldTags from './StarfieldTags';
 // Define min/max size constants
 const MIN_FONT_SIZE = 0.5; // Adjusted slightly larger minimum
 const MAX_FONT_SIZE = 4.5;
-// Size is normalized against the LOCAL max value of the currently displayed
+// Size is normalized against the LOCAL min/max of the currently displayed
 // set (i.e. within whatever category/bias/type filter is active), not a
 // fixed global anchor - so filtering into a thin category still shows a
 // clear "biggest word" instead of everything looking uniformly small. This
 // is deliberately NOT rank-based though: it compares each word's actual
-// value to the local max, so two nearly-tied words still render at nearly
+// value to the local range, so two nearly-tied words still render at nearly
 // the same size, rather than the old rank scheme where tiny reorderings of
 // near-ties produced big, arbitrary size swings.
-const VALUE_SCALE_EXPONENT = 2; // >1 keeps the "few big hero words" look
+//
+// Interpolation is in LOG space (word values are power-law distributed -
+// the ALL view's #1 word can be 2-3x the runner-up and 25-100x the tail).
+// Tuned against a real production snapshot (see local-dev-mock/): once the
+// ALL view is capped to its top words (MAX_DISPLAYED_WORDS_ALL in App.tsx)
+// rather than the full per-category union, exponent 2.2 gives a clearly
+// separated hero -> large -> medium -> small taper - low enough that the
+// lower half isn't crushed flat to MIN_FONT_SIZE, high enough that more
+// than a handful of words don't all read as equally "big".
+const VALUE_SCALE_EXPONENT = 2.2;
 
 // Watchdog inside the Canvas: r3f's "always" frameloop can die on initial
 // mount (rAF chain breaks); invalidate() restarts it if no frame has run recently.
@@ -101,11 +110,17 @@ const TagCloud3D: React.FC<{
     const newFontSizes = new Map<string, number>();
     if (words.length === 0) return newFontSizes;
 
-    const localMax = Math.max(...words.map(w => w.value), 1e-6);
+    const values = words.map(w => Math.max(w.value, 1e-6));
+    const localMax = Math.max(...values);
+    const localMin = Math.min(...values);
+    const logMax = Math.log(localMax);
+    const logMin = Math.log(localMin);
+    const logRange = logMax - logMin;
 
     words.forEach(word => {
-      const ratio = Math.min(1, Math.max(0, word.value / localMax));
-      const fontSize = MIN_FONT_SIZE + Math.pow(ratio, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
+      const value = Math.max(word.value, 1e-6);
+      const t = logRange > 0 ? Math.min(1, Math.max(0, (Math.log(value) - logMin) / logRange)) : 1;
+      const fontSize = MIN_FONT_SIZE + Math.pow(t, VALUE_SCALE_EXPONENT) * (MAX_FONT_SIZE - MIN_FONT_SIZE);
       newFontSizes.set(word.text, fontSize);
     });
     return newFontSizes;
@@ -304,8 +319,8 @@ const TagCloud3D: React.FC<{
   return (
     <Canvas 
       style={{ width: '100%', height: '100%', background: 'transparent' }}
-      camera={{ 
-        position: [0, 0, 60],
+      camera={{
+        position: [0, 0, 48],
         fov: 45,
         near: 0.1,
         far: 1000

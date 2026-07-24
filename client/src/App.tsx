@@ -19,6 +19,11 @@ import TimeControls from './components/TimeControls';
 // Flag to show the debug panel - true for development, false for production
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development' || true; // Set to true to always show it during testing
 
+// The ALL view is a union of every category's own top-150 words (see backend
+// comment in wordProcessingService.js), so it's much denser than any single
+// category. Cap what's actually rendered there to the top words by value.
+const MAX_DISPLAYED_WORDS_ALL = 180;
+
 // Define Backend API Base URL - use relative URL to avoid hostname resolution issues
 // Same-origin '/api' in dev (CRA proxy → localhost:5001). For static hosting
 // (GitHub Pages), set REACT_APP_API_URL to the public backend origin at build time.
@@ -273,6 +278,14 @@ const App: React.FC = () => {
       const upperCaseCategory = selectedCategory.toUpperCase(); // Match backend enum case
       // Check if the word's categories array includes the selected category
       filtered = filtered.filter(word => word.categories && word.categories.includes(upperCaseCategory as NewsCategory));
+    } else {
+      // The backend's ALL set is a union of each category's own top-150 (by
+      // design, so a single high-volume category like POLITICS can't starve
+      // thin ones) - which means ALL ends up far denser than any single
+      // category view, and that's the crowded/messy look. Cap it here,
+      // client-side, to the top words by value globally - the per-category
+      // views are untouched.
+      filtered = [...filtered].sort((a, b) => b.value - a.value).slice(0, MAX_DISPLAYED_WORDS_ALL);
     }
 
     console.log(`Displaying ${filtered.length} words after filtering.`);
