@@ -43,19 +43,17 @@ function recencyWeight(publishedAt) {
 }
 
 /**
- * Diminishing-returns factor for the Nth mention of a keyword from the SAME
- * source (0-indexed prior count from this source). Applied uniformly to
- * every keyword/source pair - not a special case for any one source/category.
- * A story covered by many DIFFERENT outlets still accumulates full weight
- * per outlet (genuine cross-media importance), but one prolific outlet
- * publishing many similar articles about its own beat (e.g. a sports wire
- * running a dozen game recaps) can't single-handedly inflate a keyword's
- * weight past what broader, multi-source coverage would produce - the 2nd
- * mention from the same source counts ~71%, the 4th ~50%, the 10th ~32%, etc.
+ * Hard cap on how many mentions of a keyword from the SAME source count
+ * toward its weight. Applied uniformly to every keyword/source pair - not a
+ * special case for any one source/category. A story covered by many
+ * DIFFERENT outlets still accumulates full weight per outlet (genuine
+ * cross-media importance), but one prolific outlet publishing many similar
+ * articles about its own beat (e.g. a sports wire running a dozen game
+ * recaps) can't single-handedly inflate a keyword's weight - past the cap,
+ * further mentions from that source still count toward `count`/`items` (it
+ * did really publish that many), they just add zero additional weight.
  */
-function sourceDiminishingFactor(priorMentionsFromThisSource) {
-  return 1 / Math.sqrt(priorMentionsFromThisSource + 1);
-}
+const MAX_WEIGHTED_MENTIONS_PER_SOURCE = 2;
 
 // --- NEW Single Keyword Cache (Map-based) ---
 let keywordCache = {
@@ -651,7 +649,7 @@ async function aggregateKeywordsForCloud() {
               if (tempKeywordMap.has(validatedKeyword)) {
                 const entry = tempKeywordMap.get(validatedKeyword);
                 const priorFromThisSource = entry.sourceMentionCounts.get(itemSourceId) || 0;
-                const mentionWeight = rawMentionWeight * sourceDiminishingFactor(priorFromThisSource);
+                const mentionWeight = priorFromThisSource < MAX_WEIGHTED_MENTIONS_PER_SOURCE ? rawMentionWeight : 0;
                 entry.sourceMentionCounts.set(itemSourceId, priorFromThisSource + 1);
 
                 entry.count += 1;
