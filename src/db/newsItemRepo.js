@@ -165,19 +165,79 @@ async function insertNewItems(items) {
   return inserted;
 }
 
+// How many candidate unprocessed rows to pull before round-robining, per
+// findUnprocessed call below. Generous relative to a typical `limit`
+// (ARTICLES_PER_TICK) so every bias/source bucket has real material to
+// round-robin over, not just whatever a single high-frequency source
+// dumped in the last few minutes.
+const UNPROCESSED_CANDIDATE_MULTIPLIER = 50;
+const UNPROCESSED_CANDIDATE_MIN = 2000;
+
 async function findUnprocessed(limit) {
-  // Newest-published first, not insertion order: with 278 sources feeding
-  // ingestion far faster than the Groq-rate-limited labeling throughput can
-  // drain, FIFO order means the labeler perpetually chases an ever-growing
-  // backlog of old articles and the visible cloud never reflects current
-  // events. Prioritizing recent articles keeps the cloud fresh even though
-  // the backlog itself keeps growing (old unprocessed items just age out via
-  // cleanupOldItems instead of ever being labeled).
+  // With 278+ sources feeding ingestion far faster than the Groq-rate-limited
+  // labeling throughput can drain, a plain "newest published first" query
+  // (the previous approach) always hands the whole batch to whichever bias
+  // happens to have the most high-frequency publishers - a handful of
+  // wire-service-style Corporate/Centrist feeds constantly have something
+  // newer than a low-volume outlet like Democracy Now, so the low-volume
+  // outlet's articles get bumped every single tick and eventually age out of
+  // news_items entirely (via cleanupOldItems) without ever being labeled.
+  //
+  // Fix: round-robin the labeling budget two levels deep - across bias
+  // buckets first (so every bias gets a fair turn regardless of how many
+  // sources or articles it has backlogged), then across sources within that
+  // bias (so one prolific source can't eat its own bias's whole share).
+  // Recency is still what's picked at the leaf (each source's newest
+  // unprocessed item), so freshness is preserved for whatever gets chosen -
+  // it's no longer the only axis that decides who gets chosen at all.
+  // Entirely stateless: recomputed from the current backlog snapshot every
+  // call, no new columns/schema needed.
+  const candidatePoolSize = Math.max(limit * UNPROCESSED_CANDIDATE_MULTIPLIER, UNPROCESSED_CANDIDATE_MIN);
   const [rows] = await getPool().query(
     `${SELECT_WITH_SOURCE} WHERE n.llm_processed = 0 ORDER BY n.published_at DESC LIMIT ?`,
-    [limit]
+    [candidatePoolSize]
   );
-  return rows.map(rowToItem);
+  const items = rows.map(rowToItem);
+
+  // bias -> source_id -> queue of items, newest-first (already ordered by
+  // the query above, so no re-sort needed within a queue).
+  const byBias = new Map();
+  for (const item of items) {
+    const bias = item.bias || 'Unknown';
+    if (!byBias.has(bias)) byBias.set(bias, new Map());
+    const bySource = byBias.get(bias);
+    if (!bySource.has(item.source_id)) bySource.set(item.source_id, []);
+    bySource.get(item.source_id).push(item);
+  }
+
+  // Fixed cycle order so no bias is structurally favored just by insertion
+  // order into the Map; a bias with nothing backlogged is simply absent.
+  const BIAS_CYCLE_ORDER = ['Left', 'Liberal', 'Centrist', 'Conservative', 'Right', 'Unknown'];
+  const activeBiases = BIAS_CYCLE_ORDER.filter(b => byBias.has(b));
+  // Per bias, a rotating list of its source ids - shift the front off, pick
+  // one item from it, push it back to the end if it still has items left.
+  const sourceRotation = new Map(activeBiases.map(bias => [bias, Array.from(byBias.get(bias).keys())]));
+
+  const selected = [];
+  let madeProgressThisPass = true;
+  while (selected.length < limit && madeProgressThisPass) {
+    madeProgressThisPass = false;
+    for (const bias of activeBiases) {
+      if (selected.length >= limit) break;
+      const sources = sourceRotation.get(bias);
+      if (sources.length === 0) continue;
+      const sourceId = sources.shift();
+      const queue = byBias.get(bias).get(sourceId);
+      const next = queue.shift();
+      if (next) {
+        selected.push(next);
+        madeProgressThisPass = true;
+      }
+      if (queue.length > 0) sources.push(sourceId);
+    }
+  }
+
+  return selected;
 }
 
 // Applies LLM results back onto a batch of items (keywords, blended bias, category, llmProcessed=true)
